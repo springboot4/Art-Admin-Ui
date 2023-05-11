@@ -160,6 +160,9 @@ export const useUserStore = defineStore({
         this.setRoleList([])
       }
 
+      const permissionStore = usePermissionStore()
+      permissionStore.changePermissionCode()
+
       //保存用户信息
       const sysUser = userInfo.sysUser
 

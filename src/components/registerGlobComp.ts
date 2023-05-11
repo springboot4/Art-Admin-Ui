@@ -25,6 +25,7 @@ import {
   DatePicker,
   List,
   Avatar,
+  Descriptions,
 } from 'ant-design-vue'
 import VXETable from 'vxe-table'
 import 'vxe-table/lib/style.css'
@@ -55,5 +56,6 @@ export function registerGlobComp(app: App) {
     .use(DatePicker)
     .use(List)
     .use(Avatar)
+    .use(Descriptions)
     .use(VXETable)
 }

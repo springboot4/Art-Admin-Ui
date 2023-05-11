@@ -136,14 +136,15 @@ const transform: AxiosTransform = {
    * @description: 请求拦截器处理
    */
   requestInterceptors: (config, options) => {
-    // 请求之前处理config
+    // 请求头携带token
     const token = getToken()
     if (token && (config as Recordable)?.requestOptions?.withToken !== false) {
-      // jwt token
       ;(config as Recordable).headers.Authorization = options.authenticationScheme
         ? `${options.authenticationScheme} ${token}`
         : token
     }
+
+    // 请求头携带租户id
     const tenant = getTenant()
     if (tenant) {
       ;(config as Recordable).headers['tenant-id'] = tenant

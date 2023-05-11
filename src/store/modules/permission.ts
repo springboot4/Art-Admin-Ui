@@ -85,6 +85,10 @@ export const usePermissionStore = defineStore({
       this.backMenuList = []
       this.lastBuildMenuTime = 0
     },
+    changePermissionCode() {
+      const userStore = useUserStore()
+      this.setPermCodeList(userStore.getRoleList)
+    },
     async buildRoutesAction(): Promise<AppRouteRecordRaw[]> {
       const { t } = useI18n()
       const userStore = useUserStore()
