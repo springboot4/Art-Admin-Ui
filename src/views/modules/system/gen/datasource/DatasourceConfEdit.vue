@@ -42,7 +42,7 @@
         />
       </a-form-item>
       <a-form-item label="密码" name="password">
-        <a-input
+        <a-input-password
           v-model:value="formData.password"
           :disabled="showable"
           placeholder="请输入密码"

@@ -16,7 +16,7 @@
             <a-input v-model:value="formData.email" placeholder="请输入电子邮件" allow-clear />
           </a-form-item>
           <a-form-item label="登录密码" name="password">
-            <a-input v-model:value="formData.password" placeholder="请输入登录密码" allow-clear />
+            <StrengthMeter placeholder="请输入登录密码" v-model:value="formData.password" />
           </a-form-item>
           <a-form-item label="个人简介" name="description">
             <a-textarea
@@ -64,16 +64,19 @@
   import headerImg from '/@/assets/images/header.jpg'
   import { uploadApi } from '/@/api/base/upload'
   import { cloneDeep } from 'lodash-es'
+  import StrengthMeter from '/@/components/StrengthMeter/src/StrengthMeter.vue'
+
+  const { labelCol, wrapperCol } = useFormEdit()
+  const rules = reactive({})
 
   let sexList = ref([])
   useDict().dictItemsByType('sex_type', sexList.value)
 
-  let userStore = useUserStore()
+  const userStore = useUserStore()
 
-  let formRef = ref()
+  const formRef = ref()
   const formData = ref<UserInfo>(cloneDeep(userStore.getUserInfo))
-  const rules = reactive({})
-  const { labelCol, wrapperCol } = useFormEdit()
+  formData.value.avatar = undefined
 
   const avatar = computed(() => {
     const { avatar } = userStore.getUserInfo
