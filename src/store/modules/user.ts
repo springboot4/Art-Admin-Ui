@@ -175,6 +175,8 @@ export const useUserStore = defineStore({
         sex: sysUser.sex,
         email: sysUser.email,
         mobile: sysUser.mobile,
+        avatar: '',
+        password: '',
       }
 
       urlToBase64(`${VITE_GLOB_API_URL}/${sysUser.avatar}`).then((base64) => {
