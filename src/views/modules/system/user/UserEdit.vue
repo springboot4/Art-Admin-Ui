@@ -49,14 +49,6 @@
           </a-select-option>
         </a-select>
       </a-form-item>
-      <a-form-item label="描述" name="description">
-        <a-input
-          v-model:value="formData.description"
-          :disabled="showable"
-          placeholder="请输入描述"
-          allow-clear
-        />
-      </a-form-item>
       <a-form-item label="角色" name="roleId">
         <a-select
           :disabled="showable"
@@ -93,6 +85,20 @@
             {{ title }}
           </template>
         </a-tree>
+      </a-form-item>
+      <a-form-item label="状态" name="status">
+        <a-radio-group v-model:value="formData.status" button-style="solid" :disabled="showable">
+          <a-radio-button value="1">启用</a-radio-button>
+          <a-radio-button value="0">禁用</a-radio-button>
+        </a-radio-group>
+      </a-form-item>
+      <a-form-item label="描述" name="description">
+        <a-textarea
+          v-model:value="formData.description"
+          :disabled="showable"
+          placeholder="请输入描述"
+          allow-clear
+        />
       </a-form-item>
     </a-form>
     <template #footer>
@@ -135,6 +141,7 @@
   const rules = reactive({
     username: [{ required: true, message: '请输入用户名', trigger: ['blur', 'change'] }],
     deptId: [{ required: true, message: '请输入部门ID', trigger: ['blur', 'change'] }],
+    status: [{ required: true, message: '请选择是否启用', trigger: ['blur', 'change'] }],
     email: [
       { required: true, message: '请输入邮箱', trigger: ['blur', 'change'] },
       {
