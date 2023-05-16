@@ -6,7 +6,7 @@
     :rules="getFormRules"
     ref="formRef"
     v-show="getShow"
-    @keypress.enter="handleLogin"
+    @keypress.enter="verifyLogin"
   >
     <FormItem name="tenant" class="enter-x">
       <Input
