@@ -7,7 +7,7 @@ import { DictDTO, DictItemDto } from '/@/api/system/dict/types'
  */
 export function getDictItemsByType(type) {
   return defHttp.get<DictItemDto[]>({
-    url: 'system/dict/getDictItemsByType',
+    url: '/system/dict/getDictItemsByType',
     params: {
       type,
     },
