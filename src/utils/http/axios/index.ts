@@ -14,10 +14,12 @@ import { deepMerge, setObjToUrlParams } from '/@/utils'
 import { useI18n } from '/@/hooks/web/useI18n'
 import { formatRequestDate, joinTimestamp } from './helper'
 import { RequestOptions, Result } from '/#/axios'
+import { decryptByAES, encryptByAES } from '/@/utils/cipher'
 
 const globSetting = useGlobSetting()
 const urlPrefix = globSetting.urlPrefix
 const { createMessage, createErrorModal } = useMessage()
+const key = import.meta.env.VITE_PWD_ENC_KEY
 
 /**
  * @description: 数据处理，方便区分多种处理方式
@@ -150,6 +152,22 @@ const transform: AxiosTransform = {
       ;(config as Recordable).headers['tenant-id'] = tenant
     }
 
+    // 请求参数加密
+    if (config.headers!['enc-flag'] && config.data) {
+      const enc = encryptByAES(JSON.stringify(config.data), key)
+      config.data = {
+        encryption: enc,
+      }
+    }
+
+    if (config.headers!['enc-flag'] && config!.params) {
+      const aes = encryptByAES(JSON.stringify(config.params), key)
+      config.params = {
+        encryption: aes,
+        _t: new Date().getTime(),
+      }
+    }
+
     return config
   },
 
@@ -157,6 +175,12 @@ const transform: AxiosTransform = {
    * @description: 响应拦截器处理
    */
   responseInterceptors: (res: AxiosResponse<any>) => {
+    // 针对返回解密
+    if (res.data.encryption) {
+      const originData = JSON.parse(decryptByAES(res.data.encryption, key))
+      res.data = originData
+    }
+
     return res
   },
 
@@ -243,11 +267,3 @@ function createAxios(opt?: Partial<CreateAxiosOptions>) {
   )
 }
 export const defHttp = createAxios()
-
-// other api url
-// export const otherHttp = createAxios({
-//   requestOptions: {
-//     apiUrl: 'xxx',
-//     urlPrefix: 'xxx',
-//   },
-// });

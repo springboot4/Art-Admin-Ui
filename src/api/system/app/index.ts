@@ -19,6 +19,9 @@ export const get = (id) => {
   return defHttp.get<AppDTO>({
     url: '/system/app/findById',
     params: { id },
+    headers: {
+      'enc-flag': true,
+    },
   })
 }
 
@@ -29,6 +32,9 @@ export const update = (data: AppDTO) => {
   return defHttp.post<AppDTO>({
     url: '/system/app/update',
     data,
+    headers: {
+      'enc-flag': true,
+    },
   })
 }
 
@@ -39,6 +45,9 @@ export const add = (data: AppDTO) => {
   return defHttp.post<AppDTO>({
     url: '/system/app/add',
     data,
+    headers: {
+      'enc-flag': true,
+    },
   })
 }
 

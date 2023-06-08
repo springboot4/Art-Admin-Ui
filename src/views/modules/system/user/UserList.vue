@@ -47,7 +47,7 @@
         <vxe-column field="mobile" title="联系电话" width="150" />
         <vxe-column field="sex" title="性别" width="60">
           <template #default="{ row }">
-            {{ sexList.find((s) => s.value === row.sex).label }}
+            {{ sexList.find((s) => s.value === row.sex)?.label }}
           </template>
         </vxe-column>
         <vxe-column field="roleName" title="角色" width="100" />
