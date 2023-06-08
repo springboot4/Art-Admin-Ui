@@ -156,7 +156,7 @@
     if (router.currentRoute.value.path.includes('login')) {
       ;(model.queryParam as OperLogDTO).businessType = OptionsEnum.LOGIN.toString()
     } else {
-      ;(model.queryParam as OperLogDTO).businessType = OptionsEnum.ADD.toString()
+      ;(model.queryParam as OperLogDTO).businessType = undefined
     }
     loading.value = true
     page({
