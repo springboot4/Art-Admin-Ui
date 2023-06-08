@@ -126,18 +126,6 @@ function createRule(message: string) {
   ] as RuleObject[]
 }
 
-const validateTenantIdByName = async (_: RuleObject, value: string) => {
-  getTenantIdByName(value).then((res) => {
-    const tenantId = res
-    if (tenantId) {
-      useUserStore.setTenant(tenantId)
-      return Promise.resolve()
-    } else {
-      return Promise.reject('租户不存在')
-    }
-  })
-}
-
 function createTenantRule(message: string) {
   return [
     {
@@ -147,4 +135,15 @@ function createTenantRule(message: string) {
     },
     { validator: validateTenantIdByName, trigger: 'blur' },
   ] as RuleObject[]
+}
+
+const validateTenantIdByName = async (_: RuleObject, value: string) => {
+  const res = await getTenantIdByName(value)
+  const tenantId = res
+  if (tenantId) {
+    useUserStore.setTenant(tenantId)
+    return Promise.resolve()
+  } else {
+    throw new Error('租户不存在')
+  }
 }
