@@ -27,17 +27,27 @@
       <div class="node-description">{{ data.description }}</div>
       
       <!-- 条件节点显示条件列表 -->
-      <div v-if="data.nodeType === 'condition' && data.config.conditions" class="condition-preview">
+      <div v-if="data.nodeType === 'condition' && data.config?.conditions?.length" class="condition-preview">
         <div 
-          v-for="condition in data.config.conditions.slice(0, 2)" 
-          :key="condition.id"
-          class="condition-item"
+          v-for="(condition, index) in data.config.conditions" 
+          :key="`preview_${condition.id}`"
+          class="condition-item-with-port"
         >
-          <span class="condition-label">{{ condition.label }}</span>
-          <span class="condition-expr">{{ condition.expression || 'N/A' }}</span>
-        </div>
-        <div v-if="data.config.conditions.length > 2" class="condition-more">
-          +{{ data.config.conditions.length - 2 }} 更多条件
+          <div class="condition-content">
+            <span class="condition-label">{{ condition.label }}</span>
+            <span v-if="condition.expression && condition.expression !== 'else'" class="condition-expr">
+              {{ condition.expression }}
+            </span>
+            <span v-else class="condition-expr else-expr">默认分支</span>
+          </div>
+          <!-- 端口直接在条件项内 -->
+          <Handle 
+            :id="condition.id"
+            type="source" 
+            position="right" 
+            :class="['node-handle', 'output-handle', 'inline-condition-handle', condition.id === 'else' ? 'else-handle' : '']"
+            :title="`${condition.label}: ${condition.expression || 'N/A'}`"
+          />
         </div>
       </div>
       
@@ -80,27 +90,9 @@
     />
     
     <!-- 输出端口 -->
-    <!-- 条件节点支持多个输出端口 -->
-    <template v-if="data.nodeType === 'condition' && data.config.conditions">
-      <div 
-        v-for="(condition, index) in data.config.conditions" 
-        :key="condition.id"
-        class="condition-port-wrapper"
-        :style="{ top: `${20 + index * 30}px` }"
-      >
-        <span class="condition-label-text">{{ condition.label }}</span>
-        <Handle 
-          :id="condition.id"
-          type="source" 
-          position="right" 
-          class="node-handle output-handle condition-handle"
-          :title="condition.label"
-        />
-      </div>
-    </template>
     <!-- 普通节点单个输出端口 -->
     <Handle 
-      v-else-if="data.nodeType !== 'output'"
+      v-if="data.nodeType !== 'output' && data.nodeType !== 'condition'"
       type="source" 
       position="right" 
       class="node-handle output-handle"
@@ -237,38 +229,91 @@ const emit = defineEmits(['delete', 'edit', 'copy'])
 
 .condition-preview {
   background: #f8f9fa;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 8px;
+  margin-top: 8px;
 }
 
-.condition-item {
+.condition-item-with-port {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 0;
-  font-size: 12px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.condition-item-with-port:last-child {
+  margin-bottom: 0;
+}
+
+.condition-item-with-port:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  transform: translateX(-2px);
+}
+
+.condition-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .condition-label {
-  font-weight: 500;
-  color: #262626;
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 12px;
 }
 
 .condition-expr {
-  color: #8c8c8c;
-  font-family: monospace;
+  color: #64748b;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 11px;
-  max-width: 100px;
+  background: rgba(59, 130, 246, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  display: inline-block;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.condition-more {
-  font-size: 11px;
-  color: #1890ff;
-  text-align: center;
-  margin-top: 4px;
+.else-expr {
+  background: rgba(100, 116, 139, 0.08) !important;
+  border-color: rgba(100, 116, 139, 0.15) !important;
+  color: #475569 !important;
+}
+
+.inline-condition-handle {
+  background: linear-gradient(135deg, #faad14 0%, #f59e0b 100%);
+  width: 10px;
+  height: 10px;
+  right: -5px;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(250, 173, 20, 0.3);
+  transition: all 0.2s ease;
+  position: absolute;
+}
+
+.inline-condition-handle:hover {
+  transform: scale(1.2);
+  box-shadow: 0 3px 8px rgba(250, 173, 20, 0.5);
+}
+
+.inline-condition-handle.else-handle {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+  box-shadow: 0 2px 6px rgba(100, 116, 139, 0.3) !important;
+}
+
+.inline-condition-handle.else-handle:hover {
+  box-shadow: 0 3px 8px rgba(100, 116, 139, 0.5) !important;
 }
 
 .config-preview {
@@ -327,31 +372,6 @@ const emit = defineEmits(['delete', 'edit', 'copy'])
 
 .output-handle {
   right: -6px;
-}
-
-.condition-handle {
-  background: #faad14;
-  width: 10px;
-  height: 10px;
-  right: -5px;
-}
-
-.condition-port-wrapper {
-  position: absolute;
-  right: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.condition-label-text {
-  font-size: 11px;
-  color: #666;
-  white-space: nowrap;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid #e8e8e8;
 }
 
 /* 条件端口的连接线样式 */

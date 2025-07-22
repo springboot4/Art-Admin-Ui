@@ -9,9 +9,10 @@
           placeholder="输入工作流名称..."
         />
         <div class="workflow-status">
-          <a-tag :color="getStatusColor(workflowStatus)">
-            {{ getStatusText(workflowStatus) }}
-          </a-tag>
+          <div :class="['modern-status-tag', `status-${workflowStatus}`]">
+            <div class="status-dot"></div>
+            <span class="status-text">{{ getStatusText(workflowStatus) }}</span>
+          </div>
         </div>
       </div>
 
@@ -89,8 +90,8 @@
           @node-double-click="onNodeDoubleClick"
           @edge-click="onEdgeClick"
         >
-          <!-- 添加背景 -->
-          <Background :gap="16" :size="1" color="#bbb" pattern="dots" />
+          <!-- 添加背景 - Dify 风格的点状背景 -->
+          <Background :gap="24" :size="1.5" bgColor="#ffffff" color="#cbd5e1" pattern="dots" />
 
           <template #node-customNode="props">
             <CustomNode
@@ -150,8 +151,8 @@
 </template>
 
 <script setup>
-  import { ref } from 'vue'
-  import { VueFlow } from '@vue-flow/core'
+  import { ref, nextTick } from 'vue'
+  import { VueFlow, applyEdgeChanges, applyNodeChanges } from '@vue-flow/core'
   import { Controls } from '@vue-flow/controls'
   import { Background } from '@vue-flow/background'
   import {
@@ -167,6 +168,7 @@
     ExportOutlined,
     ImportOutlined,
     PlayCircleOutlined,
+    PlusOutlined,
     SaveOutlined,
   } from '@ant-design/icons-vue'
   import CustomNode from './components/CustomNode.vue'
@@ -365,13 +367,13 @@
 
   // VueFlow 事件处理
   const onNodesChange = (changes) => {
-    // 可以在这里处理节点变化
     console.log('Nodes changed:', changes)
+    nodes.value = applyNodeChanges(changes, nodes.value)
   }
 
   const onEdgesChange = (changes) => {
-    // 可以在这里处理连线变化
     console.log('Edges changed:', changes)
+    edges.value = applyEdgeChanges(changes, edges.value)
   }
 
   const onConnect = (params) => {
@@ -475,7 +477,12 @@
     console.log('Saving node config:', updatedNode)
     const index = nodes.value.findIndex((n) => n.id === updatedNode.id)
     if (index !== -1) {
-      nodes.value[index] = updatedNode
+      // 使用深拷贝确保响应式更新
+      nodes.value[index] = JSON.parse(JSON.stringify(updatedNode))
+      
+      // 强制触发响应式更新
+      nodes.value = [...nodes.value]
+      
       message.success('节点配置已保存')
     }
     configPanelVisible.value = false
@@ -544,12 +551,16 @@
   }
 
   const exportWorkflow = () => {
+    const plainNodes = JSON.parse(JSON.stringify(nodes.value))
+    const plainEdges = JSON.parse(JSON.stringify(edges.value))
+
     const workflowData = {
       name: workflowName.value,
-      nodes: nodes.value,
-      edges: edges.value,
+      nodes: plainNodes,
+      edges: plainEdges,
       status: workflowStatus.value,
       exportTime: new Date().toISOString(),
+      version: '1.0',
     }
 
     const blob = new Blob([JSON.stringify(workflowData, null, 2)], {
@@ -573,19 +584,63 @@
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const workflowData = JSON.parse(e.target.result)
+
+        const importedNodes = workflowData.nodes || []
+        const importedEdges = workflowData.edges || []
+
+        // 创建一个节点ID到节点数据的映射，方便快速查找
+        const nodeMap = new Map(importedNodes.map((node) => [node.id, node]))
+
+        // 1. 先加载节点
+        nodes.value = importedNodes
+        // 2. 清空旧的边，防止重复
+        edges.value = []
+
+        // 3. 等待Vue完成节点DOM的渲染
+        await nextTick()
+
+        // 4. 清理和验证边数据
+        const validEdges = importedEdges
+          .filter((edge) => {
+            const sourceExists = nodeMap.has(edge.source)
+            const targetExists = nodeMap.has(edge.target)
+            if (!sourceExists || !targetExists) {
+              console.warn('过滤无效的边，节点不存在:', edge)
+              return false
+            }
+            return true
+          })
+          .map((edge) => {
+            const sourceNode = nodeMap.get(edge.source)
+            // 仅当源节点是条件节点（或任何具有多个命名输出的节点）时，才保留 sourceHandle
+            const preserveSourceHandle = sourceNode && sourceNode.data.nodeType === 'condition'
+
+            return {
+              ...edge,
+              sourceHandle: preserveSourceHandle ? edge.sourceHandle : null,
+              targetHandle: null, // 总是让 VueFlow 自动处理目标 handle
+            }
+          })
+
+        // 5. 加载有效的边和其他数据
+        edges.value = validEdges
         workflowName.value = workflowData.name || '导入的工作流'
-        nodes.value = workflowData.nodes || []
-        edges.value = workflowData.edges || []
         workflowStatus.value = 'draft'
-        message.success('工作流已导入')
+
+        const filteredCount = importedEdges.length - validEdges.length
+        message.success(`工作流已导入${filteredCount > 0 ? ` (${filteredCount}条无效连线已过滤)` : ''}`)
       } catch (error) {
-        message.error('导入失败，文件格式不正确')
+        console.error('导入工作流失败:', error)
+        message.error('导入失败，文件格式不正确或数据已损坏')
       }
     }
     reader.readAsText(file)
+
+    // 清空文件输入框
+    event.target.value = ''
   }
 
   const executeWorkflow = async () => {
@@ -679,7 +734,6 @@
     height: calc(100vh - 88px);
     display: flex;
     flex-direction: column;
-    background: #f5f5f5;
   }
 
   .workflow-toolbar {
@@ -788,6 +842,86 @@
     gap: 8px;
   }
 
+  /* 现代化状态标签样式 */
+  .modern-status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+  }
+
+  .status-text {
+    white-space: nowrap;
+  }
+
+  /* 不同状态的样式 */
+  .status-draft {
+    background: linear-gradient(135deg, rgba(156, 163, 175, 0.1) 0%, rgba(209, 213, 219, 0.1) 100%);
+    color: #6b7280;
+    border-color: rgba(156, 163, 175, 0.2);
+  }
+
+  .status-draft .status-dot {
+    background: #9ca3af;
+  }
+
+  .status-saved {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.1) 100%);
+    color: #059669;
+    border-color: rgba(34, 197, 94, 0.2);
+  }
+
+  .status-saved .status-dot {
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  }
+
+  .status-executing {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+    color: #2563eb;
+    border-color: rgba(59, 130, 246, 0.2);
+  }
+
+  .status-executing .status-dot {
+    background: #3b82f6;
+    animation: pulse-dot 1.5s ease-in-out infinite;
+  }
+
+  .status-error {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+
+  .status-error .status-dot {
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.8;
+    }
+  }
+
   .workflow-content {
     flex: 1;
     overflow: hidden;
@@ -796,12 +930,16 @@
   .workflow-canvas {
     width: 100%;
     height: 100%;
-    background: #fafafa;
+    background: 
+      radial-gradient(circle at 1px 1px, #cbd5e1 1.5px, transparent 0);
+    background-size: 24px 24px;
+    background-color: #ffffff;
   }
 
   .vue-flow-container {
     width: 100%;
     height: 100%;
+    background: transparent !important;
   }
 
   /* 移除了左侧面板相关样式 */
@@ -891,8 +1029,25 @@
   }
 
   /* VueFlow 样式定制 */
+  :deep(.vue-flow__viewport) {
+    /* 确保背景组件可见 */
+    background: transparent !important;
+  }
+
   :deep(.vue-flow__background) {
-    background-color: #fafafa;
+    /* 确保背景图案可见 */
+    opacity: 1 !important;
+  }
+
+  :deep(.vue-flow__background svg) {
+    /* 确保SVG背景可见 */
+    opacity: 1 !important;
+  }
+
+  /* 为 dots 图案添加特定样式 */
+  :deep(.vue-flow__background svg circle) {
+    fill: #cbd5e1 !important;
+    opacity: 0.8 !important;
   }
 
   :deep(.vue-flow__edge-path) {
