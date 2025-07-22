@@ -750,64 +750,55 @@
   .toolbar-left,
   .toolbar-right {
     pointer-events: auto; /* Restore click events for children */
-    background: rgba(249, 250, 251, 0.75); /* Lighter, more subtle glass */
-    backdrop-filter: blur(16px) saturate(1.8);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 16px;
-    padding: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     display: flex;
     align-items: center;
-  }
-
-  .toolbar-left {
-    gap: 8px;
-    padding-right: 16px;
+    gap: 12px;
   }
 
   .workflow-name-input {
-    font-size: 18px; /* Slightly smaller */
+    font-size: 18px;
     font-weight: 600;
-    border: none;
-    background: transparent;
+    border: 1px solid #d1d5db;
+    background-color: #ffffff;
     color: #1f2937;
-    padding: 6px 10px; /* Adjusted padding */
+    padding: 6px 12px;
     border-radius: 12px;
     transition: all 0.2s ease-in-out;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   }
 
   .workflow-name-input:hover {
-    background-color: rgba(255, 255, 255, 0.5);
+    border-color: #9ca3af;
   }
 
   .workflow-name-input:focus {
-    background-color: #ffffff;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
   }
 
-  /* Refined Button Styles for Glass Toolbar */
+  /* Buttons floating directly on the canvas */
   .toolbar-right :deep(.ant-btn) {
-    border-radius: 12px; /* Softer radius */
+    border-radius: 12px;
     height: 38px;
     padding: 0 16px;
     font-weight: 500;
     transition: all 0.2s ease-in-out;
-    border: 1px solid transparent; /* No border by default */
-    background-color: rgba(255, 255, 255, 0.4); /* Semi-transparent */
+    border: 1px solid #d1d5db; /* Clean border */
+    background-color: #ffffff; /* Solid background */
     color: #374151;
-    box-shadow: none; /* Remove default shadow */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Subtle shadow */
   }
 
   .toolbar-right :deep(.ant-btn:hover) {
     transform: translateY(-1px);
-    background-color: rgba(255, 255, 255, 0.8); /* More opaque on hover */
+    border-color: #9ca3af;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
   }
 
   .toolbar-right :deep(.ant-btn:focus),
   .toolbar-right :deep(.ant-btn:active) {
     outline: none;
-    background-color: #ffffff;
+    border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
   }
 
@@ -838,8 +829,8 @@
 
   .toolbar-right :deep(.ant-divider-vertical) {
     height: 20px;
-    margin: 0 4px;
-    border-left: 1px solid rgba(0, 0, 0, 0.1); /* Darker divider for contrast */
+    margin: 0;
+    border-left: 1px solid #e5e7eb;
   }
 
   .workflow-status {
