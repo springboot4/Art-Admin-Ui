@@ -1,0 +1,230 @@
+.custom-node {
+  width: 260px;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
+
+  &:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+  }
+
+  &.node-running {
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  }
+
+  &.node-success {
+    border-color: #52c41a;
+    box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.2);
+  }
+
+  &.node-error {
+    border-color: #ff4d4f;
+    box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
+  }
+
+  // 不同节点类型的颜色主题
+  &.node-start {
+    .node-header {
+      background: linear-gradient(135deg, #52c41a, #73d13d);
+      color: white;
+    }
+  }
+
+  &.node-llm {
+    .node-header {
+      background: linear-gradient(135deg, #1890ff, #40a9ff);
+      color: white;
+    }
+  }
+
+  &.node-knowledge {
+    .node-header {
+      background: linear-gradient(135deg, #722ed1, #9254de);
+      color: white;
+    }
+  }
+
+  &.node-condition {
+    .node-header {
+      background: linear-gradient(135deg, #fa8c16, #ffa940);
+      color: white;
+    }
+  }
+
+  &.node-code {
+    .node-header {
+      background: linear-gradient(135deg, #13c2c2, #36cfc9);
+      color: white;
+    }
+  }
+
+  &.node-webhook {
+    .node-header {
+      background: linear-gradient(135deg, #eb2f96, #f759ab);
+      color: white;
+    }
+  }
+
+  &.node-output {
+    .node-header {
+      background: linear-gradient(135deg, #faad14, #ffc53d);
+      color: white;
+    }
+  }
+
+  .node-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f0f2f5, #f5f5f5);
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    min-height: 48px;
+
+    .node-header-left {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+
+      .node-icon {
+        margin-right: 10px;
+        font-size: 20px;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+
+      .node-title {
+        font-weight: 600;
+        font-size: 14px;
+        line-height: 1.4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .node-header-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+
+      .node-status {
+        display: flex;
+        align-items: center;
+        margin-right: 4px;
+
+        .status-running {
+          color: #1890ff;
+          animation: spin 1s linear infinite;
+        }
+
+        .status-success {
+          color: #52c41a;
+        }
+
+        .status-error {
+          color: #ff4d4f;
+        }
+      }
+
+      .settings-btn,
+      .more-btn {
+        color: rgba(255, 255, 255, 0.8);
+        border: none;
+        background: transparent;
+        
+        &:hover {
+          color: rgba(255, 255, 255, 1);
+          background: rgba(255, 255, 255, 0.1);
+        }
+      }
+    }
+  }
+
+  .node-content {
+    padding: 16px;
+
+    .node-description {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+
+    .node-config-preview {
+      .config-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 6px;
+        font-size: 12px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .config-label {
+          color: #8c8c8c;
+          margin-right: 8px;
+          flex-shrink: 0;
+          min-width: 40px;
+        }
+
+        .config-value {
+          color: #262626;
+          background: #f5f5f5;
+          padding: 2px 6px;
+          border-radius: 4px;
+          flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+    }
+  }
+
+  .node-handle-target,
+  .node-handle-source {
+    width: 12px;
+    height: 12px;
+    background-color: #fff;
+    border: 2px solid #1890ff;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: #1890ff;
+      transform: scale(1.2);
+    }
+
+    &.vue-flow__handle-connecting {
+      background-color: #1890ff;
+    }
+  }
+
+  .node-handle-target {
+    left: -6px;
+  }
+
+  .node-handle-source {
+    right: -6px;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
