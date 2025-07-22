@@ -732,77 +732,83 @@
   .workflow-editor-container {
     width: 100%;
     height: calc(100vh - 88px);
-    display: flex;
-    flex-direction: column;
+    position: relative; /* 为悬浮工具栏提供定位上下文 */
   }
 
   .workflow-toolbar {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    right: 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 24px;
-    background-color: #ffffff;
-    border-bottom: 1px solid #e5e7eb;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
     z-index: 10;
+    pointer-events: none; /* 允许点击穿透到画布 */
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    pointer-events: auto; /* Restore click events for children */
+    background: rgba(249, 250, 251, 0.75); /* Lighter, more subtle glass */
+    backdrop-filter: blur(16px) saturate(1.8);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    padding: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
   }
 
   .toolbar-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .toolbar-right {
-    display: flex;
-    align-items: center;
+    gap: 8px;
+    padding-right: 16px;
   }
 
   .workflow-name-input {
-    font-size: 20px;
+    font-size: 18px; /* Slightly smaller */
     font-weight: 600;
     border: none;
     background: transparent;
-    color: #111827;
-    padding: 4px 8px;
-    border-radius: 8px;
+    color: #1f2937;
+    padding: 6px 10px; /* Adjusted padding */
+    border-radius: 12px;
     transition: all 0.2s ease-in-out;
   }
 
   .workflow-name-input:hover {
-    background-color: #f3f4f6;
+    background-color: rgba(255, 255, 255, 0.5);
   }
 
   .workflow-name-input:focus {
     background-color: #ffffff;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
   }
 
-  /* Modern Button Styles */
+  /* Refined Button Styles for Glass Toolbar */
   .toolbar-right :deep(.ant-btn) {
-    border-radius: 8px;
+    border-radius: 12px; /* Softer radius */
     height: 38px;
-    padding: 0 18px;
+    padding: 0 16px;
     font-weight: 500;
     transition: all 0.2s ease-in-out;
-    border: 1px solid #d1d5db;
-    background-color: #ffffff;
+    border: 1px solid transparent; /* No border by default */
+    background-color: rgba(255, 255, 255, 0.4); /* Semi-transparent */
     color: #374151;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    box-shadow: none; /* Remove default shadow */
   }
 
   .toolbar-right :deep(.ant-btn:hover) {
     transform: translateY(-1px);
-    border-color: #9ca3af;
-    color: #111827;
-    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    background-color: rgba(255, 255, 255, 0.8); /* More opaque on hover */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
   }
 
   .toolbar-right :deep(.ant-btn:focus),
   .toolbar-right :deep(.ant-btn:active) {
     outline: none;
+    background-color: #ffffff;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-    border-color: #3b82f6;
   }
 
   /* Primary button (Save) */
@@ -831,9 +837,9 @@
   }
 
   .toolbar-right :deep(.ant-divider-vertical) {
-    height: 24px;
+    height: 20px;
     margin: 0 4px;
-    border-left: 1px solid #e5e7eb;
+    border-left: 1px solid rgba(0, 0, 0, 0.1); /* Darker divider for contrast */
   }
 
   .workflow-status {
@@ -923,7 +929,8 @@
   }
 
   .workflow-content {
-    flex: 1;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
   }
 
