@@ -79,8 +79,6 @@
       <span v-else-if="data.status === 'warning'" class="status-icon warning">⚠️</span>
     </div>
     
-    <!-- 移除了悬浮添加按钮，现在通过工具栏按钮添加节点 -->
-    
     <!-- 输入端口 -->
     <Handle 
       v-if="data.nodeType !== 'start'"
@@ -93,6 +91,7 @@
     <!-- 普通节点单个输出端口 -->
     <Handle 
       v-if="data.nodeType !== 'output' && data.nodeType !== 'condition'"
+      id="source_handle"
       type="source" 
       position="right" 
       class="node-handle output-handle"
@@ -132,62 +131,58 @@ const emit = defineEmits(['delete', 'edit', 'copy'])
 <style scoped>
 .custom-node {
   background: white;
-  border: 2px solid #e8e8e8;
-  border-radius: 8px;
-  min-width: 160px;
-  max-width: 220px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  min-width: 200px;
+  max-width: 280px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease-in-out;
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* Allow handles and buttons to overflow */
 }
 
 .custom-node:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   transform: translateY(-2px);
+  border-color: #cbd5e1;
 }
 
+.custom-node.selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Status-specific styles */
 .custom-node.status-running {
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-left: 4px solid #3b82f6;
 }
-
 .custom-node.status-success {
-  border-color: #52c41a;
-  box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.2);
+  border-left: 4px solid #22c55e;
 }
-
 .custom-node.status-error {
-  border-color: #ff4d4f;
-  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
-}
-
-.custom-node.status-warning {
-  border-color: #faad14;
-  box-shadow: 0 0 0 2px rgba(250, 173, 20, 0.2);
+  border-left: 4px solid #ef4444;
 }
 
 .node-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  color: white;
+  gap: 10px;
+  padding: 10px 14px;
+  color: #1f2937;
   font-weight: 600;
-  font-size: 12px;
-  position: relative;
+  border-bottom: 1px solid #f1f5f9;
+  background-color: #f8fafc;
+  border-top-left-radius: 11px;
+  border-top-right-radius: 11px;
 }
 
 .node-icon {
-  font-size: 16px;
-  margin-right: 6px;
+  font-size: 18px;
 }
 
 .node-title {
   flex: 1;
-  font-size: 12px;
-  white-space: nowrap;
-  font-weight: 600;
+  font-size: 14px;
 }
 
 .node-actions {
@@ -202,35 +197,55 @@ const emit = defineEmits(['delete', 'edit', 'copy'])
 }
 
 .node-actions .ant-btn {
-  color: white;
+  color: #64748b;
+  background: transparent;
   border: none;
-  background: rgba(255, 255, 255, 0.2);
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .node-actions .ant-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  color: #1f2937;
+  background: #e2e8f0;
 }
 
 .node-content {
-  padding: 8px 12px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #475569;
 }
 
-.node-description {
-  font-size: 12px;
-  color: #8c8c8c;
-  margin-bottom: 12px;
-  line-height: 1.4;
+/* Modern Port (Handle) Styles */
+.node-handle {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: all 0.2s ease-in-out;
+  opacity: 0; /* Hidden by default */
+  transform: scale(0.8);
 }
 
+/* Show handles on node hover or when node is selected */
+.custom-node:hover .node-handle,
+.custom-node.selected .node-handle {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Highlight handle when connecting or hovering directly */
+.node-handle.connecting,
+.node-handle:hover {
+  border-color: #3b82f6;
+  background: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+  transform: scale(1.2); /* Add extra emphasis */
+}
+
+.input-handle { left: -7px; }
+.output-handle { right: -7px; }
+
+/* Condition Node Specific Styles */
 .condition-preview {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 8px;
   margin-top: 8px;
 }
 
@@ -238,181 +253,19 @@ const emit = defineEmits(['delete', 'edit', 'copy'])
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  margin-bottom: 6px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  padding: 8px 0;
   position: relative;
-  transition: all 0.2s ease;
-}
-
-.condition-item-with-port:last-child {
-  margin-bottom: 0;
-}
-
-.condition-item-with-port:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
-  transform: translateX(-2px);
 }
 
 .condition-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.condition-label {
-  font-weight: 600;
-  color: #1e293b;
   font-size: 12px;
-}
-
-.condition-expr {
-  color: #64748b;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 11px;
-  background: rgba(59, 130, 246, 0.08);
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid rgba(59, 130, 246, 0.15);
-  display: inline-block;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.else-expr {
-  background: rgba(100, 116, 139, 0.08) !important;
-  border-color: rgba(100, 116, 139, 0.15) !important;
-  color: #475569 !important;
+  color: #334155;
 }
 
 .inline-condition-handle {
-  background: linear-gradient(135deg, #faad14 0%, #f59e0b 100%);
-  width: 10px;
-  height: 10px;
-  right: -5px;
-  border: 2px solid white;
-  box-shadow: 0 2px 6px rgba(250, 173, 20, 0.3);
-  transition: all 0.2s ease;
-  position: absolute;
+  position: static; /* Remove absolute positioning */
+  transform: none;
+  margin-left: 12px;
 }
 
-.inline-condition-handle:hover {
-  transform: scale(1.2);
-  box-shadow: 0 3px 8px rgba(250, 173, 20, 0.5);
-}
-
-.inline-condition-handle.else-handle {
-  background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
-  box-shadow: 0 2px 6px rgba(100, 116, 139, 0.3) !important;
-}
-
-.inline-condition-handle.else-handle:hover {
-  box-shadow: 0 3px 8px rgba(100, 116, 139, 0.5) !important;
-}
-
-.config-preview {
-  font-size: 12px;
-}
-
-.config-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.config-label {
-  font-weight: 500;
-  color: #595959;
-}
-
-.config-value {
-  color: #262626;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.status-indicator {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 10;
-}
-
-.status-icon {
-  font-size: 16px;
-  display: inline-block;
-}
-
-.status-icon.running {
-  animation: pulse 1.5s infinite;
-}
-
-/* 移除了添加按钮样式 */
-
-.node-handle {
-  width: 12px;
-  height: 12px;
-  border: 2px solid white;
-  background: #1890ff;
-  border-radius: 50%;
-}
-
-.input-handle {
-  left: -6px;
-}
-
-.output-handle {
-  right: -6px;
-}
-
-/* 条件端口的连接线样式 */
-:deep(.vue-flow__edge[data-source-handle]) {
-  stroke-width: 2;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.1);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* 选中状态 */
-.custom-node.selected {
-  border-color: #722ed1;
-  box-shadow: 0 0 0 2px rgba(114, 46, 209, 0.2);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .custom-node {
-    min-width: 160px;
-    max-width: 200px;
-  }
-  
-  .node-header {
-    padding: 10px 12px;
-  }
-  
-  .node-content {
-    padding: 12px;
-  }
-}
 </style>
