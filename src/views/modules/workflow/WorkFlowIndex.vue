@@ -877,8 +877,9 @@
 <style scoped>
   .workflow-editor-container {
     width: 100%;
-    height: calc(100vh - 88px);
-    position: relative; /* 为悬浮工具栏提供定位上下文 */
+    height: calc(100vh - 48px);
+    position: relative;
+    overflow: hidden;
   }
 
   .workflow-toolbar {
@@ -1069,6 +1070,7 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
+    position: relative;
   }
 
   .workflow-canvas {
@@ -1078,6 +1080,7 @@
       radial-gradient(circle at 1px 1px, #cbd5e1 1.5px, transparent 0);
     background-size: 24px 24px;
     background-color: #ffffff;
+    position: relative;
   }
 
   .vue-flow-container {
