@@ -102,7 +102,6 @@
           accordion: unref(getAccordion),
           collapse: unref(getCollapsed),
           collapsedShowTitle: unref(getCollapsedShowTitle),
-          onMenuClick: handleMenuClick,
         }
       })
       /**
@@ -152,6 +151,7 @@
             showLogo={unref(getIsShowLogo)}
             mode={unref(getComputedMenuMode as any)}
             items={menus}
+            onMenuClick={handleMenuClick}
           />
         )
       }
