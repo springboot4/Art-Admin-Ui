@@ -1,0 +1,252 @@
+// 变量类型定义
+export enum VariableType {
+  ENVIRONMENT = 'environment', // 环境变量
+  SYSTEM = 'system', // 系统变量
+  SESSION = 'session', // 会话变量
+  USER_INPUT = 'userInput', // 用户输入
+  NODE_OUTPUT = 'nodeOutput', // 节点出参
+}
+
+// 变量访问权限
+export enum VariableAccess {
+  READONLY = 'readonly', // 只读
+  READWRITE = 'readwrite', // 读写
+}
+
+// 变量数据类型
+export enum VariableDataType {
+  STRING = 'string',
+  NUMBER = 'number',
+  BOOLEAN = 'boolean',
+  OBJECT = 'object',
+  ARRAY = 'array',
+  ANY = 'any',
+}
+
+// 变量定义接口
+export interface VariableDefinition {
+  id: string // 变量唯一标识
+  name: string // 变量名称
+  type: VariableType // 变量类型
+  dataType: VariableDataType // 数据类型
+  access: VariableAccess // 访问权限
+  description?: string // 变量描述
+  required?: boolean // 是否必需
+  defaultValue?: any // 默认值
+  sourceNodeId?: string // 来源节点ID（仅节点出参）
+  sourceOutputKey?: string // 来源输出键名（仅节点出参）
+}
+
+// 节点输出定义
+export interface NodeOutputDefinition {
+  key: string // 输出键名
+  name: string // 输出名称
+  dataType: VariableDataType // 数据类型
+  description?: string // 描述
+}
+
+// 节点类型对应的输出定义
+export const NODE_OUTPUT_DEFINITIONS: Record<string, NodeOutputDefinition[]> = {
+  start: [
+    { key: 'userId', name: '用户ID', dataType: VariableDataType.STRING, description: '当前用户ID' },
+    {
+      key: 'sessionId',
+      name: '会话ID',
+      dataType: VariableDataType.STRING,
+      description: '当前会话ID',
+    },
+    {
+      key: 'timestamp',
+      name: '时间戳',
+      dataType: VariableDataType.NUMBER,
+      description: '流程开始时间',
+    },
+  ],
+  llm: [
+    {
+      key: 'output',
+      name: 'AI回复',
+      dataType: VariableDataType.STRING,
+      description: 'AI模型生成的回复内容',
+    },
+    {
+      key: 'tokens',
+      name: '消耗Token',
+      dataType: VariableDataType.NUMBER,
+      description: '本次请求消耗的Token数量',
+    },
+    {
+      key: 'model',
+      name: '使用模型',
+      dataType: VariableDataType.STRING,
+      description: '实际使用的AI模型',
+    },
+  ],
+  http: [
+    {
+      key: 'response',
+      name: '响应数据',
+      dataType: VariableDataType.OBJECT,
+      description: 'HTTP请求的响应数据',
+    },
+    {
+      key: 'statusCode',
+      name: '状态码',
+      dataType: VariableDataType.NUMBER,
+      description: 'HTTP响应状态码',
+    },
+    {
+      key: 'headers',
+      name: '响应头',
+      dataType: VariableDataType.OBJECT,
+      description: 'HTTP响应头信息',
+    },
+  ],
+  condition: [
+    {
+      key: 'result',
+      name: '条件结果',
+      dataType: VariableDataType.STRING,
+      description: '匹配的条件分支名称',
+    },
+    {
+      key: 'matched',
+      name: '是否匹配',
+      dataType: VariableDataType.BOOLEAN,
+      description: '是否有条件匹配成功',
+    },
+  ],
+  code: [
+    {
+      key: 'output',
+      name: '代码输出',
+      dataType: VariableDataType.ANY,
+      description: '代码执行的输出结果',
+    },
+    {
+      key: 'logs',
+      name: '执行日志',
+      dataType: VariableDataType.STRING,
+      description: '代码执行过程中的日志',
+    },
+    {
+      key: 'error',
+      name: '错误信息',
+      dataType: VariableDataType.STRING,
+      description: '代码执行错误信息（如果有）',
+    },
+  ],
+  knowledge: [
+    {
+      key: 'documents',
+      name: '检索文档',
+      dataType: VariableDataType.ARRAY,
+      description: '检索到的相关文档列表',
+    },
+    {
+      key: 'scores',
+      name: '相似度分数',
+      dataType: VariableDataType.ARRAY,
+      description: '文档相似度分数',
+    },
+    {
+      key: 'query',
+      name: '查询内容',
+      dataType: VariableDataType.STRING,
+      description: '实际执行的查询内容',
+    },
+  ],
+  template: [
+    {
+      key: 'output',
+      name: '模板输出',
+      dataType: VariableDataType.STRING,
+      description: '模板渲染后的结果',
+    },
+    {
+      key: 'variables',
+      name: '使用变量',
+      dataType: VariableDataType.OBJECT,
+      description: '模板中使用的变量值',
+    },
+  ],
+  variable: [
+    {
+      key: 'variables',
+      name: '设置变量',
+      dataType: VariableDataType.OBJECT,
+      description: '设置的变量键值对',
+    },
+  ],
+}
+
+// 系统变量定义
+export const SYSTEM_VARIABLES: VariableDefinition[] = [
+  {
+    id: 'sys_user_id',
+    name: 'userId',
+    type: VariableType.SYSTEM,
+    dataType: VariableDataType.STRING,
+    access: VariableAccess.READONLY,
+    description: '当前用户的唯一标识',
+    required: true,
+  },
+  {
+    id: 'sys_session_id',
+    name: 'sessionId',
+    type: VariableType.SYSTEM,
+    dataType: VariableDataType.STRING,
+    access: VariableAccess.READONLY,
+    description: '当前会话的唯一标识',
+    required: true,
+  },
+  {
+    id: 'sys_timestamp',
+    name: 'timestamp',
+    type: VariableType.SYSTEM,
+    dataType: VariableDataType.NUMBER,
+    access: VariableAccess.READONLY,
+    description: '当前时间戳',
+    required: true,
+  },
+  {
+    id: 'sys_request_id',
+    name: 'requestId',
+    type: VariableType.SYSTEM,
+    dataType: VariableDataType.STRING,
+    access: VariableAccess.READONLY,
+    description: '当前请求的唯一标识',
+    required: true,
+  },
+]
+
+// 环境变量定义（示例）
+export const ENVIRONMENT_VARIABLES: VariableDefinition[] = [
+  {
+    id: 'env_api_key',
+    name: 'apiKey',
+    type: VariableType.ENVIRONMENT,
+    dataType: VariableDataType.STRING,
+    access: VariableAccess.READONLY,
+    description: 'API密钥',
+    required: false,
+  },
+  {
+    id: 'env_base_url',
+    name: 'baseUrl',
+    type: VariableType.ENVIRONMENT,
+    dataType: VariableDataType.STRING,
+    access: VariableAccess.READONLY,
+    description: '基础URL地址',
+    required: false,
+  },
+]
+
+// 变量引用格式
+export interface VariableReference {
+  type: VariableType
+  nodeId?: string // 节点ID（仅节点出参需要）
+  variableName: string // 变量名
+  outputKey?: string // 输出键名（仅节点出参需要）
+  path?: string // 对象路径，如 'response.data.items[0].name'
+}

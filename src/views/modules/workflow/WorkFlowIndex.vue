@@ -78,10 +78,10 @@
           v-model:edges="edges"
           v-model:nodes="nodes"
           :default-zoom="0.5"
+          :is-valid-connection="isValidConnection"
           :max-zoom="0.8"
           :min-zoom="0.1"
           :node-types="nodeTypes"
-          :is-valid-connection="isValidConnection"
           class="vue-flow-container"
           fit-view-on-init
           @connect="onConnect"
@@ -134,7 +134,9 @@
 
     <!-- 节点配置面板 -->
     <NodeConfigPanel
+      :edges="edges"
       :node="selectedNode"
+      :nodes="nodes"
       :visible="configPanelVisible"
       @close="handleConfigPanelClose"
       @save="handleConfigSave"
@@ -152,17 +154,11 @@
 </template>
 
 <script setup>
-  import { ref, nextTick } from 'vue'
-  import { VueFlow, applyEdgeChanges, applyNodeChanges } from '@vue-flow/core'
+  import { nextTick, ref } from 'vue'
+  import { applyEdgeChanges, applyNodeChanges, VueFlow } from '@vue-flow/core'
   import { Controls } from '@vue-flow/controls'
   import { Background } from '@vue-flow/background'
-  import {
-    Button as AButton,
-    Input as AInput,
-    message,
-    Space as ASpace,
-    Tag as ATag,
-  } from 'ant-design-vue'
+  import { Button as AButton, Input as AInput, message, Space as ASpace } from 'ant-design-vue'
   import {
     CheckCircleOutlined,
     ClearOutlined,
@@ -328,17 +324,29 @@
   // 获取默认配置
   const getDefaultConfig = (nodeType) => {
     const defaultConfigs = {
-      start: {},
+      start: {
+        userInputs: [
+          {
+            name: 'question',
+            displayName: '用户问题',
+            dataType: 'string',
+            description: '用户输入的问题',
+            required: true,
+          },
+        ], // 用户输入变量配置
+      },
       llm: {
         model: 'gpt-3.5-turbo',
         temperature: 0.7,
         maxTokens: 1024,
         systemPrompt: '你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。',
+        userMessage: '{{userInput.question}}', // 默认使用用户输入的question变量
       },
       http: {
         method: 'GET',
         url: '',
         headers: '{}',
+        body: '',
       },
       condition: {
         conditions: [
@@ -348,18 +356,18 @@
       },
       code: {
         language: 'python',
-        code: '# 在这里编写你的代码\nresult = "Hello World"\nprint(result)',
+        code: '# 在这里编写你的代码\n# 可以使用变量，例如:\n# user_question = {{userInput.question}}\nresult = "Hello World"\nprint(result)',
       },
       knowledge: {
+        query: '{{userInput.question}}', // 默认使用用户输入的question变量
         topK: 5,
         threshold: 0.7,
       },
       template: {
-        template: '这是一个模板: {{ variable }}',
+        template: '根据用户问题: {{userInput.question}}\n生成回答: {{nodeOutput.llm_node.output}}', // 默认使用变量模板
       },
       variable: {
-        name: 'my_variable',
-        value: '',
+        variables: '{"processed_question": "{{userInput.question}}"}',
       },
       output: {},
     }
@@ -480,10 +488,10 @@
     if (index !== -1) {
       // 使用深拷贝确保响应式更新
       nodes.value[index] = JSON.parse(JSON.stringify(updatedNode))
-      
+
       // 强制触发响应式更新
       nodes.value = [...nodes.value]
-      
+
       message.success('节点配置已保存')
     }
     configPanelVisible.value = false
@@ -553,16 +561,16 @@
 
   const exportWorkflow = () => {
     // 清理节点数据，只保留必要的属性
-    const cleanNodes = nodes.value.map(node => ({
+    const cleanNodes = nodes.value.map((node) => ({
       id: node.id,
       type: node.type,
       position: node.position,
       label: node.label,
-      data: node.data
+      data: node.data,
     }))
-    
+
     // 清理边数据，只保留必要的连接信息
-    const cleanEdges = edges.value.map(edge => ({
+    const cleanEdges = edges.value.map((edge) => ({
       id: edge.id,
       source: edge.source,
       target: edge.target,
@@ -570,7 +578,7 @@
       targetHandle: edge.targetHandle,
       type: edge.type || 'default',
       animated: edge.animated || false,
-      style: edge.style || { stroke: '#666', strokeWidth: 2 }
+      style: edge.style || { stroke: '#666', strokeWidth: 2 },
     }))
 
     const workflowData = {
@@ -642,7 +650,7 @@
               targetHandle: edge.targetHandle,
               type: edge.type || 'default',
               animated: edge.animated || false,
-              style: edge.style || { stroke: '#666', strokeWidth: 2 }
+              style: edge.style || { stroke: '#666', strokeWidth: 2 },
             }
           })
 
@@ -656,10 +664,12 @@
           导入节点数: importedNodes.length,
           导入边数: importedEdges.length,
           有效边数: validEdges.length,
-          过滤边数: filteredCount
+          过滤边数: filteredCount,
         })
-        
-        message.success(`工作流已导入${filteredCount > 0 ? ` (${filteredCount}条无效连线已过滤)` : ''}`)
+
+        message.success(
+          `工作流已导入${filteredCount > 0 ? ` (${filteredCount}条无效连线已过滤)` : ''}`,
+        )
       } catch (error) {
         console.error('导入工作流失败:', error)
         message.error('导入失败，文件格式不正确或数据已损坏')
@@ -752,118 +762,120 @@
   // 连接验证函数 - 严格限制只能输出端口连接到输入端口
   const isValidConnection = (connection) => {
     console.log('🔍 连接验证被调用:', connection)
-    
+
     // 获取源节点和目标节点
-    const sourceNode = nodes.value.find(node => node.id === connection.source)
-    const targetNode = nodes.value.find(node => node.id === connection.target)
-    
+    const sourceNode = nodes.value.find((node) => node.id === connection.source)
+    const targetNode = nodes.value.find((node) => node.id === connection.target)
+
     if (!sourceNode || !targetNode) {
       console.warn('❌ 连接失败：源节点或目标节点不存在')
       return false
     }
-    
+
     // 不允许节点连接到自己
     if (connection.source === connection.target) {
       console.warn('❌ 连接失败：不允许节点连接到自己')
       return false
     }
-    
+
     // 核心验证：通过handle检查确保只能从输出端口连接到输入端口
     const { sourceHandle, targetHandle } = connection
-    
+
     console.log('端口详细信息:', {
       sourceHandle,
       targetHandle,
       sourceNodeType: sourceNode.data.nodeType,
-      targetNodeType: targetNode.data.nodeType
+      targetNodeType: targetNode.data.nodeType,
     })
-    
+
     // 检查源端口 - 必须是输出端口
     // 输出端口的handle通常包含'source'字样或者是条件节点的具体条件ID
-    const isSourceValid = sourceHandle && (
-      sourceHandle.includes('source') || // 普通节点的输出端口
-      sourceHandle === 'condition1' || sourceHandle === 'else' || // 条件节点的输出端口
-      (sourceNode.data.nodeType === 'condition' && sourceNode.data.config?.conditions?.some(c => c.id === sourceHandle))
-    )
-    
+    const isSourceValid =
+      sourceHandle &&
+      (sourceHandle.includes('source') || // 普通节点的输出端口
+        sourceHandle === 'condition1' ||
+        sourceHandle === 'else' || // 条件节点的输出端口
+        (sourceNode.data.nodeType === 'condition' &&
+          sourceNode.data.config?.conditions?.some((c) => c.id === sourceHandle)))
+
     // 检查目标端口 - 必须是输入端口
     // 输入端口的handle通常包含'left'或'target'字样
-    const isTargetValid = targetHandle && (
-      targetHandle.includes('left') || // 左侧输入端口
-      targetHandle.includes('target') // 目标端口
-    )
-    
+    const isTargetValid =
+      targetHandle &&
+      (targetHandle.includes('left') || // 左侧输入端口
+        targetHandle.includes('target')) // 目标端口
+
     // 特别检查：如果targetHandle包含'source'，说明连接到了输出端口，这是不允许的
     if (targetHandle && targetHandle.includes('source')) {
       console.warn('❌ 连接失败：试图连接到目标节点的输出端口（右侧），只能连接到输入端口（左侧）')
       return false
     }
-    
+
     // 特别检查：如果sourceHandle包含'left'或'target'，说明从输入端口开始连接，这是不允许的
     if (sourceHandle && (sourceHandle.includes('left') || sourceHandle.includes('target'))) {
       console.warn('❌ 连接失败：试图从输入端口（左侧）开始连接，只能从输出端口（右侧）开始连接')
       return false
     }
-    
+
     if (!isSourceValid) {
       console.warn('❌ 连接失败：源端口不是有效的输出端口', { sourceHandle })
       return false
     }
-    
+
     if (!isTargetValid) {
       console.warn('❌ 连接失败：目标端口不是有效的输入端口', { targetHandle })
       return false
     }
-    
+
     // 基于节点类型的额外验证
     // 检查源节点是否可以输出（有右侧端口）
     const sourceHasOutput = sourceNode.data.nodeType !== 'output' // 输出节点没有输出端口
-    
+
     // 检查目标节点是否可以接收输入（有左侧端口）
     const targetHasInput = targetNode.data.nodeType !== 'start' // 开始节点没有输入端口
-    
+
     if (!sourceHasOutput) {
       console.warn('❌ 连接失败：源节点没有输出端口（右侧端口）')
       return false
     }
-    
+
     if (!targetHasInput) {
       console.warn('❌ 连接失败：目标节点没有输入端口（左侧端口）')
       return false
     }
-    
+
     // 检查是否会形成循环
     const wouldCreateCycle = checkForCycle(connection.source, connection.target)
     if (wouldCreateCycle) {
       console.warn('❌ 连接失败：连接会形成循环')
       return false
     }
-    
+
     console.log('✅ 连接验证通过')
     return true
   }
-  
+
   // 检查是否会形成循环的简单实现
   const checkForCycle = (sourceId, targetId) => {
     // 从目标节点开始，看是否能通过现有的边回到源节点
     const visited = new Set()
-    
+
     const dfs = (nodeId) => {
       if (nodeId === sourceId) return true
       if (visited.has(nodeId)) return false
-      
+
       visited.add(nodeId)
-      
+
       // 找到从当前节点出发的所有边
-      const outgoingEdges = edges.value.filter(edge => edge.source === nodeId)
-      
+      const outgoingEdges = edges.value.filter((edge) => edge.source === nodeId)
+
       for (const edge of outgoingEdges) {
         if (dfs(edge.target)) return true
       }
-      
+
       return false
     }
-    
+
     return dfs(targetId)
   }
 
@@ -1056,7 +1068,8 @@
   }
 
   @keyframes pulse-dot {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1);
       opacity: 1;
     }
@@ -1076,8 +1089,7 @@
   .workflow-canvas {
     width: 100%;
     height: 100%;
-    background: 
-      radial-gradient(circle at 1px 1px, #cbd5e1 1.5px, transparent 0);
+    background: radial-gradient(circle at 1px 1px, #cbd5e1 1.5px, transparent 0);
     background-size: 24px 24px;
     background-color: #ffffff;
     position: relative;
