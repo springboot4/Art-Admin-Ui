@@ -154,7 +154,8 @@
 </template>
 
 <script setup>
-  import { nextTick, ref } from 'vue'
+  import { nextTick, onMounted, ref } from 'vue'
+  import { useRoute } from 'vue-router'
   import { applyEdgeChanges, applyNodeChanges, VueFlow } from '@vue-flow/core'
   import { Controls } from '@vue-flow/controls'
   import { Background } from '@vue-flow/background'
@@ -170,11 +171,14 @@
   } from '@ant-design/icons-vue'
   import CustomNode from './components/CustomNode.vue'
   import NodeConfigPanel from './components/NodeConfigPanel.vue'
+  import { add, findByAppId } from '/@/api/ai/workflow/AiWorkflowsIndex'
 
   // 导入 VueFlow 样式
   import '@vue-flow/core/dist/style.css'
   import '@vue-flow/core/dist/theme-default.css'
   import '@vue-flow/controls/dist/style.css'
+
+  const route = useRoute()
 
   // 可用的节点类型
   const availableNodeTypes = ref([
@@ -284,6 +288,11 @@
   const workflowStatus = ref('draft')
   const fileInput = ref()
 
+  // 路由参数
+  const appId = ref(route.query.appId)
+  const appMode = ref(route.query.appMode)
+  const currentWorkflowId = ref(null)
+
   // 配置面板相关
   const configPanelVisible = ref(false)
   const selectedNode = ref(null)
@@ -300,7 +309,95 @@
   let nodeId = 1
   const generateNodeId = () => `node_${nodeId++}`
 
-  // 注: 移除了拖拽功能，现在通过悬浮菜单添加节点
+  // 按照路由参数加载工作流数据
+  const loadWorkflowByAppId = async () => {
+    if (!appId.value) {
+      console.log('没有appId参数，使用默认流程图')
+      return
+    }
+
+    try {
+      const response = await findByAppId(appId.value)
+      console.log('res', response)
+      if (response && response.graph) {
+        // 保存工作流ID用于后续更新
+        currentWorkflowId.value = response.id
+
+        // 使用导入流程图的逻辑加载数据
+        const workflowData = JSON.parse(response.graph)
+        await loadWorkflowData(workflowData)
+        workflowName.value = workflowData.name || '已存在的工作流'
+        workflowStatus.value = 'saved'
+
+        message.success('工作流数据加载成功')
+      } else {
+        console.log('没有找到对应的工作流数据，使用默认流程图')
+      }
+    } catch (error) {
+      console.error('加载工作流数据失败:', error)
+      message.warning('加载工作流数据失败，使用默认流程图')
+    }
+  }
+
+  // 加载工作流数据的通用方法
+  const loadWorkflowData = async (workflowData) => {
+    const importedNodes = workflowData.nodes || []
+    const importedEdges = workflowData.edges || []
+
+    // 创建一个节点ID到节点数据的映射，方便快速查找
+    const nodeMap = new Map(importedNodes.map((node) => [node.id, node]))
+
+    // 1. 先加载节点
+    nodes.value = importedNodes
+    // 2. 清空旧的边，防止重复
+    edges.value = []
+
+    // 3. 等待Vue完成节点DOM的渲染
+    await nextTick()
+
+    // 4. 清理和验证边数据
+    const validEdges = importedEdges
+      .filter((edge) => {
+        const sourceExists = nodeMap.has(edge.source)
+        const targetExists = nodeMap.has(edge.target)
+        if (!sourceExists || !targetExists) {
+          console.warn('过滤无效的边，节点不存在:', edge)
+          return false
+        }
+        return true
+      })
+      .map((edge) => {
+        // 保持原有的handle信息，确保连接正确恢复
+        return {
+          id: edge.id || `edge_${Date.now()}_${Math.random()}`,
+          source: edge.source,
+          target: edge.target,
+          sourceHandle: edge.sourceHandle,
+          targetHandle: edge.targetHandle,
+          type: edge.type || 'default',
+          animated: edge.animated || false,
+          style: edge.style || { stroke: '#666', strokeWidth: 2 },
+        }
+      })
+
+    // 5. 加载有效的边和其他数据
+    edges.value = validEdges
+    workflowName.value = workflowData.name || '导入的工作流'
+    workflowStatus.value = 'draft'
+
+    const filteredCount = importedEdges.length - validEdges.length
+    console.log('导入结果:', {
+      导入节点数: importedNodes.length,
+      导入边数: importedEdges.length,
+      有效边数: validEdges.length,
+      过滤边数: filteredCount,
+    })
+  }
+
+  // 组件挂载时加载数据
+  onMounted(() => {
+    loadWorkflowByAppId()
+  })
 
   // 创建节点的统一方法
   const createNode = (nodeType, position) => {
@@ -502,12 +599,63 @@
   const saveWorkflow = async () => {
     saving.value = true
     try {
-      // 模拟保存
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      workflowStatus.value = 'saved'
-      message.success('工作流已保存')
+      // 清理节点数据，只保留必要的属性
+      const cleanNodes = nodes.value.map((node) => ({
+        id: node.id,
+        type: node.type,
+        position: node.position,
+        label: node.label,
+        data: node.data,
+      }))
+
+      // 清理边数据，只保留必要的连接信息
+      const cleanEdges = edges.value.map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle,
+        type: edge.type || 'default',
+        animated: edge.animated || false,
+        style: edge.style || { stroke: '#666', strokeWidth: 2 },
+      }))
+
+      const workflowData = {
+        name: workflowName.value,
+        nodes: cleanNodes,
+        edges: cleanEdges,
+        status: workflowStatus.value,
+        exportTime: new Date().toISOString(),
+        version: 'draft',
+      }
+
+      // 构建保存数据
+      const saveData = {
+        name: workflowName.value,
+        appId: appId.value,
+        version: 'draft', // 固定为 draft
+        graph: JSON.stringify(workflowData),
+        type: appMode.value,
+      }
+
+      // 如果有currentWorkflowId，说明是更新操作
+      if (currentWorkflowId.value) {
+        // saveData.id = currentWorkflowId.value
+      }
+
+      const response = await add(saveData)
+
+      if (response && response.data) {
+        currentWorkflowId.value = response.data.id || response.data
+        workflowStatus.value = 'saved'
+        message.success('工作流保存成功')
+      } else {
+        message.success('工作流保存成功')
+        workflowStatus.value = 'saved'
+      }
     } catch (error) {
-      message.error('保存失败')
+      console.error('保存失败:', error)
+      message.error('保存失败: ' + (error.message || '未知错误'))
     } finally {
       saving.value = false
     }
@@ -614,62 +762,8 @@
     reader.onload = async (e) => {
       try {
         const workflowData = JSON.parse(e.target.result)
-
-        const importedNodes = workflowData.nodes || []
-        const importedEdges = workflowData.edges || []
-
-        // 创建一个节点ID到节点数据的映射，方便快速查找
-        const nodeMap = new Map(importedNodes.map((node) => [node.id, node]))
-
-        // 1. 先加载节点
-        nodes.value = importedNodes
-        // 2. 清空旧的边，防止重复
-        edges.value = []
-
-        // 3. 等待Vue完成节点DOM的渲染
-        await nextTick()
-
-        // 4. 清理和验证边数据
-        const validEdges = importedEdges
-          .filter((edge) => {
-            const sourceExists = nodeMap.has(edge.source)
-            const targetExists = nodeMap.has(edge.target)
-            if (!sourceExists || !targetExists) {
-              console.warn('过滤无效的边，节点不存在:', edge)
-              return false
-            }
-            return true
-          })
-          .map((edge) => {
-            // 保持原有的handle信息，确保连接正确恢复
-            return {
-              id: edge.id || `edge_${Date.now()}_${Math.random()}`,
-              source: edge.source,
-              target: edge.target,
-              sourceHandle: edge.sourceHandle,
-              targetHandle: edge.targetHandle,
-              type: edge.type || 'default',
-              animated: edge.animated || false,
-              style: edge.style || { stroke: '#666', strokeWidth: 2 },
-            }
-          })
-
-        // 5. 加载有效的边和其他数据
-        edges.value = validEdges
-        workflowName.value = workflowData.name || '导入的工作流'
-        workflowStatus.value = 'draft'
-
-        const filteredCount = importedEdges.length - validEdges.length
-        console.log('导入结果:', {
-          导入节点数: importedNodes.length,
-          导入边数: importedEdges.length,
-          有效边数: validEdges.length,
-          过滤边数: filteredCount,
-        })
-
-        message.success(
-          `工作流已导入${filteredCount > 0 ? ` (${filteredCount}条无效连线已过滤)` : ''}`,
-        )
+        await loadWorkflowData(workflowData)
+        message.success('工作流已导入')
       } catch (error) {
         console.error('导入工作流失败:', error)
         message.error('导入失败，文件格式不正确或数据已损坏')

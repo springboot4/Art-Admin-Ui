@@ -564,13 +564,19 @@
    * 打开应用
    */
   function handleOpenApp(item: any) {
-    message.info(`正在打开应用: ${item?.name}`)
-    // TODO: 根据应用类型跳转到不同页面
-    // if (item?.mode === 'chatflow' || item?.mode === 'workflow') {
-    //   router.push(`/apps/${item?.id}/studio`)
-    // } else {
-    //   router.push(`/apps/${item?.id}/config`)
-    // }
+    if (item?.mode === 'workflow') {
+      // 工作流类型应用跳转到工作流页面，传递应用ID和类型
+      router.push({
+        path: '/ai/workflow',
+        query: {
+          appId: item.id,
+          appMode: item.mode
+        }
+      })
+    } else {
+      message.info(`正在打开应用: ${item?.name}`)
+      // TODO: 其他类型应用的跳转逻辑
+    }
   }
 
   /**
