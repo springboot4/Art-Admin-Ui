@@ -99,6 +99,7 @@
     <!-- 输入端口 -->
     <Handle
       v-if="data.nodeType !== 'start'"
+      id="target_handle"
       class="node-handle input-handle"
       position="left"
       type="target"

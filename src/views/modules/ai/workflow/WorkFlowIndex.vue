@@ -14,6 +14,14 @@
             <span class="status-text">{{ getStatusText(workflowStatus) }}</span>
           </div>
         </div>
+
+        <!-- 版本信息 -->
+        <div v-if="workflowVersion" class="workflow-version">
+          <div class="version-tag">
+            <span class="version-icon">📋</span>
+            <span class="version-text">{{ formatVersionText(workflowVersion) }}</span>
+          </div>
+        </div>
       </div>
 
       <div class="toolbar-right">
@@ -48,12 +56,12 @@
 
           <a-divider type="vertical" />
 
-          <a-button :loading="validating" @click="validateWorkflow">
-            <template #icon>
-              <CheckCircleOutlined />
-            </template>
-            验证
-          </a-button>
+          <!--          <a-button :loading="validating" @click="validateWorkflow">-->
+          <!--            <template #icon>-->
+          <!--              <CheckCircleOutlined />-->
+          <!--            </template>-->
+          <!--            验证-->
+          <!--          </a-button>-->
           <a-button :loading="saving" type="primary" @click="saveWorkflow">
             <template #icon>
               <SaveOutlined />
@@ -65,6 +73,17 @@
               <PlayCircleOutlined />
             </template>
             运行
+          </a-button>
+          <a-button
+            :loading="publishing"
+            class="btn-publish"
+            type="primary"
+            @click="publishWorkflow"
+          >
+            <template #icon>
+              <CloudUploadOutlined />
+            </template>
+            发布
           </a-button>
         </a-space>
       </div>
@@ -161,8 +180,8 @@
   import { Background } from '@vue-flow/background'
   import { Button as AButton, Input as AInput, message, Space as ASpace } from 'ant-design-vue'
   import {
-    CheckCircleOutlined,
     ClearOutlined,
+    CloudUploadOutlined,
     ExportOutlined,
     ImportOutlined,
     PlayCircleOutlined,
@@ -171,7 +190,7 @@
   } from '@ant-design/icons-vue'
   import CustomNode from './components/CustomNode.vue'
   import NodeConfigPanel from './components/NodeConfigPanel.vue'
-  import { add, findByAppId } from '/@/api/ai/workflow/AiWorkflowsIndex'
+  import { add, findByAppId, publish } from '/@/api/ai/workflow/AiWorkflowsIndex'
 
   // 导入 VueFlow 样式
   import '@vue-flow/core/dist/style.css'
@@ -285,7 +304,9 @@
   const saving = ref(false)
   const executing = ref(false)
   const validating = ref(false)
+  const publishing = ref(false)
   const workflowStatus = ref('draft')
+  const workflowVersion = ref(null)
   const fileInput = ref()
 
   // 路由参数
@@ -309,6 +330,26 @@
   let nodeId = 1
   const generateNodeId = () => `node_${nodeId++}`
 
+  // 更新节点ID计数器，确保新生成的ID不与现有节点冲突
+  const updateNodeIdCounter = (existingNodes) => {
+    if (!existingNodes || existingNodes.length === 0) return
+
+    // 找出所有现有节点中符合 node_数字 格式的最大数字
+    let maxId = 0
+    existingNodes.forEach((node) => {
+      const match = node.id.match(/^node_(\d+)$/)
+      if (match) {
+        const id = parseInt(match[1], 10)
+        if (id > maxId) {
+          maxId = id
+        }
+      }
+    })
+
+    // 将计数器设置为最大ID + 1
+    nodeId = maxId + 1
+  }
+
   // 按照路由参数加载工作流数据
   const loadWorkflowByAppId = async () => {
     if (!appId.value) {
@@ -320,18 +361,22 @@
       const response = await findByAppId(appId.value)
       console.log('res', response)
       if (response && response.graph) {
-        // 保存工作流ID用于后续更新
+        // 保存工作流ID和版本信息用于后续更新
         currentWorkflowId.value = response.id
+        workflowVersion.value = response.version
 
         // 使用导入流程图的逻辑加载数据
         const workflowData = JSON.parse(response.graph)
         await loadWorkflowData(workflowData)
         workflowName.value = workflowData.name || '已存在的工作流'
-        workflowStatus.value = 'saved'
+
+        // 根据版本设置状态
+        workflowStatus.value = response.version === 'draft' ? 'draft' : 'published'
 
         message.success('工作流数据加载成功')
       } else {
         console.log('没有找到对应的工作流数据，使用默认流程图')
+        workflowVersion.value = null
       }
     } catch (error) {
       console.error('加载工作流数据失败:', error)
@@ -346,6 +391,9 @@
 
     // 创建一个节点ID到节点数据的映射，方便快速查找
     const nodeMap = new Map(importedNodes.map((node) => [node.id, node]))
+
+    // 更新节点ID计数器，避免重复ID
+    updateNodeIdCounter(importedNodes)
 
     // 1. 先加载节点
     nodes.value = importedNodes
@@ -383,7 +431,12 @@
     // 5. 加载有效的边和其他数据
     edges.value = validEdges
     workflowName.value = workflowData.name || '导入的工作流'
+
+    // 对于导入的工作流，设置为草稿状态，清空版本信息
     workflowStatus.value = 'draft'
+    if (!currentWorkflowId.value) {
+      workflowVersion.value = null
+    }
 
     const filteredCount = importedEdges.length - validEdges.length
     console.log('导入结果:', {
@@ -624,9 +677,7 @@
         name: workflowName.value,
         nodes: cleanNodes,
         edges: cleanEdges,
-        status: workflowStatus.value,
         exportTime: new Date().toISOString(),
-        version: 'draft',
       }
 
       // 构建保存数据
@@ -648,10 +699,12 @@
       if (response && response.data) {
         currentWorkflowId.value = response.data.id || response.data
         workflowStatus.value = 'saved'
+        workflowVersion.value = 'draft' // 保存后是草稿版本
         message.success('工作流保存成功')
       } else {
         message.success('工作流保存成功')
         workflowStatus.value = 'saved'
+        workflowVersion.value = 'draft'
       }
     } catch (error) {
       console.error('保存失败:', error)
@@ -704,6 +757,8 @@
     ]
     edges.value = []
     workflowStatus.value = 'draft'
+    workflowVersion.value = null
+    currentWorkflowId.value = null
     message.success('画布已清空')
   }
 
@@ -825,6 +880,55 @@
     }
   }
 
+  const publishWorkflow = async () => {
+    if (!appId.value) {
+      message.error('缺少应用ID，无法发布工作流')
+      return
+    }
+
+    // 发布前先保存工作流
+    if (workflowStatus.value === 'draft') {
+      message.info('发布前需要先保存工作流...')
+      await saveWorkflow()
+    }
+
+    publishing.value = true
+    try {
+      const publishData = {
+        appId: appId.value,
+      }
+
+      const response = await publish(publishData)
+
+      if (response) {
+        // 发布成功后，重新获取工作流信息以获取最新版本号
+        try {
+          const updatedWorkflow = await findByAppId(appId.value)
+          if (updatedWorkflow && updatedWorkflow.version) {
+            workflowVersion.value = updatedWorkflow.version
+            workflowStatus.value = 'published'
+            message.success('工作流发布成功')
+          } else {
+            workflowStatus.value = 'published'
+            message.success('工作流发布成功')
+          }
+        } catch (fetchError) {
+          console.warn('获取版本信息失败:', fetchError)
+          workflowStatus.value = 'published'
+          message.success('工作流发布成功')
+        }
+      } else {
+        message.success('工作流发布成功')
+        workflowStatus.value = 'published'
+      }
+    } catch (error) {
+      console.error('发布失败:', error)
+      message.error('发布失败: ' + (error.message || '未知错误'))
+    } finally {
+      publishing.value = false
+    }
+  }
+
   // 状态相关
   const getStatusText = (status) => {
     const statusMap = {
@@ -832,6 +936,7 @@
       saved: '已保存',
       executing: '执行中',
       error: '执行失败',
+      published: '已发布',
     }
     return statusMap[status] || '未知'
   }
@@ -842,8 +947,17 @@
       saved: 'success',
       executing: 'processing',
       error: 'error',
+      published: 'success',
     }
     return colorMap[status] || 'default'
+  }
+
+  // 格式化版本文本
+  const formatVersionText = (version) => {
+    if (!version) return ''
+    if (version === 'draft') return '草稿版本'
+    // 如果是版本号，显示版本号
+    return `版本 ${version}`
   }
 
   // 点击画布其他地方关闭添加节点菜单
@@ -870,6 +984,27 @@
     if (connection.source === connection.target) {
       console.warn('❌ 连接失败：不允许节点连接到自己')
       return false
+    }
+
+    // 检查目标节点的输入端口是否已经被其他节点连接
+    const existingConnection = edges.value.find(
+      (edge) => edge.target === connection.target && edge.targetHandle === connection.targetHandle,
+    )
+
+    if (existingConnection) {
+      // 如果是相同的连接（同一个源节点和源端口），则允许通过
+      if (
+        existingConnection.source === connection.source &&
+        existingConnection.sourceHandle === connection.sourceHandle
+      ) {
+      } else {
+        console.warn('❌ 连接失败：目标节点的输入端口已经被其他节点连接', {
+          targetNode: connection.target,
+          targetHandle: connection.targetHandle,
+          existingSource: existingConnection.source,
+        })
+        return false
+      }
     }
 
     // 核心验证：通过handle检查确保只能从输出端口连接到输入端口
@@ -945,7 +1080,6 @@
       return false
     }
 
-    console.log('✅ 连接验证通过')
     return true
   }
 
@@ -1080,6 +1214,19 @@
     box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
   }
 
+  /* Special "Publish" button */
+  .toolbar-right :deep(.btn-publish) {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    border-color: transparent;
+    color: white;
+  }
+
+  .toolbar-right :deep(.btn-publish:hover) {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+  }
+
   .toolbar-right :deep(.ant-divider-vertical) {
     height: 20px;
     margin: 0;
@@ -1090,6 +1237,44 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+
+  .workflow-version {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* 版本标签样式 */
+  .version-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(67, 56, 202, 0.1) 100%);
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+  }
+
+  .version-tag:hover {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(67, 56, 202, 0.15) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+  }
+
+  .version-icon {
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  .version-text {
+    white-space: nowrap;
+    font-weight: 600;
   }
 
   /* 现代化状态标签样式 */
@@ -1137,6 +1322,17 @@
   .status-saved .status-dot {
     background: #10b981;
     box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  }
+
+  .status-published {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
+    color: #7c3aed;
+    border-color: rgba(139, 92, 246, 0.2);
+  }
+
+  .status-published .status-dot {
+    background: #8b5cf6;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
   }
 
   .status-executing {

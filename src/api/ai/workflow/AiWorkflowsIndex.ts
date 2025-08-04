@@ -1,6 +1,27 @@
 import { defHttp } from '/@/utils/http/axios'
 import { PageResult } from '/#/axios'
 import { AiWorkflowsDTO } from './AiWorkflowsTypes'
+import { AiWorkflowsPublishDTO } from '/@/api/ai/workflow/AiWorkflowsPublishTypes'
+
+/**
+ * 根据appId查询最新的工作流信息
+ */
+export function findByAppId(appId) {
+  return defHttp.get<AiWorkflowsDTO>({
+    url: '/ai/ai/workflows/findByAppId',
+    params: { appId },
+  })
+}
+
+/**
+ * 修改
+ */
+export function publish(data: AiWorkflowsPublishDTO) {
+  return defHttp.post<AiWorkflowsPublishDTO>({
+    url: '/ai/ai/workflows/publish',
+    data,
+  })
+}
 
 /**
  * 分页
@@ -19,16 +40,6 @@ export function get(id) {
   return defHttp.get<AiWorkflowsDTO>({
     url: '/ai/ai/workflows/findById',
     params: { id },
-  })
-}
-
-/**
- * 根据appId查询最新的工作流信息
- */
-export function findByAppId(appId) {
-  return defHttp.get<AiWorkflowsDTO>({
-    url: '/ai/ai/workflows/findByAppId',
-    params: { appId },
   })
 }
 
