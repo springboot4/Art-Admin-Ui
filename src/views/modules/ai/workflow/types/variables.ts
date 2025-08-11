@@ -1,10 +1,10 @@
 // 变量类型定义
 export enum VariableType {
-  ENVIRONMENT = 'environment', // 环境变量
-  SYSTEM = 'system', // 系统变量
-  SESSION = 'session', // 会话变量
-  USER_INPUT = 'userInput', // 用户输入
-  NODE_OUTPUT = 'nodeOutput', // 节点出参
+  ENVIRONMENT = 'env', // 环境变量
+  SYSTEM = 'sys', // 系统变量
+  CONVERSATION = 'conversation', // 会话变量
+  USER_INPUT = 'input', // 用户输入
+  NODE_OUTPUT = 'output', // 节点出参
 }
 
 // 变量访问权限
@@ -249,4 +249,11 @@ export interface VariableReference {
   variableName: string // 变量名
   outputKey?: string // 输出键名（仅节点出参需要）
   path?: string // 对象路径，如 'response.data.items[0].name'
+}
+
+// 变量引用参数（用于节点配置中记录引用的变量信息）
+export interface ReferenceParameter {
+  nodeId: string // 引用的节点ID
+  parameterName: string // 参数名称
+  variableType: VariableType // 变量类型
 }

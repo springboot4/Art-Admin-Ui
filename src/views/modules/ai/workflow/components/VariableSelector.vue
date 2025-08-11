@@ -137,17 +137,17 @@
 
             <!-- 会话变量 -->
             <a-collapse-panel
-              v-if="filteredGroups.session.length > 0"
-              key="session"
+              v-if="filteredGroups.conversation.length > 0"
+              key="conversation"
               class="variable-group"
               header="会话变量"
             >
               <template #extra>
-                <a-tag color="purple" size="small">{{ filteredGroups.session.length }}</a-tag>
+                <a-tag color="purple" size="small">{{ filteredGroups.conversation.length }}</a-tag>
               </template>
               <div class="variable-list">
                 <div
-                  v-for="variable in filteredGroups.session"
+                  v-for="variable in filteredGroups.conversation"
                   :key="variable.id"
                   class="variable-item"
                   @click="handleSelectVariable(variable)"
@@ -214,308 +214,10 @@
     Tag as ATag,
   } from 'ant-design-vue'
   import { CloseOutlined, FunctionOutlined, SearchOutlined } from '@ant-design/icons-vue'
+  import { NodeDependencyAnalyzer } from '../utils/variableUtils'
+  import { VariableType, VariableDataType, VariableAccess } from '../types'
 
-  // 临时类型定义
-  const VariableType = {
-    ENVIRONMENT: 'environment',
-    SYSTEM: 'system',
-    SESSION: 'session',
-    USER_INPUT: 'userInput',
-    NODE_OUTPUT: 'nodeOutput',
-  }
 
-  const VariableDataType = {
-    STRING: 'string',
-    NUMBER: 'number',
-    BOOLEAN: 'boolean',
-    OBJECT: 'object',
-    ARRAY: 'array',
-    ANY: 'any',
-  }
-
-  const VariableAccess = {
-    READONLY: 'readonly',
-    READWRITE: 'readwrite',
-  }
-
-  // 模拟依赖分析器
-  class NodeDependencyAnalyzer {
-    constructor(nodes, edges) {
-      this.nodes = nodes
-      this.edges = edges
-    }
-
-    getAvailableVariables(nodeId) {
-      // 获取系统变量
-      const systemVariables = [
-        {
-          id: 'sys_user_id',
-          name: 'userId',
-          type: VariableType.SYSTEM,
-          dataType: VariableDataType.STRING,
-          access: VariableAccess.READONLY,
-          description: '当前用户ID',
-        },
-        {
-          id: 'sys_session_id',
-          name: 'sessionId',
-          type: VariableType.SYSTEM,
-          dataType: VariableDataType.STRING,
-          access: VariableAccess.READONLY,
-          description: '当前会话ID',
-        },
-        {
-          id: 'sys_timestamp',
-          name: 'timestamp',
-          type: VariableType.SYSTEM,
-          dataType: VariableDataType.NUMBER,
-          access: VariableAccess.READONLY,
-          description: '当前时间戳',
-        },
-      ]
-
-      // 获取用户输入变量（从开始节点配置中获取）
-      const startNode = this.nodes.find((node) => node.data?.nodeType === 'start')
-      const userInputVariables = []
-
-      if (startNode && startNode.data.config?.userInputs) {
-        userInputVariables.push(
-          ...startNode.data.config.userInputs.map((input) => ({
-            id: `user_input_${input.name}`,
-            name: input.name,
-            type: VariableType.USER_INPUT,
-            dataType: input.dataType || VariableDataType.STRING,
-            access: VariableAccess.READONLY,
-            description: input.description || `用户输入: ${input.displayName || input.name}`,
-            required: input.required || false,
-          })),
-        )
-      }
-
-      // 获取会话变量
-      const sessionVariables = [
-        {
-          id: 'session_chat_history',
-          name: 'chatHistory',
-          type: VariableType.SESSION,
-          dataType: VariableDataType.ARRAY,
-          access: VariableAccess.READWRITE,
-          description: '对话历史记录',
-        },
-      ]
-
-      // 获取前驱节点的输出变量
-      const nodeOutputVariables = []
-      const predecessorNodeIds = this.getPredecessorNodes(nodeId)
-
-      for (const predecessorId of predecessorNodeIds) {
-        const predecessorNode = this.nodes.find((n) => n.id === predecessorId)
-        if (predecessorNode) {
-          const outputDefs = this.getNodeOutputDefinitions(predecessorNode.data.nodeType)
-          nodeOutputVariables.push(
-            ...outputDefs.map((outputDef) => ({
-              id: `node_output_${predecessorId}_${outputDef.key}`,
-              name: `${predecessorNode.label || predecessorNode.data.nodeType}.${outputDef.name}`,
-              type: VariableType.NODE_OUTPUT,
-              dataType: outputDef.dataType,
-              access: VariableAccess.READONLY,
-              description:
-                outputDef.description ||
-                `来自节点 ${predecessorNode.label || predecessorId} 的输出`,
-              sourceNodeId: predecessorId,
-              sourceOutputKey: outputDef.key,
-            })),
-          )
-        }
-      }
-
-      return [
-        ...systemVariables,
-        ...userInputVariables,
-        ...sessionVariables,
-        ...nodeOutputVariables,
-      ]
-    }
-
-    // 获取前驱节点
-    getPredecessorNodes(nodeId) {
-      const predecessors = new Set()
-      const visited = new Set()
-
-      const dfs = (currentNodeId) => {
-        if (visited.has(currentNodeId)) return
-        visited.add(currentNodeId)
-
-        const incomingEdges = this.edges.filter((edge) => edge.target === currentNodeId)
-
-        for (const edge of incomingEdges) {
-          const sourceNodeId = edge.source
-          predecessors.add(sourceNodeId)
-          dfs(sourceNodeId)
-        }
-      }
-
-      dfs(nodeId)
-      return Array.from(predecessors)
-    }
-
-    // 获取节点输出定义
-    getNodeOutputDefinitions(nodeType) {
-      const outputDefs = {
-        start: [
-          {
-            key: 'userId',
-            name: '用户ID',
-            dataType: VariableDataType.STRING,
-            description: '当前用户ID',
-          },
-          {
-            key: 'sessionId',
-            name: '会话ID',
-            dataType: VariableDataType.STRING,
-            description: '当前会话ID',
-          },
-          {
-            key: 'timestamp',
-            name: '时间戳',
-            dataType: VariableDataType.NUMBER,
-            description: '流程开始时间',
-          },
-        ],
-        llm: [
-          {
-            key: 'output',
-            name: 'AI回复',
-            dataType: VariableDataType.STRING,
-            description: 'AI模型生成的回复内容',
-          },
-          {
-            key: 'tokens',
-            name: '消耗Token',
-            dataType: VariableDataType.NUMBER,
-            description: '本次请求消耗的Token数量',
-          },
-          {
-            key: 'model',
-            name: '使用模型',
-            dataType: VariableDataType.STRING,
-            description: '实际使用的AI模型',
-          },
-        ],
-        http: [
-          {
-            key: 'response',
-            name: '响应数据',
-            dataType: VariableDataType.OBJECT,
-            description: 'HTTP请求的响应数据',
-          },
-          {
-            key: 'statusCode',
-            name: '状态码',
-            dataType: VariableDataType.NUMBER,
-            description: 'HTTP响应状态码',
-          },
-          {
-            key: 'headers',
-            name: '响应头',
-            dataType: VariableDataType.OBJECT,
-            description: 'HTTP响应头信息',
-          },
-        ],
-        condition: [
-          {
-            key: 'result',
-            name: '条件结果',
-            dataType: VariableDataType.STRING,
-            description: '匹配的条件分支名称',
-          },
-          {
-            key: 'matched',
-            name: '是否匹配',
-            dataType: VariableDataType.BOOLEAN,
-            description: '是否有条件匹配成功',
-          },
-        ],
-        code: [
-          {
-            key: 'output',
-            name: '代码输出',
-            dataType: VariableDataType.ANY,
-            description: '代码执行的输出结果',
-          },
-          {
-            key: 'logs',
-            name: '执行日志',
-            dataType: VariableDataType.STRING,
-            description: '代码执行过程中的日志',
-          },
-          {
-            key: 'error',
-            name: '错误信息',
-            dataType: VariableDataType.STRING,
-            description: '代码执行错误信息（如果有）',
-          },
-        ],
-        knowledge: [
-          {
-            key: 'documents',
-            name: '检索文档',
-            dataType: VariableDataType.ARRAY,
-            description: '检索到的相关文档列表',
-          },
-          {
-            key: 'scores',
-            name: '相似度分数',
-            dataType: VariableDataType.ARRAY,
-            description: '文档相似度分数',
-          },
-          {
-            key: 'query',
-            name: '查询内容',
-            dataType: VariableDataType.STRING,
-            description: '实际执行的查询内容',
-          },
-        ],
-        template: [
-          {
-            key: 'output',
-            name: '模板输出',
-            dataType: VariableDataType.STRING,
-            description: '模板渲染后的结果',
-          },
-          {
-            key: 'variables',
-            name: '使用变量',
-            dataType: VariableDataType.OBJECT,
-            description: '模板中使用的变量值',
-          },
-        ],
-        variable: [
-          {
-            key: 'variables',
-            name: '设置变量',
-            dataType: VariableDataType.OBJECT,
-            description: '设置的变量键值对',
-          },
-        ],
-      }
-
-      return outputDefs[nodeType] || []
-    }
-
-    getVariableReference(variable) {
-      switch (variable.type) {
-        case VariableType.SYSTEM:
-          return `{{system.${variable.name}}}`
-        case VariableType.USER_INPUT:
-          return `{{userInput.${variable.name}}}`
-        case VariableType.NODE_OUTPUT:
-          return `{{nodeOutput.${variable.sourceNodeId}.${variable.sourceOutputKey}}}`
-        default:
-          return `{{${variable.name}}}`
-      }
-    }
-  }
 
   const props = defineProps({
     value: {
@@ -546,9 +248,14 @@
       type: Boolean,
       default: true,
     },
+    // 变量引用参数列表（用于维护变量引用信息）
+    referenceParameters: {
+      type: Array,
+      default: () => [],
+    },
   })
 
-  const emit = defineEmits(['update:value', 'change'])
+  const emit = defineEmits(['update:value', 'change', 'update:referenceParameters'])
 
   // 引用
   const inputRef = ref()
@@ -557,7 +264,7 @@
   // 状态
   const showPanel = ref(false)
   const searchKeyword = ref('')
-  const activeGroups = ref(['system', 'environment', 'userInput', 'session', 'nodeOutput'])
+  const activeGroups = ref(['system', 'environment', 'userInput', 'conversation', 'nodeOutput'])
 
   // 面板样式
   const panelStyle = ref({})
@@ -578,7 +285,7 @@
       system: [],
       environment: [],
       userInput: [],
-      session: [],
+      conversation: [],
       nodeOutput: [],
     }
 
@@ -593,8 +300,8 @@
         case VariableType.USER_INPUT:
           groups.userInput.push(variable)
           break
-        case VariableType.SESSION:
-          groups.session.push(variable)
+        case VariableType.CONVERSATION:
+          groups.conversation.push(variable)
           break
         case VariableType.NODE_OUTPUT:
           groups.nodeOutput.push(variable)
@@ -644,7 +351,7 @@
       [VariableType.SYSTEM]: '系统',
       [VariableType.ENVIRONMENT]: '环境',
       [VariableType.USER_INPUT]: '输入',
-      [VariableType.SESSION]: '会话',
+      [VariableType.CONVERSATION]: '会话',
       [VariableType.NODE_OUTPUT]: '输出',
     }
     return labels[type] || type
@@ -701,7 +408,29 @@
 
   // 选择变量
   const handleSelectVariable = (variable) => {
-    const reference = getVariableReference(variable)
+    // 生成新的变量引用格式: ${变量名}
+    const variableName = getNewVariableReference(variable)
+    const reference = `\${${variableName}}`
+
+    // 更新引用参数列表
+    const newReferenceParameter = {
+      nodeId: variable.sourceNodeId || 'system', // 对于非节点输出变量，使用 'system' 作为默认值
+      parameterName: variableName,
+      variableType: variable.type,
+    }
+
+    const currentReferenceParameters = [...(props.referenceParameters || [])]
+    
+    // 检查是否已存在相同的引用
+    const existingIndex = currentReferenceParameters.findIndex(
+      param => param.parameterName === variableName
+    )
+    
+    if (existingIndex === -1) {
+      // 添加新的引用参数
+      currentReferenceParameters.push(newReferenceParameter)
+      emit('update:referenceParameters', currentReferenceParameters)
+    }
 
     if (props.multiple) {
       // 支持多个变量，在光标位置插入
@@ -727,6 +456,25 @@
       emit('update:value', reference)
       emit('change', reference)
       showPanel.value = false
+    }
+  }
+
+  // 生成新的变量引用名称（不包含节点ID）
+  const getNewVariableReference = (variable) => {
+    switch (variable.type) {
+      case VariableType.SYSTEM:
+        return variable.name
+      case VariableType.ENVIRONMENT:
+        return variable.name
+      case VariableType.USER_INPUT:
+        return variable.name
+      case VariableType.CONVERSATION:
+        return variable.name
+      case VariableType.NODE_OUTPUT:
+        // 只使用变量名，不包含节点ID
+        return variable.sourceOutputKey || variable.name
+      default:
+        return variable.name
     }
   }
 

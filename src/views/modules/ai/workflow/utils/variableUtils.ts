@@ -91,8 +91,8 @@ export class NodeDependencyAnalyzer {
     }
 
     // 4. 添加会话变量（TODO: 从配置中获取）
-    const sessionVariables = this.getSessionVariables()
-    variables.push(...sessionVariables)
+    const conversationVariables = this.getConversationVariables()
+    variables.push(...conversationVariables)
 
     // 5. 添加前驱节点的输出变量
     const predecessorNodeIds = this.getPredecessorNodes(nodeId)
@@ -123,8 +123,8 @@ export class NodeDependencyAnalyzer {
         return `{{environment.${variable.name}}}`
       case VariableType.USER_INPUT:
         return `{{userInput.${variable.name}}}`
-      case VariableType.SESSION:
-        return `{{session.${variable.name}}}`
+      case VariableType.CONVERSATION:
+        return `{{conversation.${variable.name}}}`
       case VariableType.NODE_OUTPUT:
         return `{{nodeOutput.${variable.sourceNodeId}.${variable.sourceOutputKey}}}`
       default:
@@ -185,21 +185,21 @@ export class NodeDependencyAnalyzer {
   /**
    * 获取会话变量（示例）
    */
-  private getSessionVariables(): VariableDefinition[] {
+  private getConversationVariables(): VariableDefinition[] {
     return [
       {
-        id: 'session_chat_history',
+        id: 'conversation_chat_history',
         name: 'chatHistory',
-        type: VariableType.SESSION,
+        type: VariableType.CONVERSATION,
         dataType: VariableDataType.ARRAY,
         access: VariableAccess.READWRITE,
         description: '对话历史记录',
         required: false,
       },
       {
-        id: 'session_user_context',
+        id: 'conversation_user_context',
         name: 'userContext',
-        type: VariableType.SESSION,
+        type: VariableType.CONVERSATION,
         dataType: VariableDataType.OBJECT,
         access: VariableAccess.READWRITE,
         description: '用户上下文信息',

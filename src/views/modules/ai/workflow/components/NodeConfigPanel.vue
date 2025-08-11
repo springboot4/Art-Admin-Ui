@@ -105,6 +105,7 @@
           <a-form-item label="系统提示词">
             <VariableSelector
               v-model:value="editData.data.config.systemPrompt"
+              v-model:referenceParameters="editData.data.config.referenceParameters"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -114,6 +115,7 @@
           <a-form-item label="用户消息">
             <VariableSelector
               v-model:value="editData.data.config.userMessage"
+              v-model:referenceParameters="editData.data.config.referenceParameters"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -135,6 +137,7 @@
           <a-form-item label="请求URL">
             <VariableSelector
               v-model:value="editData.data.config.url"
+              v-model:referenceParameters="editData.data.config.referenceParameters"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -144,6 +147,7 @@
           <a-form-item label="请求头">
             <VariableSelector
               v-model:value="editData.data.config.headers"
+              v-model:referenceParameters="editData.data.config.referenceParameters"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -153,10 +157,11 @@
           <a-form-item label="请求体">
             <VariableSelector
               v-model:value="editData.data.config.body"
+              v-model:referenceParameters="editData.data.config.referenceParameters"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
-              placeholder='{"key": "{{nodeOutput.node_1.value}}"}'
+              placeholder='{"key": "${value}"}'
             />
           </a-form-item>
         </template>
@@ -186,10 +191,11 @@
                   <VariableSelector
                     v-if="condition.id !== 'else'"
                     v-model:value="condition.expression"
+                    v-model:referenceParameters="editData.data.config.referenceParameters"
                     :edges="edges"
                     :node-id="editData.id"
                     :nodes="nodes"
-                    placeholder="例如: {{nodeOutput.node_1.score}} > 0.8"
+                    placeholder="例如: ${score} > 0.8"
                   />
                   <a-input
                     v-else
@@ -228,10 +234,11 @@
           <a-form-item label="代码内容">
             <VariableSelector
               v-model:value="editData.data.config.code"
+              v-model:referenceParameters="editData.data.config.referenceParameters"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
-              placeholder="# 在这里编写你的代码，可以使用变量&#10;# 例如：user_name = {{userInput.userName}}&#10;print(f'Hello, {user_name}!')"
+              placeholder="# 在这里编写你的代码，可以使用变量&#10;# 例如：user_name = ${userName}&#10;print(f'Hello, {user_name}!')"
               style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace"
             />
           </a-form-item>
@@ -242,10 +249,11 @@
           <a-form-item label="查询内容">
             <VariableSelector
               v-model:value="editData.data.config.query"
+              v-model:referenceParameters="editData.data.config.referenceParameters"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
-              placeholder="请输入查询内容，可以使用变量，如：{{userInput.question}}"
+              placeholder="请输入查询内容，可以使用变量，如：${question}"
             />
           </a-form-item>
           <a-form-item label="检索数量(topK)">
@@ -272,10 +280,11 @@
           <a-form-item label="模板内容">
             <VariableSelector
               v-model:value="editData.data.config.template"
+              v-model:referenceParameters="editData.data.config.referenceParameters"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
-              placeholder="使用 {{变量}} 语法引用变量，如：用户名：{{userInput.userName}}，AI回复：{{nodeOutput.llm_node.output}}"
+              placeholder="使用 ${变量} 语法引用变量，如：用户名：${userName}，AI回复：${output}"
             />
           </a-form-item>
         </template>
@@ -285,11 +294,30 @@
           <a-form-item label="变量配置(JSON格式)">
             <VariableSelector
               v-model:value="editData.data.config.variables"
+              v-model:referenceParameters="editData.data.config.referenceParameters"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
-              placeholder='{"var1": "{{userInput.value1}}", "var2": "{{nodeOutput.node_1.result}}"}'
+              placeholder='{"var1": "${value1}", "var2": "${result}"}'
             />
+          </a-form-item>
+        </template>
+
+        <!-- 输出节点配置 -->
+        <template v-if="editData.data.nodeType === 'output'">
+          <a-form-item label="输出内容">
+            <a-textarea
+              v-model:value="editData.data.config.outputContent"
+              :rows="4"
+              placeholder="输出的内容，不能使用变量选择器..."
+            />
+          </a-form-item>
+          <a-form-item label="输出格式">
+            <a-select v-model:value="editData.data.config.outputFormat" placeholder="选择输出格式">
+              <a-select-option value="text">纯文本</a-select-option>
+              <a-select-option value="json">JSON格式</a-select-option>
+              <a-select-option value="markdown">Markdown格式</a-select-option>
+            </a-select>
           </a-form-item>
         </template>
 
@@ -411,6 +439,10 @@
       console.log('NodeConfigPanel received node:', newNode)
       if (newNode) {
         editData.value = JSON.parse(JSON.stringify(newNode))
+        // 确保存在 referenceParameters 字段
+        if (!editData.value.data.config.referenceParameters) {
+          editData.value.data.config.referenceParameters = []
+        }
         console.log('Edit data initialized:', editData.value)
       }
     },
@@ -492,7 +524,7 @@
         temperature: 0.7,
         maxTokens: 1024,
         systemPrompt: '你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。',
-        userMessage: '{{userInput.question}}',
+        userMessage: '${question}',
         timeout: 30,
         retryCount: 1,
       },
@@ -514,24 +546,30 @@
       },
       code: {
         language: 'python',
-        code: '# 在这里编写你的代码\n# 可以使用变量，例如:\n# user_question = {{userInput.question}}\nprint(f"Hello, {user_question}!")',
+        code: '# 在这里编写你的代码\n# 可以使用变量，例如:\n# user_question = ${question}\nprint(f"Hello, {user_question}!")',
         timeout: 30,
         retryCount: 0,
       },
       knowledge: {
-        query: '{{userInput.question}}',
+        query: '${question}',
         topK: 5,
         threshold: 0.7,
         timeout: 15,
         retryCount: 1,
       },
       template: {
-        template: '根据用户问题: {{userInput.question}}\n生成回答: {{nodeOutput.llm_node.output}}',
+        template: '根据用户问题: ${question}\n生成回答: ${output}',
         timeout: 10,
         retryCount: 0,
       },
       variable: {
-        variables: '{"processed_question": "{{userInput.question}}"}',
+        variables: '{"processed_question": "${question}"}',
+        timeout: 5,
+        retryCount: 0,
+      },
+      output: {
+        outputContent: '工作流执行完成',
+        outputFormat: 'text',
         timeout: 5,
         retryCount: 0,
       },

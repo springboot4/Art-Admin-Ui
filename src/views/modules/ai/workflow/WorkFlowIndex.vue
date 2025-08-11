@@ -490,7 +490,7 @@
         temperature: 0.7,
         maxTokens: 1024,
         systemPrompt: '你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。',
-        userMessage: '{{userInput.question}}', // 默认使用用户输入的question变量
+        userMessage: '${question}', // 默认使用用户输入的question变量
       },
       http: {
         method: 'GET',
@@ -506,20 +506,23 @@
       },
       code: {
         language: 'python',
-        code: '# 在这里编写你的代码\n# 可以使用变量，例如:\n# user_question = {{userInput.question}}\nresult = "Hello World"\nprint(result)',
+        code: '# 在这里编写你的代码\n# 可以使用变量，例如:\n# user_question = ${question}\nresult = "Hello World"\nprint(result)',
       },
       knowledge: {
-        query: '{{userInput.question}}', // 默认使用用户输入的question变量
+        query: '${question}', // 默认使用用户输入的question变量
         topK: 5,
         threshold: 0.7,
       },
       template: {
-        template: '根据用户问题: {{userInput.question}}\n生成回答: {{nodeOutput.llm_node.output}}', // 默认使用变量模板
+        template: '根据用户问题: ${question}\n生成回答: ${output}', // 默认使用变量模板
       },
       variable: {
-        variables: '{"processed_question": "{{userInput.question}}"}',
+        variables: '{"processed_question": "${question}"}',
       },
-      output: {},
+      output: {
+        outputContent: '工作流执行完成',
+        outputFormat: 'text',
+      },
     }
     return defaultConfigs[nodeType] || {}
   }
