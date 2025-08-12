@@ -406,9 +406,9 @@
         currentWorkflowId.value = response.id
         workflowVersion.value = response.version
 
-        // 使用导入流程图的逻辑加载数据
+        // 使用加载流程图的逻辑加载数据（不清空ID）
         const workflowData = JSON.parse(response.graph)
-        await loadWorkflowData(workflowData)
+        await loadWorkflowData(workflowData, false)
         workflowName.value = workflowData.name || '已存在的工作流'
 
         // 根据版本设置状态
@@ -426,7 +426,7 @@
   }
 
   // 加载工作流数据的通用方法
-  const loadWorkflowData = async (workflowData) => {
+  const loadWorkflowData = async (workflowData, isImporting = true) => {
     const importedNodes = workflowData.nodes || []
     const importedEdges = workflowData.edges || []
 
@@ -473,10 +473,13 @@
     edges.value = validEdges
     workflowName.value = workflowData.name || '导入的工作流'
 
-    // 对于导入的工作流，设置为草稿状态，清空工作流ID和版本信息
-    workflowStatus.value = 'draft'
-    currentWorkflowId.value = null // 导入新工作流时清空之前的ID
-    workflowVersion.value = null
+    // 根据是否为导入操作来决定是否清空ID和版本信息
+    if (isImporting) {
+      // 对于导入的工作流，设置为草稿状态，清空工作流ID和版本信息
+      workflowStatus.value = 'draft'
+      currentWorkflowId.value = null // 导入新工作流时清空之前的ID
+      workflowVersion.value = null
+    }
 
     const filteredCount = importedEdges.length - validEdges.length
     console.log('导入结果:', {
@@ -892,7 +895,7 @@
       if (workflowStatus.value === 'draft') {
         message.error('请先保存工作流后再执行')
       } else {
-        message.error('工作流ID丢失，请重新保存工作流后再执行')
+        message.error('请重新保存工作流后再执行')
       }
       return
     }
