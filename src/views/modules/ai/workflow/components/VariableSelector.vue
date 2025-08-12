@@ -215,9 +215,7 @@
   } from 'ant-design-vue'
   import { CloseOutlined, FunctionOutlined, SearchOutlined } from '@ant-design/icons-vue'
   import { NodeDependencyAnalyzer } from '../utils/variableUtils'
-  import { VariableType, VariableDataType, VariableAccess } from '../types'
-
-
+  import { VariableType } from '../types'
 
   const props = defineProps({
     value: {
@@ -420,12 +418,12 @@
     }
 
     const currentReferenceParameters = [...(props.referenceParameters || [])]
-    
+
     // 检查是否已存在相同的引用
     const existingIndex = currentReferenceParameters.findIndex(
-      param => param.parameterName === variableName
+      (param) => param.parameterName === variableName,
     )
-    
+
     if (existingIndex === -1) {
       // 添加新的引用参数
       currentReferenceParameters.push(newReferenceParameter)

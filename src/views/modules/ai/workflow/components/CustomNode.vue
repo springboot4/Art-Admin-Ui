@@ -38,7 +38,7 @@
         class="condition-preview"
       >
         <div
-          v-for="(condition, index) in data.config.conditions"
+          v-for="condition in data.config.conditions"
           :key="`preview_${condition.id}`"
           class="condition-item-with-port"
         >
@@ -122,7 +122,7 @@
   import { Button as AButton } from 'ant-design-vue'
   import { CopyOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons-vue'
 
-  const props = defineProps({
+  defineProps({
     id: {
       type: String,
       required: true,
@@ -137,7 +137,7 @@
     },
   })
 
-  const emit = defineEmits(['delete', 'edit', 'copy'])
+  defineEmits(['delete', 'edit', 'copy'])
 </script>
 
 <style scoped>

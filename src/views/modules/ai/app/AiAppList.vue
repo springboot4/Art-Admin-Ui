@@ -353,7 +353,7 @@
         :show-total="(total, range) => `显示 ${range[0]}-${range[1]} 条，共 ${total} 条`"
         :total="pagination.total"
         @change="onPageChange"
-        @showSizeChange="onPageChange"
+        @show-size-change="onPageChange"
       />
     </div>
 

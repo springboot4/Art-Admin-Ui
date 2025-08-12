@@ -68,6 +68,7 @@
             </template>
             保存
           </a-button>
+
           <a-button :loading="executing" class="btn-run" type="primary" @click="executeWorkflow">
             <template #icon>
               <PlayCircleOutlined />
@@ -110,8 +111,8 @@
           @node-double-click="onNodeDoubleClick"
           @edge-click="onEdgeClick"
         >
-          <!-- 添加背景 - Dify 风格的点状背景 -->
-          <Background :gap="24" :size="1.5" bgColor="#ffffff" color="#cbd5e1" pattern="dots" />
+          <!-- 暂时移除Background组件，保持原生Vue Flow样式 -->
+          <!-- <Background :gap="24" :size="1.5" pattern="dots" color="#cbd5e1" /> -->
 
           <template #node-customNode="props">
             <CustomNode
@@ -169,15 +170,36 @@
       type="file"
       @change="handleFileImport"
     />
+
+    <!-- 工作流执行结果面板 -->
+    <WorkflowResultPanel
+      :completed-nodes="executionMetrics.completedNodes"
+      :errors="executionErrors"
+      :execution-id="executionId"
+      :execution-results="executionResults"
+      :execution-time="executionMetrics.totalDuration"
+      :is-completed="executionCompleted"
+      :is-running="executionRunning"
+      :node-states="nodeStates"
+      :node-execution-order="nodeExecutionOrder"
+      :selected-node-id="selectedResultNodeId"
+      :total-nodes="executionMetrics.totalNodes"
+      :visible="resultPanelVisible"
+      @close="toggleResultPanel"
+      @restart="handleRestartExecution"
+      @stop="handleStopExecution"
+      @select-node="selectNodeResult"
+      @clear-results="handleClearResults"
+    />
   </div>
 </template>
 
 <script setup>
-  import { nextTick, onMounted, ref } from 'vue'
+  import { nextTick, onMounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import { applyEdgeChanges, applyNodeChanges, VueFlow } from '@vue-flow/core'
   import { Controls } from '@vue-flow/controls'
-  import { Background } from '@vue-flow/background'
+  // import { Background } from '@vue-flow/background' // 暂时注释，版本兼容性问题
   import { Button as AButton, Input as AInput, message, Space as ASpace } from 'ant-design-vue'
   import {
     ClearOutlined,
@@ -190,7 +212,9 @@
   } from '@ant-design/icons-vue'
   import CustomNode from './components/CustomNode.vue'
   import NodeConfigPanel from './components/NodeConfigPanel.vue'
+  import WorkflowResultPanel from './components/WorkflowResultPanel.vue'
   import { add, findByAppId, publish } from '/@/api/ai/workflow/AiWorkflowsIndex'
+  import { useWorkflowExecution } from './utils'
 
   // 导入 VueFlow 样式
   import '@vue-flow/core/dist/style.css'
@@ -303,7 +327,7 @@
   const workflowName = ref('新建AI工作流')
   const saving = ref(false)
   const executing = ref(false)
-  const validating = ref(false)
+  // const validating = ref(false) // 暂时不用验证功能
   const publishing = ref(false)
   const workflowStatus = ref('draft')
   const workflowVersion = ref(null)
@@ -323,8 +347,25 @@
   const addNodeMenuPosition = ref({ x: 0, y: 0 })
   const addNodeFromNodeId = ref(null)
 
-  // 执行状态相关
-  const executingEdges = ref(new Set()) // 记录正在执行的边
+  // 工作流执行逻辑
+  const {
+    isRunning: executionRunning,
+    executionId,
+    nodeStates,
+    executionResults,
+    nodeExecutionOrder,
+    errors: executionErrors,
+    resultPanelVisible,
+    selectedResultNodeId,
+    executionMetrics,
+    hasErrors: executionHasErrors,
+    isCompleted: executionCompleted,
+    executeWorkflow: startWorkflowExecution,
+    stopExecution,
+    toggleResultPanel,
+    selectNodeResult,
+    clearExecution,
+  } = useWorkflowExecution()
 
   // 节点 ID 生成器
   let nodeId = 1
@@ -432,11 +473,10 @@
     edges.value = validEdges
     workflowName.value = workflowData.name || '导入的工作流'
 
-    // 对于导入的工作流，设置为草稿状态，清空版本信息
+    // 对于导入的工作流，设置为草稿状态，清空工作流ID和版本信息
     workflowStatus.value = 'draft'
-    if (!currentWorkflowId.value) {
-      workflowVersion.value = null
-    }
+    currentWorkflowId.value = null // 导入新工作流时清空之前的ID
+    workflowVersion.value = null
 
     const filteredCount = importedEdges.length - validEdges.length
     console.log('导入结果:', {
@@ -699,15 +739,28 @@
 
       const response = await add(saveData)
 
-      if (response && response.data) {
-        currentWorkflowId.value = response.data.id || response.data
+      if (response === true || response) {
+        // 保存成功，通过findByAppId获取工作流信息
+        try {
+          const workflowInfo = await findByAppId(appId.value)
+
+          if (workflowInfo && workflowInfo.id) {
+            currentWorkflowId.value = workflowInfo.id
+            workflowVersion.value = workflowInfo.version || 'draft'
+            message.success('工作流保存成功')
+          } else {
+            console.warn('获取工作流信息失败:', workflowInfo)
+            message.success('工作流保存成功，但无法获取工作流ID')
+          }
+        } catch (error) {
+          console.error('获取工作流信息失败:', error)
+          message.success('工作流保存成功，但无法获取工作流ID')
+        }
+
         workflowStatus.value = 'saved'
-        workflowVersion.value = 'draft' // 保存后是草稿版本
-        message.success('工作流保存成功')
       } else {
-        message.success('工作流保存成功')
-        workflowStatus.value = 'saved'
-        workflowVersion.value = 'draft'
+        console.warn('保存失败，响应格式:', response)
+        message.error('保存失败')
       }
     } catch (error) {
       console.error('保存失败:', error)
@@ -717,29 +770,29 @@
     }
   }
 
-  const validateWorkflow = async () => {
-    validating.value = true
-    try {
-      // 模拟验证
-      await new Promise((resolve) => setTimeout(resolve, 500))
+  // const validateWorkflow = async () => {
+  //   validating.value = true
+  //   try {
+  //     // 模拟验证
+  //     await new Promise((resolve) => setTimeout(resolve, 500))
 
-      // 简单验证逻辑
-      if (nodes.value.length === 0) {
-        throw new Error('工作流不能为空')
-      }
+  //     // 简单验证逻辑
+  //     if (nodes.value.length === 0) {
+  //       throw new Error('工作流不能为空')
+  //     }
 
-      const hasStart = nodes.value.some((node) => node.data.nodeType === 'start')
-      if (!hasStart) {
-        throw new Error('工作流必须有一个开始节点')
-      }
+  //     const hasStart = nodes.value.some((node) => node.data.nodeType === 'start')
+  //     if (!hasStart) {
+  //       throw new Error('工作流必须有一个开始节点')
+  //     }
 
-      message.success('工作流验证通过')
-    } catch (error) {
-      message.error(`验证失败: ${error.message}`)
-    } finally {
-      validating.value = false
-    }
-  }
+  //     message.success('工作流验证通过')
+  //   } catch (error) {
+  //     message.error(`验证失败: ${error.message}`)
+  //   } finally {
+  //     validating.value = false
+  //   }
+  // }
 
   const clearWorkflow = () => {
     nodes.value = [
@@ -834,53 +887,127 @@
   }
 
   const executeWorkflow = async () => {
+    // 检查是否有有效的工作流ID
+    if (!currentWorkflowId.value) {
+      if (workflowStatus.value === 'draft') {
+        message.error('请先保存工作流后再执行')
+      } else {
+        message.error('工作流ID丢失，请重新保存工作流后再执行')
+      }
+      return
+    }
+
+    // 检查是否有节点
+    if (!nodes.value || nodes.value.length === 0) {
+      message.error('工作流中没有节点，无法执行')
+      return
+    }
+
     executing.value = true
     workflowStatus.value = 'executing'
 
     try {
-      // 重置所有节点状态
+      // 重置所有节点的UI状态
       nodes.value.forEach((node) => {
         node.data.status = 'idle'
       })
 
-      // 模拟执行过程
-      for (let i = 0; i < nodes.value.length; i++) {
-        const node = nodes.value[i]
+      // 启动真正的工作流执行
+      await startWorkflowExecution(
+        currentWorkflowId.value,
+        nodes.value,
+        {}, // 暂时传入空的输入参数
+      )
 
-        // 设置当前节点为运行状态
-        node.data.status = 'running'
-
-        // 找到相关的边并设置动画
-        const relatedEdges = edges.value.filter(
-          (edge) => edge.source === node.id || edge.target === node.id,
-        )
-
-        relatedEdges.forEach((edge) => {
-          edge.animated = true
-          edge.style = { stroke: '#1890ff', strokeWidth: 3 }
-        })
-
-        // 模拟节点执行时间
-        await new Promise((resolve) => setTimeout(resolve, 1500))
-
-        // 设置节点为成功状态
-        node.data.status = 'success'
-
-        // 移除边的动画
-        relatedEdges.forEach((edge) => {
-          edge.animated = false
-          edge.style = { stroke: '#52c41a', strokeWidth: 2 }
-        })
-      }
-
-      workflowStatus.value = 'saved'
-      message.success('工作流执行完成')
+      workflowStatus.value = 'executing'
     } catch (error) {
+      console.error('工作流执行失败:', error)
       workflowStatus.value = 'error'
-      message.error('工作流执行失败')
-    } finally {
+      message.error(`工作流执行失败: ${error.message || '未知错误'}`)
       executing.value = false
     }
+  }
+
+  // 监听执行状态变化，同步UI状态
+  watch(executionRunning, (running) => {
+    executing.value = running
+    if (running) {
+      workflowStatus.value = 'executing'
+    }
+  })
+
+  watch(executionCompleted, (completed) => {
+    if (completed) {
+      workflowStatus.value = 'saved'
+      executing.value = false
+    }
+  })
+
+  watch(executionHasErrors, (hasErrors) => {
+    if (hasErrors) {
+      workflowStatus.value = 'error'
+      executing.value = false
+    }
+  })
+
+  // 监听节点状态变化，更新画布节点显示
+  watch(
+    nodeStates,
+    (states) => {
+      if (!states) return
+
+      nodes.value.forEach((node) => {
+        const nodeState = states.get(node.id)
+        if (nodeState) {
+          node.data.status = nodeState.status
+
+          // 更新相关边的样式
+          const relatedEdges = edges.value.filter(
+            (edge) => edge.source === node.id || edge.target === node.id,
+          )
+
+          relatedEdges.forEach((edge) => {
+            if (nodeState.status === 'running') {
+              edge.animated = true
+              edge.style = { stroke: '#1890ff', strokeWidth: 3 }
+            } else if (nodeState.status === 'success') {
+              edge.animated = false
+              edge.style = { stroke: '#52c41a', strokeWidth: 2 }
+            } else if (nodeState.status === 'error') {
+              edge.animated = false
+              edge.style = { stroke: '#ff4d4f', strokeWidth: 2 }
+            } else {
+              edge.animated = false
+              edge.style = { stroke: '#d9d9d9', strokeWidth: 2 }
+            }
+          })
+        }
+      })
+    },
+    { deep: true },
+  )
+
+  // 处理结果面板事件
+  const handleStopExecution = () => {
+    stopExecution()
+    executing.value = false
+    workflowStatus.value = 'saved'
+  }
+
+  const handleRestartExecution = () => {
+    executeWorkflow()
+  }
+
+  const handleClearResults = () => {
+    clearExecution()
+    // 重置画布节点状态
+    nodes.value.forEach((node) => {
+      node.data.status = 'idle'
+    })
+    edges.value.forEach((edge) => {
+      edge.animated = false
+      edge.style = { stroke: '#d9d9d9', strokeWidth: 2 }
+    })
   }
 
   const publishWorkflow = async () => {
@@ -944,16 +1071,16 @@
     return statusMap[status] || '未知'
   }
 
-  const getStatusColor = (status) => {
-    const colorMap = {
-      draft: 'default',
-      saved: 'success',
-      executing: 'processing',
-      error: 'error',
-      published: 'success',
-    }
-    return colorMap[status] || 'default'
-  }
+  // const getStatusColor = (status) => {
+  //   const colorMap = {
+  //     draft: 'default',
+  //     saved: 'success',
+  //     executing: 'processing',
+  //     error: 'error',
+  //     published: 'success',
+  //   }
+  //   return colorMap[status] || 'default'
+  // }
 
   // 格式化版本文本
   const formatVersionText = (version) => {
@@ -1480,26 +1607,9 @@
     flex: 1;
   }
 
-  /* VueFlow 样式定制 */
-  :deep(.vue-flow__viewport) {
-    /* 确保背景组件可见 */
-    background: transparent !important;
-  }
-
-  :deep(.vue-flow__background) {
-    /* 确保背景图案可见 */
-    opacity: 1 !important;
-  }
-
-  :deep(.vue-flow__background svg) {
-    /* 确保SVG背景可见 */
-    opacity: 1 !important;
-  }
-
-  /* 为 dots 图案添加特定样式 */
-  :deep(.vue-flow__background svg circle) {
-    fill: #cbd5e1 !important;
-    opacity: 0.8 !important;
+  /* VueFlow 原生样式，不覆盖连线样式 */
+  .workflow-canvas {
+    background-color: #fafafa;
   }
 
   :deep(.vue-flow__edge-path) {
