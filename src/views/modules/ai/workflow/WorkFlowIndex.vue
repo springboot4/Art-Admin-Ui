@@ -180,8 +180,8 @@
       :execution-time="executionMetrics.totalDuration"
       :is-completed="executionCompleted"
       :is-running="executionRunning"
-      :node-states="nodeStates"
       :node-execution-order="nodeExecutionOrder"
+      :node-states="nodeStates"
       :selected-node-id="selectedResultNodeId"
       :total-nodes="executionMetrics.totalNodes"
       :visible="resultPanelVisible"
@@ -263,7 +263,7 @@
       label: '代码执行',
       icon: '💻',
       color: '#13c2c2',
-      description: '执行Python/JavaScript代码',
+      description: '执行代码',
       category: 'logic',
     },
     {
@@ -548,8 +548,8 @@
         ],
       },
       code: {
-        language: 'python',
-        code: '# 在这里编写你的代码\n# 可以使用变量，例如:\n# user_question = ${question}\nresult = "Hello World"\nprint(result)',
+        language: 'javascript',
+        code: "function add(a, b) { return a + b; } add('fxz', ' I love you.');",
       },
       knowledge: {
         query: '${question}', // 默认使用用户输入的question变量

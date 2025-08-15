@@ -15,6 +15,7 @@ import type {
 export function useWorkflowExecution() {
   // 响应式状态
   const isRunning = ref(false)
+  const isCompleted = ref(false) // 新增：基于DONE事件的完成状态
   const executionId = ref<string | null>(null)
   const resultPanelVisible = ref(false)
   const selectedResultNodeId = ref<string | null>(null)
@@ -46,13 +47,7 @@ export function useWorkflowExecution() {
 
   const hasErrors = computed(() => errors.length > 0)
 
-  const isCompleted = computed(() => {
-    return (
-      !isRunning.value &&
-      executionMetrics.completedNodes === executionMetrics.totalNodes &&
-      executionMetrics.totalNodes > 0
-    )
-  })
+  // 移除旧的isCompleted计算属性，使用基于事件的ref
 
   // 工作流执行状态的完整对象
   const workflowExecutionState = computed<WorkflowExecutionState>(() => ({
@@ -97,6 +92,8 @@ export function useWorkflowExecution() {
         onMessage: handleSSEMessage,
         onError: handleSSEError,
         onClose: handleSSEClose,
+        onStart: handleWorkflowStart,
+        onDone: handleWorkflowDone,
       })
 
       // 启动连接
@@ -136,8 +133,9 @@ export function useWorkflowExecution() {
     nodeExecutionOrder.value = []
     errors.length = 0
 
-    // 重置状态
-    isRunning.value = true
+    // 准备执行状态，但不设置为运行中（等待START事件）
+    isRunning.value = false
+    isCompleted.value = false
     executionId.value = `exec_${Date.now()}_${Math.random().toString(36).substring(2)}`
 
     // 初始化节点状态
@@ -164,7 +162,24 @@ export function useWorkflowExecution() {
    */
   const handleSSEOpen = () => {
     console.log('工作流执行连接已建立')
+    // 连接建立不代表开始执行，等待START事件
+  }
+
+  /**
+   * 处理工作流开始执行事件
+   */
+  const handleWorkflowStart = () => {
     message.success('开始执行工作流')
+    isRunning.value = true
+  }
+
+  /**
+   * 处理工作流执行完成事件
+   */
+  const handleWorkflowDone = () => {
+    message.success('工作流执行完成')
+    isCompleted.value = true
+    stopExecution()
   }
 
   /**
@@ -177,6 +192,7 @@ export function useWorkflowExecution() {
    */
   const handleSSEMessage = (
     data: SSENodeOutputMessage | SSEChunkMessage | SSENodeCompleteMessage,
+    event?: string,
   ) => {
     if ('outputs' in data) {
       // 节点完整输出消息 - 直接表示节点执行完成
@@ -364,7 +380,7 @@ export function useWorkflowExecution() {
     console.log('工作流执行连接已关闭')
 
     if (isRunning.value) {
-      // 如果还在运行状态，说明是异常关闭
+      // 如果还在运行状态，说明是异常关闭（未收到DONE事件）
       message.warning('工作流执行连接意外关闭')
       stopExecution()
     }
@@ -414,6 +430,7 @@ export function useWorkflowExecution() {
     _executionResults.value = new Map()
     nodeExecutionOrder.value = []
     errors.length = 0
+    isCompleted.value = false
     resultPanelVisible.value = false
     selectedResultNodeId.value = null
     executionId.value = null

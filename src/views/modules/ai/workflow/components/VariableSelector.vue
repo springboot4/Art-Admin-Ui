@@ -39,6 +39,53 @@
       </div>
 
       <div class="panel-content">
+        <!-- 已选择的变量区域 -->
+        <div v-if="selectedVariableCount > 0" class="selected-variables-section">
+          <div class="section-header">
+            <span class="section-title">已选择变量</span>
+            <a-tag color="green" size="small">{{ selectedVariableCount }}</a-tag>
+          </div>
+          <div class="selected-variables-list">
+            <div
+              v-for="selectedVar in selectedVariables"
+              :key="selectedVar.uniqueKey"
+              class="selected-variable-item"
+            >
+              <div class="selected-variable-info">
+                <div class="selected-variable-main">
+                  <span class="selected-variable-name">{{ selectedVar.displayName }}</span>
+                  <span class="selected-variable-type">{{ selectedVar.typeLabel }}</span>
+                </div>
+                <div v-if="selectedVar.description" class="selected-variable-desc">
+                  {{ selectedVar.description }}
+                </div>
+                <div class="selected-variable-reference">
+                  ${{ '{' + selectedVar.referenceFormat + '}' }}
+                </div>
+              </div>
+              <a-button
+                size="small"
+                type="text"
+                danger
+                class="remove-variable-btn"
+                title="移除变量"
+                @click="
+                  handleRemoveVariable(
+                    selectedVar.nodeId,
+                    selectedVar.parameterName,
+                    selectedVar.variableType,
+                  )
+                "
+              >
+                <template #icon>
+                  <DeleteOutlined />
+                </template>
+              </a-button>
+            </div>
+          </div>
+          <a-divider style="margin: 16px 0" />
+        </div>
+
         <!-- 搜索框 -->
         <a-input
           v-model:value="searchKeyword"
@@ -212,10 +259,15 @@
     Empty as AEmpty,
     Input as AInput,
     Tag as ATag,
+    Divider as ADivider,
   } from 'ant-design-vue'
-  import { CloseOutlined, FunctionOutlined, SearchOutlined } from '@ant-design/icons-vue'
-  import { NodeDependencyAnalyzer } from '../utils/variableUtils'
-  import { VariableType } from '../types'
+  import {
+    CloseOutlined,
+    FunctionOutlined,
+    SearchOutlined,
+    DeleteOutlined,
+  } from '@ant-design/icons-vue'
+  import { useVariableSelector } from '../composables/useVariableSelector'
 
   const props = defineProps({
     value: {
@@ -255,83 +307,31 @@
 
   const emit = defineEmits(['update:value', 'change', 'update:referenceParameters'])
 
+  // 使用共享的变量选择逻辑
+  const {
+    searchText: searchKeyword,
+    activeGroups,
+    availableVariables,
+    groupedVariables,
+    filteredGroups,
+    totalVariableCount,
+    selectedVariables,
+    selectedVariableCount,
+    getNewVariableReference,
+    getVariableTypeLabel,
+    handleSelectVariable: baseHandleSelectVariable,
+    handleRemoveVariable,
+  } = useVariableSelector(props, emit)
+
   // 引用
   const inputRef = ref()
   const panelRef = ref()
 
   // 状态
   const showPanel = ref(false)
-  const searchKeyword = ref('')
-  const activeGroups = ref(['system', 'environment', 'userInput', 'conversation', 'nodeOutput'])
 
   // 面板样式
   const panelStyle = ref({})
-
-  // 计算可用变量
-  const dependencyAnalyzer = computed(() => {
-    return new NodeDependencyAnalyzer(props.nodes, props.edges)
-  })
-
-  const availableVariables = computed(() => {
-    if (!props.nodeId) return []
-    return dependencyAnalyzer.value.getAvailableVariables(props.nodeId)
-  })
-
-  // 按类型分组的变量
-  const groupedVariables = computed(() => {
-    const groups = {
-      system: [],
-      environment: [],
-      userInput: [],
-      conversation: [],
-      nodeOutput: [],
-    }
-
-    availableVariables.value.forEach((variable) => {
-      switch (variable.type) {
-        case VariableType.SYSTEM:
-          groups.system.push(variable)
-          break
-        case VariableType.ENVIRONMENT:
-          groups.environment.push(variable)
-          break
-        case VariableType.USER_INPUT:
-          groups.userInput.push(variable)
-          break
-        case VariableType.CONVERSATION:
-          groups.conversation.push(variable)
-          break
-        case VariableType.NODE_OUTPUT:
-          groups.nodeOutput.push(variable)
-          break
-      }
-    })
-
-    return groups
-  })
-
-  // 过滤后的变量组
-  const filteredGroups = computed(() => {
-    if (!searchKeyword.value) return groupedVariables.value
-
-    const keyword = searchKeyword.value.toLowerCase()
-    const filtered = {}
-
-    Object.keys(groupedVariables.value).forEach((key) => {
-      filtered[key] = groupedVariables.value[key].filter(
-        (variable) =>
-          variable.name.toLowerCase().includes(keyword) ||
-          variable.description?.toLowerCase().includes(keyword),
-      )
-    })
-
-    return filtered
-  })
-
-  // 总变量数量
-  const totalVariableCount = computed(() => {
-    return Object.values(filteredGroups.value).reduce((sum, group) => sum + group.length, 0)
-  })
 
   // 显示值（处理变量高亮）
   const displayValue = computed(() => {
@@ -343,21 +343,9 @@
     return /\{\{.*?\}\}/.test(props.value)
   })
 
-  // 获取变量类型标签
-  const getVariableTypeLabel = (type) => {
-    const labels = {
-      [VariableType.SYSTEM]: '系统',
-      [VariableType.ENVIRONMENT]: '环境',
-      [VariableType.USER_INPUT]: '输入',
-      [VariableType.CONVERSATION]: '会话',
-      [VariableType.NODE_OUTPUT]: '输出',
-    }
-    return labels[type] || type
-  }
-
   // 获取变量引用
   const getVariableReference = (variable) => {
-    return dependencyAnalyzer.value.getVariableReference(variable)
+    return `\${${getNewVariableReference(variable)}}`
   }
 
   // 处理输入焦点
@@ -404,31 +392,9 @@
     showPanel.value = false
   }
 
-  // 选择变量
+  // 选择变量 - 继承基础逻辑并添加输入框更新
   const handleSelectVariable = (variable) => {
-    // 生成新的变量引用格式: ${变量名}
-    const variableName = getNewVariableReference(variable)
-    const reference = `\${${variableName}}`
-
-    // 更新引用参数列表
-    const newReferenceParameter = {
-      nodeId: variable.sourceNodeId || 'system', // 对于非节点输出变量，使用 'system' 作为默认值
-      parameterName: variableName,
-      variableType: variable.type,
-    }
-
-    const currentReferenceParameters = [...(props.referenceParameters || [])]
-
-    // 检查是否已存在相同的引用
-    const existingIndex = currentReferenceParameters.findIndex(
-      (param) => param.parameterName === variableName,
-    )
-
-    if (existingIndex === -1) {
-      // 添加新的引用参数
-      currentReferenceParameters.push(newReferenceParameter)
-      emit('update:referenceParameters', currentReferenceParameters)
-    }
+    const { reference } = baseHandleSelectVariable(variable)
 
     if (props.multiple) {
       // 支持多个变量，在光标位置插入
@@ -454,25 +420,6 @@
       emit('update:value', reference)
       emit('change', reference)
       showPanel.value = false
-    }
-  }
-
-  // 生成新的变量引用名称（不包含节点ID）
-  const getNewVariableReference = (variable) => {
-    switch (variable.type) {
-      case VariableType.SYSTEM:
-        return variable.name
-      case VariableType.ENVIRONMENT:
-        return variable.name
-      case VariableType.USER_INPUT:
-        return variable.name
-      case VariableType.CONVERSATION:
-        return variable.name
-      case VariableType.NODE_OUTPUT:
-        // 只使用变量名，不包含节点ID
-        return variable.sourceOutputKey || variable.name
-      default:
-        return variable.name
     }
   }
 
@@ -596,6 +543,103 @@
   .panel-content {
     max-height: 420px;
     overflow-y: auto;
+  }
+
+  .selected-variables-section {
+    padding: 16px 20px 0;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .selected-variables-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .selected-variable-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 12px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .selected-variable-item:hover {
+    background: #e0f2fe;
+    border-color: #7dd3fc;
+  }
+
+  .selected-variable-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .selected-variable-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .selected-variable-name {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: 13px;
+  }
+
+  .selected-variable-type {
+    font-size: 11px;
+    color: #0ea5e9;
+    background: rgba(14, 165, 233, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .selected-variable-desc {
+    font-size: 12px;
+    color: #475569;
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .selected-variable-reference {
+    font-size: 11px;
+    color: #0ea5e9;
+    background: rgba(14, 165, 233, 0.15);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-weight: 500;
+    display: inline-block;
+  }
+
+  .remove-variable-btn {
+    margin-left: 8px;
+    color: #ef4444;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .remove-variable-btn:hover {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.1);
   }
 
   .search-input {

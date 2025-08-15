@@ -1,46 +1,46 @@
 <template>
   <BasicModal
-    v-bind="$attrs"
-    :title="modalTile"
     :loading="confirmLoading"
-    :visible="visible"
     :mask-closable="showable"
+    :title="modalTile"
+    :visible="visible"
+    v-bind="$attrs"
     @cancel="handleCancel"
   >
     <a-form
       ref="formRef"
+      :label-col="labelCol"
       :model="formData"
       :rules="rules"
-      :label-col="labelCol"
       :wrapper-col="wrapperCol"
     >
-      <a-form-item label="角色ID" name="roleId" :hidden="true">
+      <a-form-item :hidden="true" label="角色ID" name="roleId">
         <a-input v-model:value="formData.roleId" :disabled="showable" />
       </a-form-item>
       <a-form-item label="角色名称" name="roleName">
         <a-input
           v-model:value="formData.roleName"
           :disabled="showable"
-          placeholder="请输入角色名称"
           allow-clear
+          placeholder="请输入角色名称"
         />
       </a-form-item>
       <a-form-item label="角色描述" name="remark">
         <a-input
           v-model:value="formData.remark"
           :disabled="showable"
-          placeholder="请输入角色描述"
           allow-clear
+          placeholder="请输入角色描述"
         />
       </a-form-item>
       <a-form-item label="菜单权限" name="menuId">
         <a-tree
-          :disabled="showable"
           v-if="treeData.length"
+          v-model:checkedKeys="tempMenu"
+          :disabled="showable"
+          :tree-data="treeData"
           checkStrictly
           checkable
-          :tree-data="treeData"
-          v-model:checkedKeys="tempMenu"
         >
           <template #title="{ title }">
             {{ title }}
@@ -49,32 +49,32 @@
       </a-form-item>
       <a-form-item label="数据权限范围" name="dataScope">
         <a-select
+          v-if="dataPermissionList.length"
           v-model:value="formData.dataScope"
           :disabled="showable"
-          v-if="dataPermissionList.length"
         >
           <a-select-option
             v-for="item in dataPermissionList"
-            :value="Number(item.value)"
             :key="Number(item.value)"
+            :value="Number(item.value)"
           >
             {{ item.label }}
           </a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item
+        v-if="Number(formData.dataScope) === 2"
         label="指定部门数据权限"
         name="dataScopeDeptIds"
-        v-if="Number(formData.dataScope) === 2"
       >
         <a-tree
-          :disabled="showable"
           v-if="deptTree.length"
+          v-model:checkedKeys="tempDept"
+          :disabled="showable"
+          :tree-data="deptTree"
           checkStrictly
           checkable
           defaultExpandAll
-          :tree-data="deptTree"
-          v-model:checkedKeys="tempDept"
         >
           <template #title="{ title }">
             {{ title }}
@@ -86,8 +86,8 @@
       <a-space>
         <a-button @click="handleCancel">取消</a-button>
         <a-button v-if="!showable" :loading="confirmLoading" type="primary" @click="handleOk"
-          >保存</a-button
-        >
+          >保存
+        </a-button>
       </a-space>
     </template>
   </BasicModal>
@@ -117,6 +117,7 @@
     checked: [],
     halfChecked: [],
   })
+
   function buildDeptTree(res) {
     if (res) {
       // 当前节点
@@ -149,6 +150,7 @@
       })
     }
   })
+
   function buildTree(res) {
     if (res) {
       const v = {
@@ -224,7 +226,11 @@
    * 保存新增或者编辑
    */
   function handleOk() {
-    formData.value.menuId = tempMenu.value.checked?.join(',')
+    console.log('当前菜单id:', tempMenu.value.checked)
+    formData.value.menuId = tempMenu.value.checked
+      ?.filter((item) => item != null && true && item !== '')
+      .join(',')
+    console.log('过滤后的菜单Id:', formData.value.menuId)
     formData.value.dataScopeDeptIds = tempDept.value.checked?.join(',')
 
     formRef.value?.validate().then(async () => {

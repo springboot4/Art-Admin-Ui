@@ -27,20 +27,27 @@
         <!-- 执行状态 -->
         <div class="status-section-main">
           <div class="status-header">
-            <span class="section-title">执行状态</span>
-            <div class="execution-stats">{{ completedNodes }} 个节点已完成</div>
+            <div class="status-indicator-large">
+              <div :class="['status-dot-large', `status-${currentStatus}`]">
+                <LoadingOutlined v-if="currentStatus === 'running'" spin />
+                <CheckCircleOutlined v-else-if="currentStatus === 'success'" />
+                <CloseCircleOutlined v-else-if="currentStatus === 'error'" />
+                <span v-else class="status-icon">⏸</span>
+              </div>
+              <div class="status-content">
+                <span class="status-text-large">{{ getStatusText() }}</span>
+                <div class="execution-stats">{{ completedNodes }} 个节点已完成</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- 状态指示器 -->
-        <div class="status-section">
-          <div class="status-indicator">
-            <div :class="['status-dot', `status-${currentStatus}`]"></div>
-            <span class="status-text">{{ getStatusText() }}</span>
-          </div>
-          <div v-if="executionTime" class="time-info">
+        <!-- 时间信息 -->
+        <div v-if="executionTime" class="time-section">
+          <div class="time-info">
             <ClockCircleOutlined class="time-icon" />
-            <span>{{ formatTime(executionTime) }}</span>
+            <span class="time-text">执行时长</span>
+            <span class="time-value">{{ formatTime(executionTime) }}</span>
           </div>
         </div>
 
@@ -274,9 +281,9 @@
 
   const getStatusText = () => {
     const statusMap = {
-      idle: '等待中',
-      running: '执行中',
-      success: '已完成',
+      idle: '等待开始',
+      running: '正在执行',
+      success: '执行完成',
       error: '执行失败',
     }
     return statusMap[currentStatus.value] || '未知状态'
@@ -425,8 +432,8 @@
 
     .dashboard-grid {
       display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 16px;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
       align-items: center;
       margin-bottom: 12px;
     }
@@ -435,19 +442,95 @@
       min-width: 0;
 
       .status-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        .status-indicator-large {
+          display: flex;
+          align-items: center;
+          gap: 12px;
 
-        .section-title {
-          font-size: 13px;
-          font-weight: 500;
-          color: #595959;
+          .status-dot-large {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+
+            &.status-running {
+              background: linear-gradient(135deg, #1890ff 0%, #69c0ff 100%);
+              color: white;
+            }
+
+            &.status-success {
+              background: linear-gradient(135deg, #52c41a 0%, #95de64 100%);
+              color: white;
+            }
+
+            &.status-error {
+              background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
+              color: white;
+            }
+
+            &.status-idle {
+              background: linear-gradient(135deg, #d9d9d9 0%, #f0f0f0 100%);
+              color: #666;
+            }
+
+            .status-icon {
+              font-size: 16px;
+            }
+          }
+
+          .status-content {
+            flex: 1;
+
+            .status-text-large {
+              display: block;
+              font-size: 16px;
+              font-weight: 600;
+              color: #262626;
+              margin-bottom: 4px;
+            }
+
+            .execution-stats {
+              font-size: 13px;
+              font-weight: 500;
+              color: #595959;
+            }
+          }
+        }
+      }
+    }
+
+    .time-section {
+      display: flex;
+      align-items: center;
+
+      .time-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: rgba(24, 144, 255, 0.1);
+        border-radius: 6px;
+        border: 1px solid rgba(24, 144, 255, 0.2);
+
+        .time-icon {
+          color: #1890ff;
         }
 
-        .execution-stats {
+        .time-text {
           font-size: 12px;
-          color: #8c8c8c;
+          color: #666;
+          font-weight: 500;
+        }
+
+        .time-value {
+          font-size: 13px;
+          font-weight: 600;
+          color: #1890ff;
         }
       }
     }

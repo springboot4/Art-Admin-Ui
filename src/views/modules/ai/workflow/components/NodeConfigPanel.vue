@@ -104,8 +104,8 @@
           </a-form-item>
           <a-form-item label="系统提示词">
             <VariableSelector
-              v-model:value="editData.data.config.systemPrompt"
               v-model:referenceParameters="editData.data.config.referenceParameters"
+              v-model:value="editData.data.config.systemPrompt"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -114,8 +114,8 @@
           </a-form-item>
           <a-form-item label="用户消息">
             <VariableSelector
-              v-model:value="editData.data.config.userMessage"
               v-model:referenceParameters="editData.data.config.referenceParameters"
+              v-model:value="editData.data.config.userMessage"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -136,8 +136,8 @@
           </a-form-item>
           <a-form-item label="请求URL">
             <VariableSelector
-              v-model:value="editData.data.config.url"
               v-model:referenceParameters="editData.data.config.referenceParameters"
+              v-model:value="editData.data.config.url"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -146,8 +146,8 @@
           </a-form-item>
           <a-form-item label="请求头">
             <VariableSelector
-              v-model:value="editData.data.config.headers"
               v-model:referenceParameters="editData.data.config.referenceParameters"
+              v-model:value="editData.data.config.headers"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -156,8 +156,8 @@
           </a-form-item>
           <a-form-item label="请求体">
             <VariableSelector
-              v-model:value="editData.data.config.body"
               v-model:referenceParameters="editData.data.config.referenceParameters"
+              v-model:value="editData.data.config.body"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -190,8 +190,8 @@
                 <a-form-item :class="{ 'mb-2': true }" label="条件表达式">
                   <VariableSelector
                     v-if="condition.id !== 'else'"
-                    v-model:value="condition.expression"
                     v-model:referenceParameters="editData.data.config.referenceParameters"
+                    v-model:value="condition.expression"
                     :edges="edges"
                     :node-id="editData.id"
                     :nodes="nodes"
@@ -224,22 +224,13 @@
 
         <!-- 代码节点特殊配置 -->
         <template v-if="editData.data.nodeType === 'code'">
-          <a-form-item label="代码语言">
-            <a-select v-model:value="editData.data.config.language" placeholder="选择编程语言">
-              <a-select-option value="python">Python</a-select-option>
-              <a-select-option value="javascript">JavaScript</a-select-option>
-              <a-select-option value="typescript">TypeScript</a-select-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item label="代码内容">
-            <VariableSelector
-              v-model:value="editData.data.config.code"
+          <a-form-item label="代码编辑器">
+            <CodeEditor
               v-model:referenceParameters="editData.data.config.referenceParameters"
+              v-model:value="editData.data.config.code"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
-              placeholder="# 在这里编写你的代码，可以使用变量&#10;# 例如：user_name = ${userName}&#10;print(f'Hello, {user_name}!')"
-              style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace"
             />
           </a-form-item>
         </template>
@@ -248,8 +239,8 @@
         <template v-if="editData.data.nodeType === 'knowledge'">
           <a-form-item label="查询内容">
             <VariableSelector
-              v-model:value="editData.data.config.query"
               v-model:referenceParameters="editData.data.config.referenceParameters"
+              v-model:value="editData.data.config.query"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -279,8 +270,8 @@
         <template v-if="editData.data.nodeType === 'template'">
           <a-form-item label="模板内容">
             <VariableSelector
-              v-model:value="editData.data.config.template"
               v-model:referenceParameters="editData.data.config.referenceParameters"
+              v-model:value="editData.data.config.template"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -293,8 +284,8 @@
         <template v-if="editData.data.nodeType === 'variable'">
           <a-form-item label="变量配置(JSON格式)">
             <VariableSelector
-              v-model:value="editData.data.config.variables"
               v-model:referenceParameters="editData.data.config.referenceParameters"
+              v-model:value="editData.data.config.variables"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
@@ -348,7 +339,7 @@
           </div>
           <div class="output-list">
             <div
-              v-for="output in getNodeOutputs(editData.data.nodeType)"
+              v-for="output in getNodeOutputDefinitions(editData.data.nodeType)"
               :key="output.key"
               class="output-item"
             >
@@ -369,7 +360,10 @@
           </div>
 
           <!-- 如果没有输出参数 -->
-          <div v-if="getNodeOutputs(editData.data.nodeType).length === 0" class="no-outputs">
+          <div
+            v-if="getNodeOutputDefinitions(editData.data.nodeType).length === 0"
+            class="no-outputs"
+          >
             <a-empty :image="false" description="此节点类型没有输出参数" size="small" />
           </div>
         </div>
@@ -407,6 +401,8 @@
   } from 'ant-design-vue'
   import { PlusOutlined } from '@ant-design/icons-vue'
   import VariableSelector from './VariableSelector.vue'
+  import CodeEditor from './CodeEditor.vue'
+  import { getDataTypeColor, getDataTypeLabel, getNodeOutputDefinitions } from '../types/variables'
 
   const props = defineProps({
     visible: {
@@ -545,8 +541,8 @@
         retryCount: 0,
       },
       code: {
-        language: 'python',
-        code: '# 在这里编写你的代码\n# 可以使用变量，例如:\n# user_question = ${question}\nprint(f"Hello, {user_question}!")',
+        language: 'javascript',
+        code: "function add(a, b) { return a + b; } add('fxz', ' I love you.');",
         timeout: 30,
         retryCount: 0,
       },
@@ -583,110 +579,9 @@
     )
   }
 
-  // 获取节点输出定义
-  const getNodeOutputs = (nodeType) => {
-    const outputDefs = {
-      start: [
-        { key: 'userId', name: '用户ID', dataType: 'string', description: '当前用户ID' },
-        { key: 'sessionId', name: '会话ID', dataType: 'string', description: '当前会话ID' },
-        { key: 'timestamp', name: '时间戳', dataType: 'number', description: '流程开始时间' },
-      ],
-      llm: [
-        { key: 'output', name: 'AI回复', dataType: 'string', description: 'AI模型生成的回复内容' },
-        {
-          key: 'tokens',
-          name: '消耗Token',
-          dataType: 'number',
-          description: '本次请求消耗的Token数量',
-        },
-        { key: 'model', name: '使用模型', dataType: 'string', description: '实际使用的AI模型' },
-      ],
-      http: [
-        {
-          key: 'response',
-          name: '响应数据',
-          dataType: 'object',
-          description: 'HTTP请求的响应数据',
-        },
-        { key: 'statusCode', name: '状态码', dataType: 'number', description: 'HTTP响应状态码' },
-        { key: 'headers', name: '响应头', dataType: 'object', description: 'HTTP响应头信息' },
-      ],
-      condition: [
-        { key: 'result', name: '条件结果', dataType: 'string', description: '匹配的条件分支名称' },
-        {
-          key: 'matched',
-          name: '是否匹配',
-          dataType: 'boolean',
-          description: '是否有条件匹配成功',
-        },
-      ],
-      code: [
-        { key: 'output', name: '代码输出', dataType: 'any', description: '代码执行的输出结果' },
-        { key: 'logs', name: '执行日志', dataType: 'string', description: '代码执行过程中的日志' },
-        {
-          key: 'error',
-          name: '错误信息',
-          dataType: 'string',
-          description: '代码执行错误信息（如果有）',
-        },
-      ],
-      knowledge: [
-        {
-          key: 'documents',
-          name: '检索文档',
-          dataType: 'array',
-          description: '检索到的相关文档列表',
-        },
-        { key: 'scores', name: '相似度分数', dataType: 'array', description: '文档相似度分数' },
-        { key: 'query', name: '查询内容', dataType: 'string', description: '实际执行的查询内容' },
-      ],
-      template: [
-        { key: 'output', name: '模板输出', dataType: 'string', description: '模板渲染后的结果' },
-        {
-          key: 'variables',
-          name: '使用变量',
-          dataType: 'object',
-          description: '模板中使用的变量值',
-        },
-      ],
-      variable: [
-        { key: 'variables', name: '设置变量', dataType: 'object', description: '设置的变量键值对' },
-      ],
-      output: [], // 输出节点没有输出参数
-    }
-
-    return outputDefs[nodeType] || []
-  }
-
-  // 获取数据类型颜色
-  const getDataTypeColor = (dataType) => {
-    const colors = {
-      string: 'blue',
-      number: 'green',
-      boolean: 'orange',
-      object: 'purple',
-      array: 'cyan',
-      any: 'default',
-    }
-    return colors[dataType] || 'default'
-  }
-
-  // 获取数据类型标签
-  const getDataTypeLabel = (dataType) => {
-    const labels = {
-      string: '文本',
-      number: '数字',
-      boolean: '布尔值',
-      object: '对象',
-      array: '数组',
-      any: '任意类型',
-    }
-    return labels[dataType] || dataType
-  }
-
   // 获取变量引用格式
   const getVariableReference = (nodeId, outputKey) => {
-    return `{{nodeOutput.${nodeId}.${outputKey}}}`
+    return `{{output.${nodeId}.${outputKey}}}`
   }
 </script>
 

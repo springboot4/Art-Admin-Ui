@@ -5,11 +5,13 @@ import type { SSEChunkMessage, SSENodeOutputMessage } from '../types'
 
 interface SSEServiceOptions {
   url: string
-  onMessage?: (data: SSENodeOutputMessage | SSEChunkMessage) => void
+  onMessage?: (data: SSENodeOutputMessage | SSEChunkMessage, event?: string) => void
   onError?: (error: any) => void
   onOpen?: () => void
   onClose?: () => void
   onRetry?: (retryCount: number) => void
+  onStart?: () => void // 新增：流程开始事件
+  onDone?: () => void // 新增：流程结束事件
 }
 
 export class SSEService {
@@ -125,9 +127,25 @@ export class EnhancedSSEService extends SSEService {
 
         onmessage: (message: EventSourceMessage) => {
           try {
+            // 处理事件类型 - 后端发送的格式是 [START] 和 [DONE]
+            if (message.event === '[START]' || message.event === 'START') {
+              this.options.onStart?.()
+              return
+            }
+
+            if (
+              message.event === '[DONE]' ||
+              message.event === 'DONE' ||
+              message.data === '[DONE]'
+            ) {
+              this.options.onDone?.()
+              return
+            }
+
+            // 处理数据消息
             if (message.data && message.data !== '[DONE]') {
               const data = JSON.parse(message.data)
-              this.options.onMessage?.(data)
+              this.options.onMessage?.(data, message.event)
             }
           } catch (error) {
             console.error('解析增强SSE消息失败:', error, message.data)

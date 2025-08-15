@@ -47,39 +47,13 @@ export interface NodeOutputDefinition {
 
 // 节点类型对应的输出定义
 export const NODE_OUTPUT_DEFINITIONS: Record<string, NodeOutputDefinition[]> = {
-  start: [
-    { key: 'userId', name: '用户ID', dataType: VariableDataType.STRING, description: '当前用户ID' },
-    {
-      key: 'sessionId',
-      name: '会话ID',
-      dataType: VariableDataType.STRING,
-      description: '当前会话ID',
-    },
-    {
-      key: 'timestamp',
-      name: '时间戳',
-      dataType: VariableDataType.NUMBER,
-      description: '流程开始时间',
-    },
-  ],
+  start: [],
   llm: [
     {
       key: 'output',
       name: 'AI回复',
       dataType: VariableDataType.STRING,
       description: 'AI模型生成的回复内容',
-    },
-    {
-      key: 'tokens',
-      name: '消耗Token',
-      dataType: VariableDataType.NUMBER,
-      description: '本次请求消耗的Token数量',
-    },
-    {
-      key: 'model',
-      name: '使用模型',
-      dataType: VariableDataType.STRING,
-      description: '实际使用的AI模型',
     },
   ],
   http: [
@@ -102,38 +76,13 @@ export const NODE_OUTPUT_DEFINITIONS: Record<string, NodeOutputDefinition[]> = {
       description: 'HTTP响应头信息',
     },
   ],
-  condition: [
-    {
-      key: 'result',
-      name: '条件结果',
-      dataType: VariableDataType.STRING,
-      description: '匹配的条件分支名称',
-    },
-    {
-      key: 'matched',
-      name: '是否匹配',
-      dataType: VariableDataType.BOOLEAN,
-      description: '是否有条件匹配成功',
-    },
-  ],
+  condition: [],
   code: [
     {
       key: 'output',
       name: '代码输出',
       dataType: VariableDataType.ANY,
       description: '代码执行的输出结果',
-    },
-    {
-      key: 'logs',
-      name: '执行日志',
-      dataType: VariableDataType.STRING,
-      description: '代码执行过程中的日志',
-    },
-    {
-      key: 'error',
-      name: '错误信息',
-      dataType: VariableDataType.STRING,
-      description: '代码执行错误信息（如果有）',
     },
   ],
   knowledge: [
@@ -178,6 +127,7 @@ export const NODE_OUTPUT_DEFINITIONS: Record<string, NodeOutputDefinition[]> = {
       description: '设置的变量键值对',
     },
   ],
+  output: [], // 输出节点没有输出参数
 }
 
 // 系统变量定义
@@ -256,4 +206,39 @@ export interface ReferenceParameter {
   nodeId: string // 引用的节点ID
   parameterName: string // 参数名称
   variableType: VariableType // 变量类型
+}
+
+// 数据类型颜色映射
+export const DATA_TYPE_COLORS: Record<string, string> = {
+  string: 'blue',
+  number: 'green',
+  boolean: 'orange',
+  object: 'purple',
+  array: 'cyan',
+  any: 'default',
+}
+
+// 数据类型标签映射
+export const DATA_TYPE_LABELS: Record<string, string> = {
+  string: '文本',
+  number: '数字',
+  boolean: '布尔值',
+  object: '对象',
+  array: '数组',
+  any: '任意类型',
+}
+
+// 获取节点输出定义的工具函数
+export const getNodeOutputDefinitions = (nodeType: string): NodeOutputDefinition[] => {
+  return NODE_OUTPUT_DEFINITIONS[nodeType] || []
+}
+
+// 获取数据类型颜色
+export const getDataTypeColor = (dataType: string): string => {
+  return DATA_TYPE_COLORS[dataType] || 'default'
+}
+
+// 获取数据类型标签
+export const getDataTypeLabel = (dataType: string): string => {
+  return DATA_TYPE_LABELS[dataType] || dataType
 }
