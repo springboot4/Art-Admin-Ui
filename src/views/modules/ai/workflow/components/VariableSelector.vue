@@ -64,11 +64,11 @@
                 </div>
               </div>
               <a-button
-                size="small"
-                type="text"
-                danger
                 class="remove-variable-btn"
+                danger
+                size="small"
                 title="移除变量"
+                type="text"
                 @click="
                   handleRemoveVariable(
                     selectedVar.nodeId,
@@ -256,16 +256,16 @@
     Button as AButton,
     Collapse as ACollapse,
     CollapsePanel as ACollapsePanel,
+    Divider as ADivider,
     Empty as AEmpty,
     Input as AInput,
     Tag as ATag,
-    Divider as ADivider,
   } from 'ant-design-vue'
   import {
     CloseOutlined,
+    DeleteOutlined,
     FunctionOutlined,
     SearchOutlined,
-    DeleteOutlined,
   } from '@ant-design/icons-vue'
   import { useVariableSelector } from '../composables/useVariableSelector'
 
@@ -353,14 +353,7 @@
     // 可以在这里处理焦点事件
   }
 
-  const handleBlur = () => {
-    // 延迟关闭面板，允许点击面板内容
-    setTimeout(() => {
-      if (!panelRef.value?.contains(document.activeElement)) {
-        showPanel.value = false
-      }
-    }, 200)
-  }
+  const handleBlur = () => {}
 
   // 处理输入
   const handleInput = (e) => {
@@ -415,11 +408,11 @@
           input.focus()
         })
       }
+      // 选择变量后关闭面板
     } else {
       // 只支持单个变量，直接替换
       emit('update:value', reference)
       emit('change', reference)
-      showPanel.value = false
     }
   }
 

@@ -58,22 +58,16 @@ export const NODE_OUTPUT_DEFINITIONS: Record<string, NodeOutputDefinition[]> = {
   ],
   http: [
     {
-      key: 'response',
+      key: 'body',
       name: '响应数据',
-      dataType: VariableDataType.OBJECT,
+      dataType: VariableDataType.STRING,
       description: 'HTTP请求的响应数据',
     },
     {
-      key: 'statusCode',
+      key: 'status',
       name: '状态码',
       dataType: VariableDataType.NUMBER,
       description: 'HTTP响应状态码',
-    },
-    {
-      key: 'headers',
-      name: '响应头',
-      dataType: VariableDataType.OBJECT,
-      description: 'HTTP响应头信息',
     },
   ],
   condition: [],

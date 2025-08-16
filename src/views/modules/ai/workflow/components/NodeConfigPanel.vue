@@ -126,43 +126,121 @@
 
         <!-- HTTP 节点特殊配置 -->
         <template v-if="editData.data.nodeType === 'http'">
+          <a-form-item label="引用变量">
+            <div class="http-variable-selector-wrapper">
+              <VariableSelector
+                v-model:referenceParameters="editData.data.config.referenceParameters"
+                :edges="edges"
+                :multiple="true"
+                :node-id="editData.id"
+                :nodes="nodes"
+                :value="''"
+                class="http-variable-selector"
+                placeholder="点击选择要在HTTP节点中使用的变量..."
+                readonly
+              />
+            </div>
+          </a-form-item>
+
           <a-form-item label="请求方法">
-            <a-select v-model:value="editData.data.config.method" placeholder="选择HTTP方法">
+            <a-select
+              v-model:value="editData.data.config.method"
+              placeholder="选择HTTP方法"
+              @change="onHttpMethodChange"
+            >
               <a-select-option value="GET">GET</a-select-option>
               <a-select-option value="POST">POST</a-select-option>
               <a-select-option value="PUT">PUT</a-select-option>
               <a-select-option value="DELETE">DELETE</a-select-option>
             </a-select>
           </a-form-item>
+
           <a-form-item label="请求URL">
-            <VariableSelector
-              v-model:referenceParameters="editData.data.config.referenceParameters"
+            <a-input
               v-model:value="editData.data.config.url"
-              :edges="edges"
-              :node-id="editData.id"
-              :nodes="nodes"
-              placeholder="https://api.example.com/endpoint"
+              placeholder="https://api.example.com/endpoint?param={{nodeId.paramName}}"
             />
           </a-form-item>
-          <a-form-item label="请求头">
-            <VariableSelector
-              v-model:referenceParameters="editData.data.config.referenceParameters"
-              v-model:value="editData.data.config.headers"
-              :edges="edges"
-              :node-id="editData.id"
-              :nodes="nodes"
-              placeholder='{"Content-Type": "application/json"}'
-            />
-          </a-form-item>
-          <a-form-item label="请求体">
-            <VariableSelector
-              v-model:referenceParameters="editData.data.config.referenceParameters"
-              v-model:value="editData.data.config.body"
-              :edges="edges"
-              :node-id="editData.id"
-              :nodes="nodes"
-              placeholder='{"key": "${value}"}'
-            />
+
+          <!-- HTTP配置标签页 -->
+          <a-form-item :colon="false" label=" ">
+            <a-tabs
+              :activeKey="httpActiveTab"
+              size="small"
+              type="card"
+              @update:activeKey="(key) => (httpActiveTab = key)"
+            >
+              <!-- Params 标签页 -->
+              <a-tab-pane key="params" tab="Params">
+                <SimpleKeyValueEditor
+                  :value="
+                    Array.isArray(editData.data.config.params) ? editData.data.config.params : []
+                  "
+                  placeholder-key="参数名"
+                  placeholder-value="参数值，如：{{nodeId.paramName}}"
+                  title="参数"
+                  @update:value="(val) => (editData.data.config.params = val)"
+                />
+              </a-tab-pane>
+
+              <!-- Headers 标签页 -->
+              <a-tab-pane key="headers" tab="Headers">
+                <SimpleKeyValueEditor
+                  :value="
+                    Array.isArray(editData.data.config.headers) ? editData.data.config.headers : []
+                  "
+                  placeholder-key="请求头名称"
+                  placeholder-value="请求头值，如：{{nodeId.paramName}}"
+                  title="请求头"
+                  @update:value="(val) => (editData.data.config.headers = val)"
+                />
+              </a-tab-pane>
+
+              <!-- Body 标签页 (仅POST/PUT显示) -->
+              <a-tab-pane
+                v-if="['POST', 'PUT'].includes(editData.data.config.method)"
+                key="body"
+                tab="Body"
+              >
+                <div class="body-config">
+                  <!-- Body类型选择 -->
+                  <div class="body-type-selector mb-3">
+                    <a-radio-group
+                      :value="editData.data.config.body?.type || 'none'"
+                      @change="onBodyTypeChange"
+                    >
+                      <a-radio-button value="none">None</a-radio-button>
+                      <a-radio-button value="form-urlencoded">form-urlencoded</a-radio-button>
+                      <a-radio-button value="json">JSON</a-radio-button>
+                    </a-radio-group>
+                  </div>
+
+                  <!-- form-urlencoded Body -->
+                  <div v-if="editData.data.config.body?.type === 'form-urlencoded'">
+                    <SimpleKeyValueEditor
+                      :value="
+                        Array.isArray(editData.data.config.body?.formData)
+                          ? editData.data.config.body.formData
+                          : []
+                      "
+                      placeholder-key="字段名"
+                      placeholder-value="字段值，如：{{nodeId.paramName}}"
+                      title="表单数据"
+                      @update:value="(val) => (editData.data.config.body.formData = val)"
+                    />
+                  </div>
+
+                  <!-- JSON Body -->
+                  <div v-if="editData.data.config.body?.type === 'json'">
+                    <SimpleJsonEditor
+                      :value="editData.data.config.body?.jsonData || ''"
+                      placeholder='{\n  "key": "value",\n  "data": "{{nodeId.paramName}}"\n}'
+                      @update:value="(val) => (editData.data.config.body.jsonData = val)"
+                    />
+                  </div>
+                </div>
+              </a-tab-pane>
+            </a-tabs>
           </a-form-item>
         </template>
 
@@ -377,6 +455,37 @@
         </a-form-item>
       </a-form>
     </div>
+
+    <!-- 统一变量选择器覆盖层 -->
+    <div
+      v-if="showUnifiedVariableSelector"
+      class="variable-selector-overlay"
+      @click="closeUnifiedVariableSelector"
+    >
+      <div class="variable-selector-panel" @click.stop>
+        <div class="variable-selector-header">
+          <h3>选择变量</h3>
+          <a-button size="small" @click="closeUnifiedVariableSelector">
+            <template #icon>
+              <CloseOutlined />
+            </template>
+          </a-button>
+        </div>
+        <VariableSelector
+          v-model:referenceParameters="editData.data.config.referenceParameters"
+          :edges="edges"
+          :multiple="true"
+          :node-id="editData.id"
+          :nodes="nodes"
+          :value="''"
+          placeholder="选择要在HTTP节点中使用的变量..."
+          @update:referenceParameters="handleUnifiedVariableChange"
+        />
+        <div class="variable-selector-actions">
+          <a-button size="small" @click="closeUnifiedVariableSelector"> 确定</a-button>
+        </div>
+      </div>
+    </div>
   </a-drawer>
 </template>
 
@@ -392,16 +501,22 @@
     FormItem as AFormItem,
     Input as AInput,
     InputNumber as AInputNumber,
+    RadioButton as ARadioButton,
+    RadioGroup as ARadioGroup,
     Select as ASelect,
     SelectOption as ASelectOption,
     Slider as ASlider,
     Space as ASpace,
+    TabPane as ATabPane,
+    Tabs as ATabs,
     Tag as ATag,
     Textarea as ATextarea,
   } from 'ant-design-vue'
-  import { PlusOutlined } from '@ant-design/icons-vue'
+  import { CloseOutlined, PlusOutlined } from '@ant-design/icons-vue'
   import VariableSelector from './VariableSelector.vue'
   import CodeEditor from './CodeEditor.vue'
+  import SimpleKeyValueEditor from './SimpleKeyValueEditor.vue'
+  import SimpleJsonEditor from './SimpleJsonEditor.vue'
   import { getDataTypeColor, getDataTypeLabel, getNodeOutputDefinitions } from '../types/variables'
 
   const props = defineProps({
@@ -427,19 +542,53 @@
   const emit = defineEmits(['update:visible', 'save', 'close'])
 
   const editData = ref({})
+  const httpActiveTab = ref('params')
+  const showUnifiedVariableSelector = ref(false)
 
   // 监听节点变化，初始化编辑数据
   watch(
     () => props.node,
     (newNode) => {
-      console.log('NodeConfigPanel received node:', newNode)
       if (newNode) {
         editData.value = JSON.parse(JSON.stringify(newNode))
         // 确保存在 referenceParameters 字段
         if (!editData.value.data.config.referenceParameters) {
           editData.value.data.config.referenceParameters = []
         }
-        console.log('Edit data initialized:', editData.value)
+
+        // 确保HTTP节点配置初始化
+        if (editData.value.data.nodeType === 'http') {
+          // 确保params是数组
+          if (!Array.isArray(editData.value.data.config.params)) {
+            editData.value.data.config.params = []
+          }
+          // 确保headers是数组
+          if (!Array.isArray(editData.value.data.config.headers)) {
+            editData.value.data.config.headers = []
+          }
+          // 确保body是对象而不是字符串
+          if (
+            !editData.value.data.config.body ||
+            typeof editData.value.data.config.body !== 'object'
+          ) {
+            editData.value.data.config.body = {
+              type: 'none',
+              formData: [],
+              jsonData: '',
+            }
+          } else {
+            // 确保body对象有必要的属性
+            if (!editData.value.data.config.body.type) {
+              editData.value.data.config.body.type = 'none'
+            }
+            if (!Array.isArray(editData.value.data.config.body.formData)) {
+              editData.value.data.config.body.formData = []
+            }
+            if (typeof editData.value.data.config.body.jsonData !== 'string') {
+              editData.value.data.config.body.jsonData = ''
+            }
+          }
+        }
       }
     },
     { immediate: true },
@@ -527,8 +676,13 @@
       http: {
         method: 'GET',
         url: '',
-        headers: '{}',
-        body: '',
+        params: [],
+        headers: [],
+        body: {
+          type: 'none', // 'none', 'form-urlencoded', 'json'
+          formData: [],
+          jsonData: '',
+        },
         timeout: 30,
         retryCount: 1,
       },
@@ -583,6 +737,96 @@
   const getVariableReference = (nodeId, outputKey) => {
     return `{{output.${nodeId}.${outputKey}}}`
   }
+
+  // 获取变量显示名称
+  const getVariableDisplayName = (param) => {
+    if (!param || typeof param !== 'object') {
+      console.warn('Invalid param for getVariableDisplayName:', param)
+      return ''
+    }
+    const sourceNode = props.nodes.find((n) => n.id === param.nodeId)
+    const nodeName = sourceNode?.label || param.nodeId || 'Unknown'
+    const paramKey = param.key || 'unknown'
+    return `${nodeName}.${paramKey}`
+  }
+
+  // 打开统一变量选择器
+  const openUnifiedVariableSelector = () => {
+    showUnifiedVariableSelector.value = true
+  }
+
+  // 关闭统一变量选择器
+  const closeUnifiedVariableSelector = () => {
+    showUnifiedVariableSelector.value = false
+  }
+
+  // 删除变量引用
+  const removeVariableReference = (index) => {
+    if (editData.value.data.config.referenceParameters) {
+      editData.value.data.config.referenceParameters.splice(index, 1)
+    }
+  }
+
+  // 处理统一变量选择变化
+  const handleUnifiedVariableChange = (newParams) => {
+    if (Array.isArray(newParams)) {
+      editData.value.data.config.referenceParameters = [...newParams]
+    }
+  }
+
+  // HTTP节点相关方法
+  const onHttpMethodChange = (method) => {
+    // 当请求方法改变时，如果切换到GET/DELETE，隐藏Body标签页
+    if (['GET', 'DELETE'].includes(method)) {
+      if (httpActiveTab.value === 'body') {
+        httpActiveTab.value = 'params'
+      }
+      // 重置Body配置
+      editData.value.data.config.body = {
+        type: 'none',
+        formData: [],
+        jsonData: '',
+      }
+    }
+  }
+
+  const onBodyTypeChange = (event) => {
+    // 当Body类型改变时，重置相应的数据
+    const bodyType = event.target ? event.target.value : event
+
+    // 确保body是对象
+    if (!editData.value.data.config.body || typeof editData.value.data.config.body !== 'object') {
+      editData.value.data.config.body = {
+        type: bodyType,
+        formData: [],
+        jsonData: '',
+      }
+      return
+    }
+
+    // 创建新的body对象以触发响应式更新
+    const newBody = { ...editData.value.data.config.body }
+    newBody.type = bodyType
+
+    // 根据类型重置相应数据
+    if (bodyType === 'form-urlencoded') {
+      newBody.jsonData = ''
+      if (!Array.isArray(newBody.formData)) {
+        newBody.formData = []
+      }
+    } else if (bodyType === 'json') {
+      newBody.formData = []
+      if (typeof newBody.jsonData !== 'string') {
+        newBody.jsonData = ''
+      }
+    } else if (bodyType === 'none') {
+      newBody.formData = []
+      newBody.jsonData = ''
+    }
+
+    // 更新整个body对象
+    editData.value.data.config.body = newBody
+  }
 </script>
 
 <style scoped>
@@ -609,6 +853,60 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
+  }
+
+  /* HTTP配置相关样式 */
+  .body-config {
+    padding: 0;
+  }
+
+  .body-type-selector {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #fafafa;
+    border-radius: 6px;
+    border: 1px solid #f0f0f0;
+  }
+
+  .body-type-selector .ant-radio-group {
+    width: 100%;
+  }
+
+  .body-type-selector .ant-radio-button-wrapper {
+    flex: 1;
+    text-align: center;
+  }
+
+  /* 标签页样式优化 */
+  :deep(.ant-tabs-card .ant-tabs-tab) {
+    border-radius: 6px 6px 0 0;
+    border: 1px solid #d9d9d9;
+    background: #fafafa;
+    margin-right: 4px;
+  }
+
+  :deep(.ant-tabs-card .ant-tabs-tab-active) {
+    background: #fff;
+    border-bottom-color: #fff;
+  }
+
+  :deep(.ant-tabs-card .ant-tabs-content-holder) {
+    border: 1px solid #d9d9d9;
+    border-radius: 0 6px 6px 6px;
+    background: #fff;
+    padding: 16px;
+  }
+
+  :deep(.ant-tabs-card .ant-tabs-tabpane) {
+    padding: 0;
+  }
+
+  /* 响应式设计 */
+  @media (max-width: 768px) {
+    .body-type-selector .ant-radio-button-wrapper {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
   }
 
   .input-label {
@@ -736,5 +1034,186 @@
     padding: 20px;
     text-align: center;
     color: #9ca3af;
+  }
+
+  /* 变量声明区域样式 */
+  .variable-declaration {
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fafbfc;
+  }
+
+  .variable-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .variable-title {
+    font-weight: 500;
+    color: #262626;
+    font-size: 14px;
+  }
+
+  .variable-list {
+    min-height: 80px;
+  }
+
+  .variable-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: #ffffff;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .variable-item:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .variable-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .variable-name {
+    font-weight: 500;
+    color: #1f2937;
+    font-size: 13px;
+  }
+
+  .variable-reference {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 11px;
+    color: #0ea5e9;
+    border: 1px solid #e2e8f0;
+  }
+
+  .no-variables {
+    padding: 20px;
+    text-align: center;
+  }
+
+  .variable-help {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: #f0f9ff;
+    border-radius: 4px;
+    border: 1px solid #e0f2fe;
+  }
+
+  .variable-help p {
+    margin: 0;
+    font-size: 12px;
+    color: #0c4a6e;
+  }
+
+  .variable-help code {
+    background: #dbeafe;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 11px;
+    color: #1e40af;
+  }
+
+  /* 统一变量选择器覆盖层 */
+  .variable-selector-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .variable-selector-panel {
+    width: 600px;
+    max-height: 80vh;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .variable-selector-header {
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fafafa;
+  }
+
+  .variable-selector-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #262626;
+  }
+
+  .variable-selector-actions {
+    padding: 16px;
+    border-top: 1px solid #f0f0f0;
+    background: #fafafa;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* HTTP 节点变量选择器样式优化 */
+  .http-variable-selector-wrapper {
+    position: relative;
+  }
+
+  .http-variable-selector :deep(.variable-input) {
+    cursor: pointer;
+    background-color: #fafafa;
+    border: 1px dashed #d9d9d9;
+    transition: all 0.3s ease;
+  }
+
+  .http-variable-selector :deep(.variable-input:hover) {
+    border-color: #40a9ff;
+    background-color: #f6ffed;
+  }
+
+  .http-variable-selector :deep(.variable-input:focus) {
+    border-color: #40a9ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+    background-color: #ffffff;
+  }
+
+  .http-variable-selector :deep(.variable-input input) {
+    cursor: pointer !important;
+  }
+
+  .http-variable-selector :deep(.ant-input-suffix .ant-btn) {
+    color: #1890ff;
+    border: none;
+    background: transparent;
+  }
+
+  .http-variable-selector :deep(.ant-input-suffix .ant-btn:hover) {
+    color: #40a9ff;
+    background: rgba(24, 144, 255, 0.1);
   }
 </style>

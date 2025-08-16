@@ -80,6 +80,10 @@
           <span class="config-label">{{ data.config.method || 'GET' }}:</span>
           <span class="config-value">{{ data.config.url || '未配置' }}</span>
         </div>
+        <div v-if="data.nodeType === 'http' && hasHttpConfig" class="config-item">
+          <span class="config-label">配置:</span>
+          <span class="config-value">{{ getHttpConfigSummary }}</span>
+        </div>
         <!-- 代码节点 -->
         <div v-if="data.nodeType === 'code'" class="config-item">
           <span class="config-label">语言:</span>
@@ -118,11 +122,12 @@
 </template>
 
 <script setup>
+  import { computed } from 'vue'
   import { Handle } from '@vue-flow/core'
   import { Button as AButton } from 'ant-design-vue'
   import { CopyOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons-vue'
 
-  defineProps({
+  const props = defineProps({
     id: {
       type: String,
       required: true,
@@ -138,6 +143,42 @@
   })
 
   defineEmits(['delete', 'edit', 'copy'])
+
+  // HTTP配置摘要
+  const hasHttpConfig = computed(() => {
+    if (props.data.nodeType !== 'http') return false
+    const config = props.data.config
+    return (
+      (config.params && config.params.length > 0) ||
+      (config.headers && config.headers.length > 0) ||
+      (config.body && config.body.type !== 'none')
+    )
+  })
+
+  const getHttpConfigSummary = computed(() => {
+    if (props.data.nodeType !== 'http') return ''
+    const config = props.data.config
+    const parts = []
+
+    if (config.params && config.params.length > 0) {
+      parts.push(`${config.params.length}个参数`)
+    }
+
+    if (config.headers && config.headers.length > 0) {
+      parts.push(`${config.headers.length}个请求头`)
+    }
+
+    if (config.body && config.body.type !== 'none') {
+      if (config.body.type === 'form-urlencoded') {
+        const formDataCount = config.body.formData ? config.body.formData.length : 0
+        parts.push(`表单(${formDataCount}项)`)
+      } else if (config.body.type === 'json') {
+        parts.push('JSON数据')
+      }
+    }
+
+    return parts.join(', ') || '基础配置'
+  })
 </script>
 
 <style scoped>

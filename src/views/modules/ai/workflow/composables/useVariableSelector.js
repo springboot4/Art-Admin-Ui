@@ -84,7 +84,7 @@ export function useVariableSelector(props, emit) {
   const getNewVariableReference = (variable) => {
     const variableType = variable.type
     const parameterName = variable.sourceOutputKey || variable.name
-    
+
     // 对于节点输出，使用实际的 nodeId
     // 对于非节点输出（系统、环境、输入、会话变量），使用 variableType 作为 nodeId
     let nodeId
@@ -93,7 +93,7 @@ export function useVariableSelector(props, emit) {
     } else {
       nodeId = variableType
     }
-    
+
     return `${variableType}.${nodeId}.${parameterName}`
   }
 
@@ -103,18 +103,19 @@ export function useVariableSelector(props, emit) {
       return []
     }
 
-    return props.referenceParameters.map(param => {
-      // 直接使用 referenceParameters 的信息，不再查找 availableVariables
-      // 因为 referenceParameters 已经包含了所有需要的信息
+    return props.referenceParameters.map((param) => {
+      var k =
+        param.variableType === 'output'
+          ? `${param.variableType}.${param.nodeId}.${param.parameterName}`
+          : `${param.variableType}.${param.variableType}.${param.parameterName}`
+
       return {
         ...param,
-        displayName: param.parameterName, // 直接使用参数名作为显示名
-        description: '', // referenceParameters 中没有描述信息
+        displayName: param.parameterName,
+        description: '',
         typeLabel: getVariableTypeLabel(param.variableType),
-        // 用于唯一标识的key
-        uniqueKey: `${param.nodeId}-${param.parameterName}-${param.variableType}`,
-        // 显示的引用格式
-        referenceFormat: `${param.variableType}.${param.nodeId}.${param.parameterName}`
+        uniqueKey: k,
+        referenceFormat: k,
       }
     })
   })
@@ -127,17 +128,17 @@ export function useVariableSelector(props, emit) {
   // 获取变量类型标签
   const getVariableTypeLabel = (type) => {
     const typeLabels = {
-      'sys': '系统',
-      'env': '环境', 
-      'input': '输入',
-      'conversation': '会话',
-      'output': '输出',
-      'string': '文本',
-      'number': '数字',
-      'boolean': '布尔',
-      'array': '数组',
-      'object': '对象',
-      'any': '任意'
+      sys: '系统',
+      env: '环境',
+      input: '输入',
+      conversation: '会话',
+      output: '输出',
+      string: '文本',
+      number: '数字',
+      boolean: '布尔',
+      array: '数组',
+      object: '对象',
+      any: '任意',
     }
     return typeLabels[type] || type
   }
@@ -167,11 +168,10 @@ export function useVariableSelector(props, emit) {
 
     // 检查是否已存在相同的引用
     const existingIndex = currentReferenceParameters.findIndex(
-      (param) => (
+      (param) =>
         param.nodeId === newReferenceParameter.nodeId &&
         param.parameterName === newReferenceParameter.parameterName &&
-        param.variableType === newReferenceParameter.variableType
-      )
+        param.variableType === newReferenceParameter.variableType,
     )
 
     if (existingIndex === -1) {
@@ -187,13 +187,12 @@ export function useVariableSelector(props, emit) {
   const handleRemoveVariable = (nodeId, parameterName, variableType) => {
     const currentReferenceParameters = [...(props.referenceParameters || [])]
     const index = currentReferenceParameters.findIndex(
-      param => (
+      (param) =>
         param.nodeId === nodeId &&
         param.parameterName === parameterName &&
-        param.variableType === variableType
-      )
+        param.variableType === variableType,
     )
-    
+
     if (index !== -1) {
       currentReferenceParameters.splice(index, 1)
       emit('update:referenceParameters', currentReferenceParameters)
@@ -212,6 +211,6 @@ export function useVariableSelector(props, emit) {
     getNewVariableReference,
     getVariableTypeLabel,
     handleSelectVariable,
-    handleRemoveVariable
+    handleRemoveVariable,
   }
 }

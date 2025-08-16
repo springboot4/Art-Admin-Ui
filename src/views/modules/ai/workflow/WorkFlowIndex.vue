@@ -274,22 +274,22 @@
       description: '调用外部API接口',
       category: 'integration',
     },
-    {
-      type: 'template',
-      label: '模板转换',
-      icon: '📝',
-      color: '#eb2f96',
-      description: 'Jinja2模板渲染文本',
-      category: 'transform',
-    },
-    {
-      type: 'variable',
-      label: '变量赋值',
-      icon: '🔗',
-      color: '#722ed1',
-      description: '设置和管理变量',
-      category: 'logic',
-    },
+    // {
+    //   type: 'template',
+    //   label: '模板转换',
+    //   icon: '📝',
+    //   color: '#eb2f96',
+    //   description: 'Jinja2模板渲染文本',
+    //   category: 'transform',
+    // },
+    // {
+    //   type: 'variable',
+    //   label: '变量赋值',
+    //   icon: '🔗',
+    //   color: '#722ed1',
+    //   description: '设置和管理变量',
+    //   category: 'logic',
+    // },
     {
       type: 'output',
       label: '输出节点',
@@ -400,7 +400,6 @@
 
     try {
       const response = await findByAppId(appId.value)
-      console.log('res', response)
       if (response && response.graph) {
         // 保存工作流ID和版本信息用于后续更新
         currentWorkflowId.value = response.id
@@ -482,12 +481,6 @@
     }
 
     const filteredCount = importedEdges.length - validEdges.length
-    console.log('导入结果:', {
-      导入节点数: importedNodes.length,
-      导入边数: importedEdges.length,
-      有效边数: validEdges.length,
-      过滤边数: filteredCount,
-    })
   }
 
   // 组件挂载时加载数据
@@ -572,12 +565,10 @@
 
   // VueFlow 事件处理
   const onNodesChange = (changes) => {
-    console.log('Nodes changed:', changes)
     nodes.value = applyNodeChanges(changes, nodes.value)
   }
 
   const onEdgesChange = (changes) => {
-    console.log('Edges changed:', changes)
     edges.value = applyEdgeChanges(changes, edges.value)
   }
 
@@ -594,31 +585,19 @@
     message.success('节点连接成功')
   }
 
-  const onNodeClick = (event, node) => {
-    console.log('Node clicked:', node)
-  }
+  const onNodeClick = (event, node) => {}
 
   const onNodeDoubleClick = (event, node) => {
-    console.log('Double click event:', event, 'Node:', node)
     // VueFlow可能传递的参数格式不同，尝试从event中获取node
     const targetNode = node || (event && event.node) || event
-    console.log('Target node:', targetNode)
 
     if (targetNode) {
       selectedNode.value = targetNode
       configPanelVisible.value = true
-      console.log(
-        'Config panel should open:',
-        configPanelVisible.value,
-        'Selected node:',
-        selectedNode.value,
-      )
     }
   }
 
-  const onEdgeClick = (event, edge) => {
-    console.log('Edge clicked:', edge)
-  }
+  const onEdgeClick = (event, edge) => {}
 
   // 从菜单添加节点 - 添加到画布中央，不自动连接
   const addNodeFromMenu = (nodeType) => {
@@ -679,7 +658,6 @@
   }
 
   const handleConfigSave = (updatedNode) => {
-    console.log('Saving node config:', updatedNode)
     const index = nodes.value.findIndex((n) => n.id === updatedNode.id)
     if (index !== -1) {
       // 使用深拷贝确保响应式更新
@@ -1102,8 +1080,6 @@
 
   // 连接验证函数 - 严格限制只能输出端口连接到输入端口
   const isValidConnection = (connection) => {
-    console.log('🔍 连接验证被调用:', connection)
-
     // 获取源节点和目标节点
     const sourceNode = nodes.value.find((node) => node.id === connection.source)
     const targetNode = nodes.value.find((node) => node.id === connection.target)
@@ -1142,13 +1118,6 @@
 
     // 核心验证：通过handle检查确保只能从输出端口连接到输入端口
     const { sourceHandle, targetHandle } = connection
-
-    console.log('端口详细信息:', {
-      sourceHandle,
-      targetHandle,
-      sourceNodeType: sourceNode.data.nodeType,
-      targetNodeType: targetNode.data.nodeType,
-    })
 
     // 检查源端口 - 必须是输出端口
     // 输出端口的handle通常包含'source'字样或者是条件节点的具体条件ID
