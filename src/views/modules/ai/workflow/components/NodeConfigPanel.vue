@@ -77,51 +77,85 @@
 
         <!-- LLM 节点特殊配置 -->
         <template v-if="editData.data.nodeType === 'llm'">
-          <a-form-item label="模型选择">
-            <a-select v-model:value="editData.data.config.model" placeholder="选择AI模型">
-              <a-select-option value="gpt-4">GPT-4</a-select-option>
-              <a-select-option value="gpt-3.5-turbo">GPT-3.5 Turbo</a-select-option>
-              <a-select-option value="claude-3">Claude 3</a-select-option>
-              <a-select-option value="chatglm">ChatGLM</a-select-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item label="Temperature">
-            <a-slider
-              v-model:value="editData.data.config.temperature"
-              :marks="{ 0: '保守', 1: '平衡', 2: '创意' }"
-              :max="2"
-              :min="0"
-              :step="0.1"
-            />
-          </a-form-item>
-          <a-form-item label="最大Token数">
-            <a-input-number
-              v-model:value="editData.data.config.maxTokens"
-              :max="4096"
-              :min="1"
-              placeholder="1024"
-            />
-          </a-form-item>
-          <a-form-item label="系统提示词">
-            <VariableSelector
+          <!-- 模型配置卡片 -->
+          <a-card class="config-card" size="small" title="模型配置">
+            <a-row :gutter="16">
+              <a-col :span="12">
+                <a-form-item label="模型选择">
+                  <a-select v-model:value="editData.data.config.model" placeholder="选择AI模型">
+                    <a-select-option value="deepseek-ai/DeepSeek-R1">DeepSeek-R1</a-select-option>
+                    <a-select-option value="deepseek-ai/DeepSeek-V3">DeepSeek-V3</a-select-option>
+                    <a-select-option value="gpt-4">GPT-4</a-select-option>
+                    <a-select-option value="gpt-3.5-turbo">GPT-3.5 Turbo</a-select-option>
+                    <a-select-option value="claude-3">Claude 3</a-select-option>
+                    <a-select-option value="chatglm">ChatGLM</a-select-option>
+                  </a-select>
+                </a-form-item>
+              </a-col>
+              <a-col :span="12">
+                <a-form-item label="最大Token数">
+                  <a-input-number
+                    v-model:value="editData.data.config.maxTokens"
+                    :max="4096"
+                    :min="1"
+                    placeholder="1024"
+                    style="width: 100%"
+                  />
+                </a-form-item>
+              </a-col>
+            </a-row>
+            <a-form-item label="Temperature">
+              <a-slider
+                v-model:value="editData.data.config.temperature"
+                :marks="{ 0: '保守', 1: '平衡', 2: '创意' }"
+                :max="2"
+                :min="0"
+                :step="0.1"
+              />
+            </a-form-item>
+          </a-card>
+
+          <!-- 系统提示词配置卡片 -->
+          <a-card class="config-card" size="small" title="系统提示词">
+            <template #extra>
+              <a-tag v-if="editData.data.config.systemPrompt" color="blue" size="small">
+                {{ editData.data.config.systemPrompt.length }} 字符
+              </a-tag>
+            </template>
+            <EnhancedTextEditor
               v-model:referenceParameters="editData.data.config.referenceParameters"
               v-model:value="editData.data.config.systemPrompt"
+              :default-rows="6"
               :edges="edges"
+              :max-rows="20"
+              :min-rows="4"
               :node-id="editData.id"
               :nodes="nodes"
-              placeholder="你是一个有用的AI助手..."
+              :show-format-button="true"
+              placeholder="你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。&#10;&#10;请遵循以下原则：&#10;1. 准确性：提供正确和可靠的信息&#10;2. 有用性：确保回答对用户有实际帮助&#10;3. 清晰性：使用简洁明了的语言表达"
             />
-          </a-form-item>
-          <a-form-item label="用户消息">
-            <VariableSelector
+          </a-card>
+
+          <!-- 用户消息配置卡片 -->
+          <a-card class="config-card" size="small" title="用户消息">
+            <template #extra>
+              <a-tag
+                v-if="editData.data.config.messages && editData.data.config.messages.length > 0"
+                color="green"
+                size="small"
+              >
+                {{ editData.data.config.messages.length }} 条消息
+              </a-tag>
+            </template>
+            <ConversationMessages
               v-model:referenceParameters="editData.data.config.referenceParameters"
-              v-model:value="editData.data.config.userMessage"
+              v-model:value="editData.data.config.messages"
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
-              placeholder="请输入用户消息内容，可以使用变量..."
+              :referenceParameters="editData.data.config.referenceParameters"
             />
-          </a-form-item>
+          </a-card>
         </template>
 
         <!-- HTTP 节点特殊配置 -->
@@ -374,19 +408,40 @@
 
         <!-- 输出节点配置 -->
         <template v-if="editData.data.nodeType === 'output'">
-          <a-form-item label="输出内容">
-            <a-textarea
-              v-model:value="editData.data.config.outputContent"
-              :rows="4"
-              placeholder="输出的内容，不能使用变量选择器..."
-            />
-          </a-form-item>
-          <a-form-item label="输出格式">
-            <a-select v-model:value="editData.data.config.outputFormat" placeholder="选择输出格式">
-              <a-select-option value="text">纯文本</a-select-option>
-              <a-select-option value="json">JSON格式</a-select-option>
-              <a-select-option value="markdown">Markdown格式</a-select-option>
-            </a-select>
+          <a-form-item label="输出变量">
+            <div class="output-variables-config">
+              <div
+                v-for="(outputVar, index) in editData.data.config.outputVariables || []"
+                :key="`output_var_${index}`"
+                class="output-variable-item"
+              >
+                <div class="output-variable-header">
+                  <span class="variable-label">输出变量 {{ index + 1 }}</span>
+                  <a-button danger size="small" type="text" @click="removeOutputVariable(index)">
+                    删除
+                  </a-button>
+                </div>
+                <a-form-item :class="{ 'mb-2': true }" label="变量名">
+                  <a-input v-model:value="outputVar.name" placeholder="变量名，如：result" />
+                </a-form-item>
+                <a-form-item label="变量值">
+                  <VariableSelector
+                    v-model:referenceParameters="editData.data.config.referenceParameters"
+                    v-model:value="outputVar.value"
+                    :edges="edges"
+                    :node-id="editData.id"
+                    :nodes="nodes"
+                    placeholder="选择要输出的变量，如：${nodeId.paramName}"
+                  />
+                </a-form-item>
+              </div>
+              <a-button block class="mt-3" type="dashed" @click="addOutputVariable">
+                <template #icon>
+                  <PlusOutlined />
+                </template>
+                添加输出变量
+              </a-button>
+            </div>
           </a-form-item>
         </template>
 
@@ -409,42 +464,44 @@
           />
         </a-form-item>
 
-        <!-- 节点输出参数 -->
-        <a-divider orientation="left">节点输出参数</a-divider>
-        <div class="node-outputs">
-          <div class="outputs-description">
-            <p>此节点执行后将产生以下输出变量，后续节点可以使用这些变量：</p>
-          </div>
-          <div class="output-list">
-            <div
-              v-for="output in getNodeOutputDefinitions(editData.data.nodeType)"
-              :key="output.key"
-              class="output-item"
-            >
-              <div class="output-header">
-                <span class="output-name">{{ output.name }}</span>
-                <a-tag :color="getDataTypeColor(output.dataType)" size="small">
-                  {{ getDataTypeLabel(output.dataType) }}
-                </a-tag>
-              </div>
-              <div class="output-description">{{ output.description }}</div>
-              <div class="output-reference">
-                <span class="reference-label">引用格式：</span>
-                <code class="reference-code">{{
-                  getVariableReference(editData.id, output.key)
-                }}</code>
+        <!-- 节点输出参数（输出节点不显示） -->
+        <template v-if="editData.data.nodeType !== 'output'">
+          <a-divider orientation="left">节点输出参数</a-divider>
+          <div class="node-outputs">
+            <div class="outputs-description">
+              <p>此节点执行后将产生以下输出变量，后续节点可以使用这些变量：</p>
+            </div>
+            <div class="output-list">
+              <div
+                v-for="output in getNodeOutputDefinitions(editData.data.nodeType)"
+                :key="output.key"
+                class="output-item"
+              >
+                <div class="output-header">
+                  <span class="output-name">{{ output.name }}</span>
+                  <a-tag :color="getDataTypeColor(output.dataType)" size="small">
+                    {{ getDataTypeLabel(output.dataType) }}
+                  </a-tag>
+                </div>
+                <div class="output-description">{{ output.description }}</div>
+                <div class="output-reference">
+                  <span class="reference-label">引用格式：</span>
+                  <code class="reference-code">{{
+                    getVariableReference(editData.id, output.key)
+                  }}</code>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- 如果没有输出参数 -->
-          <div
-            v-if="getNodeOutputDefinitions(editData.data.nodeType).length === 0"
-            class="no-outputs"
-          >
-            <a-empty :image="false" description="此节点类型没有输出参数" size="small" />
+            <!-- 如果没有输出参数 -->
+            <div
+              v-if="getNodeOutputDefinitions(editData.data.nodeType).length === 0"
+              class="no-outputs"
+            >
+              <a-empty :image="false" description="此节点类型没有输出参数" size="small" />
+            </div>
           </div>
-        </div>
+        </template>
 
         <a-form-item>
           <a-space>
@@ -493,7 +550,9 @@
   import { ref, watch } from 'vue'
   import {
     Button as AButton,
+    Card as ACard,
     Checkbox as ACheckbox,
+    Col as ACol,
     Divider as ADivider,
     Drawer as ADrawer,
     Empty as AEmpty,
@@ -503,6 +562,7 @@
     InputNumber as AInputNumber,
     RadioButton as ARadioButton,
     RadioGroup as ARadioGroup,
+    Row as ARow,
     Select as ASelect,
     SelectOption as ASelectOption,
     Slider as ASlider,
@@ -517,6 +577,8 @@
   import CodeEditor from './CodeEditor.vue'
   import SimpleKeyValueEditor from './SimpleKeyValueEditor.vue'
   import SimpleJsonEditor from './SimpleJsonEditor.vue'
+  import EnhancedTextEditor from './EnhancedTextEditor.vue'
+  import ConversationMessages from './ConversationMessages.vue'
   import { getDataTypeColor, getDataTypeLabel, getNodeOutputDefinitions } from '../types/variables'
 
   const props = defineProps({
@@ -589,6 +651,61 @@
             }
           }
         }
+
+        // 确保LLM节点配置初始化
+        if (editData.value.data.nodeType === 'llm') {
+          // 兼容旧的userMessage字段，转换为新的messages格式
+          if (editData.value.data.config.userMessage && !editData.value.data.config.messages) {
+            editData.value.data.config.messages = [
+              {
+                id: `msg_${Date.now()}_0`,
+                role: 'user',
+                content: editData.value.data.config.userMessage,
+              },
+            ]
+            // 删除旧字段
+            delete editData.value.data.config.userMessage
+          }
+
+          // 确保messages是数组
+          if (!Array.isArray(editData.value.data.config.messages)) {
+            editData.value.data.config.messages = [
+              {
+                id: `msg_${Date.now()}_0`,
+                role: 'user',
+                content: '${question}',
+              },
+            ]
+          }
+        }
+
+        // 确保输出节点配置初始化
+        if (editData.value.data.nodeType === 'output') {
+          // 兼容旧的outputContent字段，转换为新的outputVariables格式
+          if (
+            editData.value.data.config.outputContent &&
+            !editData.value.data.config.outputVariables
+          ) {
+            editData.value.data.config.outputVariables = [
+              {
+                name: 'content',
+                value: editData.value.data.config.outputContent,
+              },
+            ]
+            // 删除旧字段
+            delete editData.value.data.config.outputContent
+          }
+
+          // 确保outputVariables是数组
+          if (!Array.isArray(editData.value.data.config.outputVariables)) {
+            editData.value.data.config.outputVariables = [
+              {
+                name: 'result',
+                value: '',
+              },
+            ]
+          }
+        }
       }
     },
     { immediate: true },
@@ -618,6 +735,24 @@
   const removeUserInput = (index) => {
     if (editData.value.data.config.userInputs) {
       editData.value.data.config.userInputs.splice(index, 1)
+    }
+  }
+
+  // 添加输出变量
+  const addOutputVariable = () => {
+    if (!editData.value.data.config.outputVariables) {
+      editData.value.data.config.outputVariables = []
+    }
+    editData.value.data.config.outputVariables.push({
+      name: '',
+      value: '',
+    })
+  }
+
+  // 删除输出变量
+  const removeOutputVariable = (index) => {
+    if (editData.value.data.config.outputVariables) {
+      editData.value.data.config.outputVariables.splice(index, 1)
     }
   }
 
@@ -669,7 +804,13 @@
         temperature: 0.7,
         maxTokens: 1024,
         systemPrompt: '你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。',
-        userMessage: '${question}',
+        messages: [
+          {
+            id: `msg_${Date.now()}_0`,
+            role: 'user',
+            content: '${question}',
+          },
+        ],
         timeout: 30,
         retryCount: 1,
       },
@@ -718,8 +859,12 @@
         retryCount: 0,
       },
       output: {
-        outputContent: '工作流执行完成',
-        outputFormat: 'text',
+        outputVariables: [
+          {
+            name: 'result',
+            value: '',
+          },
+        ],
         timeout: 5,
         retryCount: 0,
       },
@@ -910,6 +1055,37 @@
   }
 
   .input-label {
+    font-weight: 600;
+    color: #262626;
+  }
+
+  /* 输出变量配置样式 */
+  .output-variables-config {
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .output-variable-item {
+    padding: 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    background: #fafafa;
+  }
+
+  .output-variable-item:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .output-variable-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .variable-label {
     font-weight: 600;
     color: #262626;
   }
@@ -1215,5 +1391,38 @@
   .http-variable-selector :deep(.ant-input-suffix .ant-btn:hover) {
     color: #40a9ff;
     background: rgba(24, 144, 255, 0.1);
+  }
+
+  /* 配置卡片样式 */
+  .config-card {
+    margin-bottom: 16px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .config-card:hover {
+    border-color: #d9d9d9;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .config-card :deep(.ant-card-head) {
+    background: linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid #f1f5f9;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .config-card :deep(.ant-card-head-title) {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .config-card :deep(.ant-card-body) {
+    padding: 20px;
+  }
+
+  .config-card :deep(.ant-form-item:last-child) {
+    margin-bottom: 0;
   }
 </style>

@@ -191,6 +191,15 @@
       @select-node="selectNodeResult"
       @clear-results="handleClearResults"
     />
+
+    <!-- 开始节点输入变量模态框 -->
+    <StartNodeInputModal
+      v-model:open="startNodeInputModalVisible"
+      :executing="executing"
+      :user-inputs="getStartNodeUserInputs()"
+      @cancel="handleStartNodeInputCancel"
+      @run="handleStartNodeInputRun"
+    />
   </div>
 </template>
 
@@ -213,6 +222,7 @@
   import CustomNode from './components/CustomNode.vue'
   import NodeConfigPanel from './components/NodeConfigPanel.vue'
   import WorkflowResultPanel from './components/WorkflowResultPanel.vue'
+  import StartNodeInputModal from '/@/components/Workflow/StartNodeInputModal.vue'
   import { add, findByAppId, publish } from '/@/api/ai/workflow/AiWorkflowsIndex'
   import { useWorkflowExecution } from './utils'
 
@@ -238,7 +248,7 @@
       label: '大语言模型',
       icon: '🤖',
       color: '#1890ff',
-      description: 'GPT/Claude/ChatGLM等AI模型',
+      description: '大模型节点',
       category: 'llm',
     },
     {
@@ -256,7 +266,7 @@
       color: '#faad14',
       description: '根据条件分支执行不同逻辑',
       category: 'logic',
-      multiOutput: true, // 支持多个输出端口
+      multiOutput: true,
     },
     {
       type: 'code',
@@ -317,7 +327,17 @@
         icon: '🚀',
         color: '#52c41a',
         description: '工作流的起始点',
-        config: {},
+        config: {
+          userInputs: [
+            {
+              name: 'question',
+              displayName: '用户问题',
+              dataType: 'string',
+              description: '用户输入的问题',
+              required: true,
+            },
+          ],
+        },
         status: 'idle',
       },
     },
@@ -346,6 +366,10 @@
   const showAddNodeMenu = ref(false)
   const addNodeMenuPosition = ref({ x: 0, y: 0 })
   const addNodeFromNodeId = ref(null)
+
+  // 开始节点输入模态框相关
+  const startNodeInputModalVisible = ref(false)
+  const pendingExecutionData = ref(null)
 
   // 工作流执行逻辑
   const {
@@ -394,7 +418,6 @@
   // 按照路由参数加载工作流数据
   const loadWorkflowByAppId = async () => {
     if (!appId.value) {
-      console.log('没有appId参数，使用默认流程图')
       return
     }
 
@@ -415,7 +438,6 @@
 
         message.success('工作流数据加载成功')
       } else {
-        console.log('没有找到对应的工作流数据，使用默认流程图')
         workflowVersion.value = null
       }
     } catch (error) {
@@ -479,8 +501,6 @@
       currentWorkflowId.value = null // 导入新工作流时清空之前的ID
       workflowVersion.value = null
     }
-
-    const filteredCount = importedEdges.length - validEdges.length
   }
 
   // 组件挂载时加载数据
@@ -585,7 +605,7 @@
     message.success('节点连接成功')
   }
 
-  const onNodeClick = (event, node) => {}
+  const onNodeClick = (_event, _node) => {}
 
   const onNodeDoubleClick = (event, node) => {
     // VueFlow可能传递的参数格式不同，尝试从event中获取node
@@ -597,7 +617,7 @@
     }
   }
 
-  const onEdgeClick = (event, edge) => {}
+  const onEdgeClick = (_event, _edge) => {}
 
   // 从菜单添加节点 - 添加到画布中央，不自动连接
   const addNodeFromMenu = (nodeType) => {
@@ -787,7 +807,17 @@
           icon: '🚀',
           color: '#52c41a',
           description: '工作流的起始点',
-          config: {},
+          config: {
+            userInputs: [
+              {
+                name: 'question',
+                displayName: '用户问题',
+                dataType: 'string',
+                description: '用户输入的问题',
+                required: true,
+              },
+            ],
+          },
           status: 'idle',
         },
       },
@@ -867,6 +897,17 @@
     event.target.value = ''
   }
 
+  // 获取开始节点的用户输入配置
+  const getStartNodeUserInputs = () => {
+    const startNode = nodes.value.find((node) => node.data.nodeType === 'start')
+
+    if (!startNode || !startNode.data.config || !startNode.data.config.userInputs) {
+      return []
+    }
+
+    return startNode.data.config.userInputs || []
+  }
+
   const executeWorkflow = async () => {
     // 检查是否有有效的工作流ID
     if (!currentWorkflowId.value) {
@@ -884,21 +925,49 @@
       return
     }
 
+    // 获取开始节点的用户输入配置
+    const userInputs = getStartNodeUserInputs()
+
+    // 如果开始节点有用户输入变量，显示输入表单
+    if (userInputs && userInputs.length > 0) {
+      pendingExecutionData.value = {
+        workflowId: currentWorkflowId.value,
+        nodes: nodes.value,
+      }
+
+      startNodeInputModalVisible.value = true
+
+      // 使用nextTick确保响应式更新
+      await nextTick()
+
+      return
+    }
+
+    // 没有用户输入，直接执行
+    await executeWorkflowWithInputs({})
+  }
+
+  // 带输入参数执行工作流
+  const executeWorkflowWithInputs = async (inputs) => {
+    const workflowId = pendingExecutionData.value?.workflowId || currentWorkflowId.value
+    const workflowNodes = pendingExecutionData.value?.nodes || nodes.value
+
+    if (!workflowId || !workflowNodes) {
+      message.error('工作流信息不完整，无法执行')
+      return
+    }
+
     executing.value = true
     workflowStatus.value = 'executing'
 
     try {
       // 重置所有节点的UI状态
-      nodes.value.forEach((node) => {
+      workflowNodes.forEach((node) => {
         node.data.status = 'idle'
       })
 
-      // 启动真正的工作流执行
-      await startWorkflowExecution(
-        currentWorkflowId.value,
-        nodes.value,
-        {}, // 暂时传入空的输入参数
-      )
+      // 启动真正的工作流执行，传入用户输入的参数
+      await startWorkflowExecution(workflowId, workflowNodes, inputs)
 
       workflowStatus.value = 'executing'
     } catch (error) {
@@ -906,7 +975,22 @@
       workflowStatus.value = 'error'
       message.error(`工作流执行失败: ${error.message || '未知错误'}`)
       executing.value = false
+    } finally {
+      // 清理待执行数据
+      pendingExecutionData.value = null
     }
+  }
+
+  // 处理开始节点输入模态框的运行事件
+  const handleStartNodeInputRun = (inputs) => {
+    startNodeInputModalVisible.value = false
+    executeWorkflowWithInputs(inputs)
+  }
+
+  // 处理开始节点输入模态框的取消事件
+  const handleStartNodeInputCancel = () => {
+    startNodeInputModalVisible.value = false
+    pendingExecutionData.value = null
   }
 
   // 监听执行状态变化，同步UI状态

@@ -156,7 +156,6 @@
       e.preventDefault()
       e.stopPropagation()
       insertTextAtCursor('  ')
-
     }
   }
 

@@ -37,6 +37,45 @@
                 </span>
               </template>
             </a-tab-pane>
+            <a-tab-pane key="workflow" tab="工作流">
+              <template #tab>
+                <span class="tab-content">
+                  <BranchesOutlined class="tab-icon" />
+                  工作流
+                  <a-badge
+                    :count="getTabCount('workflow')"
+                    :number-style="{ backgroundColor: '#f0f2f5', color: '#595959' }"
+                    class="tab-badge"
+                  />
+                </span>
+              </template>
+            </a-tab-pane>
+            <a-tab-pane key="chatflow" tab="对话流">
+              <template #tab>
+                <span class="tab-content">
+                  <ApartmentOutlined class="tab-icon" />
+                  对话流
+                  <a-badge
+                    :count="getTabCount('chatflow')"
+                    :number-style="{ backgroundColor: '#f0f2f5', color: '#595959' }"
+                    class="tab-badge"
+                  />
+                </span>
+              </template>
+            </a-tab-pane>
+            <a-tab-pane key="agent" tab="Agent">
+              <template #tab>
+                <span class="tab-content">
+                  <RobotOutlined class="tab-icon" />
+                  Agent
+                  <a-badge
+                    :count="getTabCount('agent')"
+                    :number-style="{ backgroundColor: '#f0f2f5', color: '#595959' }"
+                    class="tab-badge"
+                  />
+                </span>
+              </template>
+            </a-tab-pane>
             <a-tab-pane key="chatbot" tab="聊天助手">
               <template #tab>
                 <span class="tab-content">
@@ -57,45 +96,6 @@
                   文本生成
                   <a-badge
                     :count="getTabCount('completion')"
-                    :number-style="{ backgroundColor: '#f0f2f5', color: '#595959' }"
-                    class="tab-badge"
-                  />
-                </span>
-              </template>
-            </a-tab-pane>
-            <a-tab-pane key="agent" tab="智能助手">
-              <template #tab>
-                <span class="tab-content">
-                  <RobotOutlined class="tab-icon" />
-                  智能助手
-                  <a-badge
-                    :count="getTabCount('agent')"
-                    :number-style="{ backgroundColor: '#f0f2f5', color: '#595959' }"
-                    class="tab-badge"
-                  />
-                </span>
-              </template>
-            </a-tab-pane>
-            <a-tab-pane key="chatflow" tab="对话流">
-              <template #tab>
-                <span class="tab-content">
-                  <ApartmentOutlined class="tab-icon" />
-                  对话流
-                  <a-badge
-                    :count="getTabCount('chatflow')"
-                    :number-style="{ backgroundColor: '#f0f2f5', color: '#595959' }"
-                    class="tab-badge"
-                  />
-                </span>
-              </template>
-            </a-tab-pane>
-            <a-tab-pane key="workflow" tab="工作流">
-              <template #tab>
-                <span class="tab-content">
-                  <BranchesOutlined class="tab-icon" />
-                  工作流
-                  <a-badge
-                    :count="getTabCount('workflow')"
                     :number-style="{ backgroundColor: '#f0f2f5', color: '#595959' }"
                     class="tab-badge"
                   />
@@ -494,7 +494,7 @@
     const typeNames = {
       chatbot: '聊天助手',
       completion: '文本生成',
-      agent: '智能助手',
+      agent: 'Agent',
       chatflow: '对话流',
       workflow: '工作流',
     }
@@ -517,7 +517,7 @@
     const typeDescriptions = {
       chatbot: '创建聊天助手应用，提供智能对话服务',
       completion: '创建文本生成应用，处理各种文本任务',
-      agent: '创建智能助手应用，自主完成复杂任务',
+      agent: '创建Agent应用，自主完成复杂任务',
       chatflow: '创建对话流应用，构建复杂的对话逻辑',
       workflow: '创建工作流应用，实现自动化处理',
     }
@@ -586,7 +586,7 @@
     const map = {
       chatbot: '聊天助手',
       completion: '文本生成',
-      agent: '智能助手',
+      agent: 'Agent',
       chatflow: '对话流',
       workflow: '工作流',
     }

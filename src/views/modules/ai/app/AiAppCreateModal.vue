@@ -267,6 +267,27 @@
 
   const appTemplates = [
     {
+      type: 'workflow',
+      title: '工作流',
+      icon: BranchesOutlined,
+      description: '创建自动化工作流程，适用于批处理和后台任务场景',
+      features: ['批量处理', '定时任务', '数据管道'],
+    },
+    {
+      type: 'chatflow',
+      title: '对话流',
+      icon: ApartmentOutlined,
+      description: '通过可视化流程设计，构建具有复杂逻辑的对话应用',
+      features: ['可视化编排', '条件分支', '上下文管理'],
+    },
+    {
+      type: 'agent',
+      title: 'Agent',
+      icon: RobotOutlined,
+      description: '具备工具调用能力的AI助手，能够自主完成复杂任务',
+      features: ['工具调用', '任务规划', '自主决策'],
+    },
+    {
       type: 'chatbot',
       title: '聊天助手',
       icon: CommentOutlined,
@@ -279,27 +300,6 @@
       icon: ThunderboltOutlined,
       description: '处理各种文本任务，如翻译、摘要、创作等一次性操作',
       features: ['文本转换', '内容生成', '格式处理'],
-    },
-    {
-      type: 'agent',
-      title: '智能助手',
-      icon: RobotOutlined,
-      description: '具备工具调用能力的AI助手，能够自主完成复杂任务',
-      features: ['工具调用', '任务规划', '自主决策'],
-    },
-    {
-      type: 'chatflow',
-      title: '对话流',
-      icon: ApartmentOutlined,
-      description: '通过可视化流程设计，构建具有复杂逻辑的对话应用',
-      features: ['可视化编排', '条件分支', '上下文管理'],
-    },
-    {
-      type: 'workflow',
-      title: '工作流',
-      icon: BranchesOutlined,
-      description: '创建自动化工作流程，适用于批处理和后台任务场景',
-      features: ['批量处理', '定时任务', '数据管道'],
     },
   ]
 

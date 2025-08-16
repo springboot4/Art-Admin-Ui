@@ -141,7 +141,7 @@
                     <a-select-option value="agent">
                       <div class="option-content">
                         <RobotOutlined class="option-icon" />
-                        <span>智能助手</span>
+                        <span>Agent</span>
                       </div>
                     </a-select-option>
                     <a-select-option value="chatflow">
@@ -440,7 +440,7 @@
     const map = {
       chatbot: '聊天助手',
       completion: '文本生成',
-      agent: '智能助手',
+      agent: 'Agent',
       chatflow: '对话流',
       workflow: '工作流',
     }
