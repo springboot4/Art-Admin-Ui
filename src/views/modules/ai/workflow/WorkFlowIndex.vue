@@ -56,12 +56,6 @@
 
           <a-divider type="vertical" />
 
-          <!--          <a-button :loading="validating" @click="validateWorkflow">-->
-          <!--            <template #icon>-->
-          <!--              <CheckCircleOutlined />-->
-          <!--            </template>-->
-          <!--            验证-->
-          <!--          </a-button>-->
           <a-button :loading="saving" type="primary" @click="saveWorkflow">
             <template #icon>
               <SaveOutlined />
@@ -111,9 +105,6 @@
           @node-double-click="onNodeDoubleClick"
           @edge-click="onEdgeClick"
         >
-          <!-- 暂时移除Background组件，保持原生Vue Flow样式 -->
-          <!-- <Background :gap="24" :size="1.5" pattern="dots" color="#cbd5e1" /> -->
-
           <template #node-customNode="props">
             <CustomNode
               v-bind="props"
@@ -208,7 +199,6 @@
   import { useRoute } from 'vue-router'
   import { applyEdgeChanges, applyNodeChanges, VueFlow } from '@vue-flow/core'
   import { Controls } from '@vue-flow/controls'
-  // import { Background } from '@vue-flow/background' // 暂时注释，版本兼容性问题
   import { Button as AButton, Input as AInput, message, Space as ASpace } from 'ant-design-vue'
   import {
     ClearOutlined,
@@ -284,22 +274,6 @@
       description: '调用外部API接口',
       category: 'integration',
     },
-    // {
-    //   type: 'template',
-    //   label: '模板转换',
-    //   icon: '📝',
-    //   color: '#eb2f96',
-    //   description: 'Jinja2模板渲染文本',
-    //   category: 'transform',
-    // },
-    // {
-    //   type: 'variable',
-    //   label: '变量赋值',
-    //   icon: '🔗',
-    //   color: '#722ed1',
-    //   description: '设置和管理变量',
-    //   category: 'logic',
-    // },
     {
       type: 'output',
       label: '输出节点',
@@ -347,7 +321,6 @@
   const workflowName = ref('新建AI工作流')
   const saving = ref(false)
   const executing = ref(false)
-  // const validating = ref(false) // 暂时不用验证功能
   const publishing = ref(false)
   const workflowStatus = ref('draft')
   const workflowVersion = ref(null)
@@ -546,7 +519,7 @@
         temperature: 0.7,
         maxTokens: 1024,
         systemPrompt: '你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。',
-        userMessage: '${question}', // 默认使用用户输入的question变量
+        userMessage: '',
       },
       http: {
         method: 'GET',
@@ -565,15 +538,9 @@
         code: "function add(a, b) { return a + b; } add('fxz', ' I love you.');",
       },
       knowledge: {
-        query: '${question}', // 默认使用用户输入的question变量
+        query: '', // 默认使用用户输入的question变量
         topK: 5,
         threshold: 0.7,
-      },
-      template: {
-        template: '根据用户问题: ${question}\n生成回答: ${output}', // 默认使用变量模板
-      },
-      variable: {
-        variables: '{"processed_question": "${question}"}',
       },
       output: {
         outputContent: '工作流执行完成',
@@ -770,30 +737,6 @@
       saving.value = false
     }
   }
-
-  // const validateWorkflow = async () => {
-  //   validating.value = true
-  //   try {
-  //     // 模拟验证
-  //     await new Promise((resolve) => setTimeout(resolve, 500))
-
-  //     // 简单验证逻辑
-  //     if (nodes.value.length === 0) {
-  //       throw new Error('工作流不能为空')
-  //     }
-
-  //     const hasStart = nodes.value.some((node) => node.data.nodeType === 'start')
-  //     if (!hasStart) {
-  //       throw new Error('工作流必须有一个开始节点')
-  //     }
-
-  //     message.success('工作流验证通过')
-  //   } catch (error) {
-  //     message.error(`验证失败: ${error.message}`)
-  //   } finally {
-  //     validating.value = false
-  //   }
-  // }
 
   const clearWorkflow = () => {
     nodes.value = [
@@ -1135,17 +1078,6 @@
     }
     return statusMap[status] || '未知'
   }
-
-  // const getStatusColor = (status) => {
-  //   const colorMap = {
-  //     draft: 'default',
-  //     saved: 'success',
-  //     executing: 'processing',
-  //     error: 'error',
-  //     published: 'success',
-  //   }
-  //   return colorMap[status] || 'default'
-  // }
 
   // 格式化版本文本
   const formatVersionText = (version) => {
