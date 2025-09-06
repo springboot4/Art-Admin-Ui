@@ -114,7 +114,16 @@ export class EnhancedSSEService extends SSEService {
         headers: getHeaders(token, tenant),
         body: JSON.stringify(this.requestBody),
         signal: this.controller.signal,
-
+        openWhenHidden: true,
+        // 使用自定义 fetch 来禁用重试
+        fetch: async (input: RequestInfo, init?: RequestInit) => {
+          try {
+            return await fetch(input, init)
+          } catch (error) {
+            console.log('Fetch 请求失败，不重试:', error)
+            throw error
+          }
+        },
         onopen: async (response) => {
           if (response.ok && response.headers.get('content-type')?.includes('text/event-stream')) {
             console.log('增强SSE连接已建立')
@@ -156,9 +165,7 @@ export class EnhancedSSEService extends SSEService {
           console.error('增强SSE连接错误:', error)
           this.options.onError?.(error)
 
-          if (this.isManualClose) {
-            return
-          }
+          return null
         },
 
         onclose: () => {

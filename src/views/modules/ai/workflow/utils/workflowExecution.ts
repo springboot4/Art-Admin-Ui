@@ -7,8 +7,8 @@ import type {
   NodeExecutionResult,
   NodeExecutionState,
   SSEChunkMessage,
-  SSENodeOutputMessage,
   SSENodeCompleteMessage,
+  SSENodeOutputMessage,
   WorkflowExecutionState,
 } from '../types'
 
@@ -162,7 +162,6 @@ export function useWorkflowExecution() {
    */
   const handleSSEOpen = () => {
     console.log('工作流执行连接已建立')
-    // 连接建立不代表开始执行，等待START事件
   }
 
   /**
@@ -344,9 +343,6 @@ export function useWorkflowExecution() {
       const newNodeStates = new Map(_nodeStates.value)
       newNodeStates.set(nodeId, { ...nodeState })
       _nodeStates.value = newNodeStates
-
-      // 注意：这里不更新completedNodes计数，因为那应该由outputs消息处理
-      // 这个消息主要是为了停止流式输出的"生成中..."状态
 
       // 检查是否全部完成
       checkExecutionCompletion()
