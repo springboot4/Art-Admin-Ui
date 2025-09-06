@@ -85,10 +85,6 @@
                   <a-select v-model:value="editData.data.config.model" placeholder="选择AI模型">
                     <a-select-option value="deepseek-ai/DeepSeek-R1">DeepSeek-R1</a-select-option>
                     <a-select-option value="deepseek-ai/DeepSeek-V3">DeepSeek-V3</a-select-option>
-                    <a-select-option value="gpt-4">GPT-4</a-select-option>
-                    <a-select-option value="gpt-3.5-turbo">GPT-3.5 Turbo</a-select-option>
-                    <a-select-option value="claude-3">Claude 3</a-select-option>
-                    <a-select-option value="chatglm">ChatGLM</a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
@@ -452,6 +448,7 @@
             v-model:value="editData.data.config.timeout"
             :max="300"
             :min="1"
+            default-value="30"
             placeholder="30"
           />
         </a-form-item>
@@ -460,6 +457,7 @@
             v-model:value="editData.data.config.retryCount"
             :max="5"
             :min="0"
+            default-value="0"
             placeholder="0"
           />
         </a-form-item>
@@ -789,18 +787,10 @@
   const getDefaultConfig = (nodeType) => {
     const defaultConfigs = {
       start: {
-        userInputs: [
-          {
-            name: 'question',
-            displayName: '用户问题',
-            dataType: 'string',
-            description: '用户输入的问题',
-            required: true,
-          },
-        ],
+        userInputs: [],
       },
       llm: {
-        model: 'gpt-3.5-turbo',
+        model: '',
         temperature: 0.7,
         maxTokens: 1024,
         systemPrompt: '你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。',
@@ -808,7 +798,7 @@
           {
             id: `msg_${Date.now()}_0`,
             role: 'user',
-            content: '${question}',
+            content: '',
           },
         ],
         timeout: 30,
@@ -883,33 +873,9 @@
     return `{{output.${nodeId}.${outputKey}}}`
   }
 
-  // 获取变量显示名称
-  const getVariableDisplayName = (param) => {
-    if (!param || typeof param !== 'object') {
-      console.warn('Invalid param for getVariableDisplayName:', param)
-      return ''
-    }
-    const sourceNode = props.nodes.find((n) => n.id === param.nodeId)
-    const nodeName = sourceNode?.label || param.nodeId || 'Unknown'
-    const paramKey = param.key || 'unknown'
-    return `${nodeName}.${paramKey}`
-  }
-
-  // 打开统一变量选择器
-  const openUnifiedVariableSelector = () => {
-    showUnifiedVariableSelector.value = true
-  }
-
   // 关闭统一变量选择器
   const closeUnifiedVariableSelector = () => {
     showUnifiedVariableSelector.value = false
-  }
-
-  // 删除变量引用
-  const removeVariableReference = (index) => {
-    if (editData.value.data.config.referenceParameters) {
-      editData.value.data.config.referenceParameters.splice(index, 1)
-    }
   }
 
   // 处理统一变量选择变化

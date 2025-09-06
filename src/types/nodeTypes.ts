@@ -68,16 +68,7 @@ export const nodeTypeConfigs: NodeType[] = [
         type: 'select',
         required: true,
         default: 'gpt-4',
-        options: [
-          { label: 'GPT-4', value: 'gpt-4' },
-          { label: 'GPT-4 Turbo', value: 'gpt-4-turbo' },
-          { label: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
-          { label: 'Claude-3 Sonnet', value: 'claude-3-sonnet' },
-          { label: 'Claude-3 Haiku', value: 'claude-3-haiku' },
-          { label: '文心一言', value: 'ernie-bot' },
-          { label: '通义千问', value: 'qwen-plus' },
-          { label: '智谱GLM', value: 'glm-4' },
-        ],
+        options: [],
       },
       {
         key: 'systemPrompt',

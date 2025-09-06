@@ -302,15 +302,7 @@
         color: '#52c41a',
         description: '工作流的起始点',
         config: {
-          userInputs: [
-            {
-              name: 'question',
-              displayName: '用户问题',
-              dataType: 'string',
-              description: '用户输入的问题',
-              required: true,
-            },
-          ],
+          userInputs: [],
         },
         status: 'idle',
       },
@@ -504,18 +496,10 @@
   const getDefaultConfig = (nodeType) => {
     const defaultConfigs = {
       start: {
-        userInputs: [
-          {
-            name: 'question',
-            displayName: '用户问题',
-            dataType: 'string',
-            description: '用户输入的问题',
-            required: true,
-          },
-        ], // 用户输入变量配置
+        userInputs: [], // 用户输入变量配置
       },
       llm: {
-        model: 'gpt-3.5-turbo',
+        model: '',
         temperature: 0.7,
         maxTokens: 1024,
         systemPrompt: '你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。',
@@ -538,7 +522,7 @@
         code: "function add(a, b) { return a + b; } add('fxz', ' I love you.');",
       },
       knowledge: {
-        query: '', // 默认使用用户输入的question变量
+        query: '',
         topK: 5,
         threshold: 0.7,
       },
@@ -672,6 +656,8 @@
         data: node.data,
       }))
 
+      console.log('保存:', cleanNodes)
+
       // 清理边数据，只保留必要的连接信息
       const cleanEdges = edges.value.map((edge) => ({
         id: edge.id,
@@ -698,11 +684,6 @@
         version: 'draft', // 固定为 draft
         graph: JSON.stringify(workflowData),
         type: appMode.value,
-      }
-
-      // 如果有currentWorkflowId，说明是更新操作
-      if (currentWorkflowId.value) {
-        // saveData.id = currentWorkflowId.value
       }
 
       const response = await add(saveData)
@@ -751,15 +732,7 @@
           color: '#52c41a',
           description: '工作流的起始点',
           config: {
-            userInputs: [
-              {
-                name: 'question',
-                displayName: '用户问题',
-                dataType: 'string',
-                description: '用户输入的问题',
-                required: true,
-              },
-            ],
+            userInputs: [],
           },
           status: 'idle',
         },

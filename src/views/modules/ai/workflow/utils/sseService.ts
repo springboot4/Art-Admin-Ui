@@ -159,8 +159,6 @@ export class EnhancedSSEService extends SSEService {
           if (this.isManualClose) {
             return
           }
-
-          throw error
         },
 
         onclose: () => {
@@ -173,7 +171,6 @@ export class EnhancedSSEService extends SSEService {
         console.error('增强SSE连接异常:', error)
         this.options.onError?.(error)
       }
-      throw error
     }
   }
 }
