@@ -656,8 +656,6 @@
         data: node.data,
       }))
 
-      console.log('保存:', cleanNodes)
-
       // 清理边数据，只保留必要的连接信息
       const cleanEdges = edges.value.map((edge) => ({
         id: edge.id,

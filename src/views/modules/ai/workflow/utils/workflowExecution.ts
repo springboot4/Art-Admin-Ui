@@ -43,11 +43,7 @@ export function useWorkflowExecution() {
   // SSE连接实例
   let sseService: EnhancedSSEService | null = null
 
-  // 计算属性 - 移除进度计算，因为不是所有节点都会执行
-
   const hasErrors = computed(() => errors.length > 0)
-
-  // 移除旧的isCompleted计算属性，使用基于事件的ref
 
   // 工作流执行状态的完整对象
   const workflowExecutionState = computed<WorkflowExecutionState>(() => ({

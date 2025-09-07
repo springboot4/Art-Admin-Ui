@@ -352,7 +352,7 @@
               :edges="edges"
               :node-id="editData.id"
               :nodes="nodes"
-              placeholder="请输入查询内容，可以使用变量，如：${question}"
+              placeholder="请输入查询内容，可以使用变量"
             />
           </a-form-item>
           <a-form-item label="检索数量(topK)">
@@ -446,18 +446,18 @@
         <a-form-item label="执行超时(秒)">
           <a-input-number
             v-model:value="editData.data.config.timeout"
+            :default-value="30"
             :max="300"
             :min="1"
-            default-value="30"
             placeholder="30"
           />
         </a-form-item>
         <a-form-item label="重试次数">
           <a-input-number
             v-model:value="editData.data.config.retryCount"
+            :default-value="0"
             :max="5"
             :min="0"
-            default-value="0"
             placeholder="0"
           />
         </a-form-item>
@@ -671,7 +671,7 @@
               {
                 id: `msg_${Date.now()}_0`,
                 role: 'user',
-                content: '${question}',
+                content: '',
               },
             ]
           }
@@ -703,6 +703,13 @@
               },
             ]
           }
+        }
+        // 初始化超时和重试次数
+        if (typeof editData.value.data.config.timeout !== 'number') {
+          editData.value.data.config.timeout = 30
+        }
+        if (typeof editData.value.data.config.retryCount !== 'number') {
+          editData.value.data.config.retryCount = 0
         }
       }
     },
@@ -832,19 +839,19 @@
         retryCount: 0,
       },
       knowledge: {
-        query: '${question}',
+        query: '',
         topK: 5,
         threshold: 0.7,
         timeout: 15,
         retryCount: 1,
       },
       template: {
-        template: '根据用户问题: ${question}\n生成回答: ${output}',
+        template: '根据用户问题 生成回答',
         timeout: 10,
         retryCount: 0,
       },
       variable: {
-        variables: '{"processed_question": "${question}"}',
+        variables: '{"processed_question": "${}"}',
         timeout: 5,
         retryCount: 0,
       },

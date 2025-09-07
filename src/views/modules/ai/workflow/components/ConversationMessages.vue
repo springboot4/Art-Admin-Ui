@@ -125,12 +125,6 @@
                 <span>助手消息</span>
               </div>
             </a-menu-item>
-            <a-menu-item key="system">
-              <div class="role-option">
-                <SettingOutlined />
-                <span>系统消息</span>
-              </div>
-            </a-menu-item>
           </a-menu>
         </template>
       </a-dropdown>
@@ -195,7 +189,6 @@
     DeleteOutlined,
     PlusOutlined,
     RobotOutlined,
-    SettingOutlined,
     UserOutlined,
   } from '@ant-design/icons-vue'
   import EnhancedTextEditor from './EnhancedTextEditor.vue'
@@ -257,7 +250,7 @@
         {
           id: `msg_${Date.now()}_0`,
           role: 'user',
-          content: '${question}',
+          content: '',
         },
       ]
     }
@@ -302,9 +295,8 @@
   // 获取消息占位符
   const getMessagePlaceholder = (role) => {
     const placeholders = {
-      user: '请输入用户消息内容，可以使用变量如：${question}',
-      assistant: '请输入助手回复内容，可以使用变量如：${output}',
-      system: '请输入系统指令，用于指导AI的行为方式',
+      user: '请输入用户消息内容，可以使用变量',
+      assistant: '请输入助手回复内容，可以使用变量',
     }
     return placeholders[role] || '请输入消息内容...'
   }
