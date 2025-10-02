@@ -78,6 +78,38 @@
                     show-count
                   />
                 </a-form-item>
+
+                <a-form-item class="form-item" name="description">
+                  <template #label>
+                    <span class="form-label">向量化模型</span>
+                  </template>
+                  <a-input
+                    v-model:value="formData.embeddingModel"
+                    :maxlength="200"
+                    :readonly="isViewMode"
+                    :rows="3"
+                    class="form-textarea"
+                    disabled
+                    placeholder="描述知识库的用途和功能..."
+                    show-count
+                  />
+                </a-form-item>
+
+                <a-form-item class="form-item" name="description">
+                  <template #label>
+                    <span class="form-label">图谱抽取模型</span>
+                  </template>
+                  <a-input
+                    v-model:value="formData.graphicModel"
+                    :maxlength="200"
+                    :readonly="isViewMode"
+                    :rows="3"
+                    class="form-textarea"
+                    disabled
+                    placeholder="描述知识库的用途和功能..."
+                    show-count
+                  />
+                </a-form-item>
               </a-form>
             </div>
 

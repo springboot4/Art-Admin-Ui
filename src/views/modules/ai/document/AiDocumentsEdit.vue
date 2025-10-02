@@ -7,39 +7,59 @@
     v-bind="$attrs"
     @cancel="handleCancel"
   >
-    <a-form
-      ref="formRef"
-      :label-col="labelCol"
-      :model="formData"
-      :rules="rules"
-      :wrapper-col="wrapperCol"
-    >
-      <a-form-item label="文件名" name="fileName">
-        <a-input
-          v-model:value="formData.fileName"
-          :disabled="showable"
-          allow-clear
-          placeholder="请输入文件名"
-        />
-      </a-form-item>
-      <a-form-item label="文档标题" name="title">
-        <a-input
-          v-model:value="formData.title"
-          :disabled="showable"
-          allow-clear
-          placeholder="请输入文档标题"
-        />
-      </a-form-item>
-      <a-form-item label="文档内容" name="content">
-        <a-textarea
-          v-model:value="formData.content"
-          :disabled="showable"
-          allow-clear
-          auto-size
-          placeholder="请输入文档内容"
-        />
-      </a-form-item>
-    </a-form>
+    <div v-if="formOperationType === FormOperationType.ADD" style="margin-bottom: 16px">
+      <a-upload-dragger
+        v-model:fileList="fileList"
+        :action="uploadAction"
+        :headers="uploadHeader"
+        :multiple="false"
+        :showUploadList="true"
+        name="file"
+        @change="handleChange"
+        @remove="handleRemove"
+      >
+        <p class="ant-upload-drag-icon">
+          <inbox-outlined />
+        </p>
+        <p class="ant-upload-text">点击或拖动文件至此区域上传</p>
+      </a-upload-dragger>
+    </div>
+    <div v-if="formOperationType !== FormOperationType.ADD">
+      <a-form
+        ref="formRef"
+        :label-col="labelCol"
+        :model="formData"
+        :rules="rules"
+        :wrapper-col="wrapperCol"
+      >
+        <a-form-item label="文件名" name="fileName">
+          <a-input
+            v-model:value="formData.fileName"
+            :disabled="showable"
+            allow-clear
+            placeholder="请输入文件名"
+          />
+        </a-form-item>
+        <a-form-item label="文档标题" name="title">
+          <a-input
+            v-model:value="formData.title"
+            :disabled="showable"
+            allow-clear
+            placeholder="请输入文档标题"
+          />
+        </a-form-item>
+        <a-form-item label="文档内容" name="content">
+          <a-textarea
+            v-model:value="formData.content"
+            :disabled="showable"
+            allow-clear
+            auto-size
+            placeholder="请输入文档内容"
+          />
+        </a-form-item>
+      </a-form>
+    </div>
+
     <template #footer>
       <a-space>
         <a-button @click="handleCancel">取消</a-button>
@@ -56,9 +76,12 @@
   import { nextTick, reactive, Ref, ref } from 'vue'
   import useFormEdit from '/@/hooks/art/useFormEdit'
   import { FormOperationType } from '/@/enums/formOperationType'
-  import { FormInstance } from 'ant-design-vue'
-  import { add, get, update } from '/@/api/ai/document/AiDocumentIndex'
+  import { FormInstance, message, type UploadChangeParam } from 'ant-design-vue'
+  import { get } from '/@/api/ai/document/AiDocumentIndex'
   import { AiDocumentsDTO } from '/@/api/ai/document/AiDocumentTypes'
+  import { InboxOutlined } from '@ant-design/icons-vue'
+  import { useUpload } from '/@/hooks/art/useUpload'
+  import { document } from '/@/api/ai/dataset/AiDataSetIndex'
 
   const {
     initFormEditType,
@@ -78,6 +101,31 @@
 
   const formRef = ref<FormInstance>()
 
+  const fileList = ref([])
+
+  const { uploadHeader, uploadAction } = useUpload('/system/file/add')
+
+  const fileObj = ref({ bucketName: '', fileName: '' })
+
+  const handleChange = (info: UploadChangeParam) => {
+    if (info.file.status === 'done') {
+      message.info('上传成功!')
+
+      fileObj.value = {
+        bucketName: info.file.response.data.bucketName,
+        fileName: info.file.response.data.fileName,
+      }
+
+      fileList.value = fileList.value.slice(-1)
+    } else if (info.file.status === 'error') {
+      message.error('上传失败!')
+    }
+  }
+
+  const handleRemove = () => {
+    fileObj.value = { bucketName: '', fileName: '' }
+  }
+
   let formData: Ref<AiDocumentsDTO> = ref({
     id: '',
     datasetId: '',
@@ -96,6 +144,8 @@
     createTime: '',
   })
 
+  const datasetId = ref('')
+
   /**
    * 表单初始化
    */
@@ -103,6 +153,7 @@
     initFormEditType(operationType)
     resetForm()
     getInfo(id, operationType)
+    datasetId.value = id
   }
 
   /**
@@ -122,23 +173,31 @@
    * 保存新增或者编辑
    */
   function handleOk() {
-    formRef.value?.validate().then(async () => {
-      confirmLoading.value = true
-      if (formOperationType.value === FormOperationType.ADD) {
-        await add(formData.value)
-      } else if (formOperationType.value === FormOperationType.EDIT) {
-        await update(formData.value)
+    confirmLoading.value = true
+
+    if (formOperationType.value === FormOperationType.ADD) {
+      const documentParam = {
+        datasetsId: datasetId.value,
+        bucketName: fileObj.value.bucketName,
+        fileName: fileObj.value.fileName,
+        indexTypes: 'EMBEDDING' + ',' + 'GRAPH',
       }
-      confirmLoading.value = false
-      handleCancel()
-      emits('ok')
-    })
+      document(documentParam)
+    }
+
+    confirmLoading.value = false
+    handleCancel()
+    emits('ok')
   }
 
   /**
    * 重置表单字段
    */
   function resetForm() {
+    fileObj.value = { bucketName: '', fileName: '' }
+    datasetId.value = ''
+    fileList.value = []
+
     formData = ref({
       id: '',
       datasetId: '',
@@ -156,6 +215,7 @@
       createBy: '',
       createTime: '',
     })
+
     nextTick(() => formRef.value?.resetFields())
   }
 
