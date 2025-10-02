@@ -93,12 +93,12 @@
     </div>
 
     <!-- 状态指示器 -->
-    <div v-if="data.status !== 'idle'" class="status-indicator">
-      <span v-if="data.status === 'running'" class="status-icon running">⚡</span>
-      <span v-else-if="data.status === 'success'" class="status-icon success">✅</span>
-      <span v-else-if="data.status === 'error'" class="status-icon error">❌</span>
-      <span v-else-if="data.status === 'warning'" class="status-icon warning">⚠️</span>
-    </div>
+    <!--    <div v-if="data.status !== 'idle'" class="status-indicator">-->
+    <!--      <span v-if="data.status === 'running'" class="status-icon running">⚡</span>-->
+    <!--      <span v-else-if="data.status === 'success'" class="status-icon success">✅</span>-->
+    <!--      <span v-else-if="data.status === 'error'" class="status-icon error">❌</span>-->
+    <!--      <span v-else-if="data.status === 'warning'" class="status-icon warning">⚠️</span>-->
+    <!--    </div>-->
 
     <!-- 输入端口 -->
     <Handle

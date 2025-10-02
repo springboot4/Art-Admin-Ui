@@ -216,7 +216,6 @@
   import { add, findByAppId, publish } from '/@/api/ai/workflow/AiWorkflowsIndex'
   import { useWorkflowExecution } from './utils'
 
-  // 导入 VueFlow 样式
   import '@vue-flow/core/dist/style.css'
   import '@vue-flow/core/dist/theme-default.css'
   import '@vue-flow/controls/dist/style.css'

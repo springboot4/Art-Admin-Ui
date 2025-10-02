@@ -14,7 +14,7 @@
         <div class="header-content">
           <div class="header-info">
             <h2 class="modal-title">{{ title }}</h2>
-            <p class="modal-subtitle">{{ isViewMode ? '查看应用详细信息' : '修改应用基础设置' }}</p>
+            <p class="modal-subtitle">{{ isViewMode ? '详细信息' : '修改设置' }}</p>
           </div>
           <div v-if="formData.name" class="app-preview">
             <div :style="{ backgroundColor: getIconColor() }" class="app-icon">
@@ -22,9 +22,6 @@
             </div>
             <div class="app-info">
               <h4 class="app-name">{{ formData.name }}</h4>
-              <a-tag :color="getModeColor(formData.mode)" class="app-type">
-                {{ formatMode(formData.mode) }}
-              </a-tag>
             </div>
           </div>
         </div>
@@ -49,38 +46,10 @@
                 class="settings-form"
                 layout="vertical"
               >
-                <!-- Application Icon -->
-                <div class="form-group">
-                  <label class="form-label">应用图标</label>
-                  <div class="icon-setting">
-                    <div class="current-icon">
-                      <div :style="{ backgroundColor: selectedColor }" class="icon-display">
-                        {{ formData.name ? formData.name.charAt(0).toUpperCase() : 'A' }}
-                      </div>
-                    </div>
-                    <div v-if="!isViewMode" class="icon-controls">
-                      <div class="color-picker">
-                        <span class="picker-label">选择颜色</span>
-                        <div class="color-options">
-                          <div
-                            v-for="color in colorPalette"
-                            :key="color"
-                            :class="{ selected: selectedColor === color }"
-                            :style="{ backgroundColor: color }"
-                            class="color-option"
-                            @click="selectedColor = color"
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Application Name -->
                 <a-form-item class="form-item" name="name">
                   <template #label>
                     <span class="form-label">
-                      应用名称
+                      知识库名称
                       <span v-if="!isViewMode" class="required">*</span>
                     </span>
                   </template>
@@ -89,16 +58,15 @@
                     :maxlength="50"
                     :readonly="isViewMode"
                     class="form-input"
-                    placeholder="应用名称"
+                    placeholder="知识库名称"
                     show-count
                     size="large"
                   />
                 </a-form-item>
 
-                <!-- Application Description -->
                 <a-form-item class="form-item" name="description">
                   <template #label>
-                    <span class="form-label">应用描述</span>
+                    <span class="form-label">知识库描述</span>
                   </template>
                   <a-textarea
                     v-model:value="formData.description"
@@ -106,105 +74,20 @@
                     :readonly="isViewMode"
                     :rows="3"
                     class="form-textarea"
-                    placeholder="描述这个应用的用途和功能..."
+                    placeholder="描述知识库的用途和功能..."
                     show-count
                   />
-                </a-form-item>
-
-                <!-- Application Type -->
-                <a-form-item class="form-item" name="mode">
-                  <template #label>
-                    <span class="form-label">
-                      应用类型
-                      <span v-if="!isViewMode" class="required">*</span>
-                    </span>
-                  </template>
-                  <a-select
-                    v-model:value="formData.mode"
-                    :disabled="true"
-                    class="form-select"
-                    placeholder="选择应用类型"
-                    size="large"
-                  >
-                    <a-select-option value="chatbot">
-                      <div class="option-content">
-                        <CommentOutlined class="option-icon" />
-                        <span>聊天助手</span>
-                      </div>
-                    </a-select-option>
-                    <a-select-option value="completion">
-                      <div class="option-content">
-                        <ThunderboltOutlined class="option-icon" />
-                        <span>文本生成</span>
-                      </div>
-                    </a-select-option>
-                    <a-select-option value="agent">
-                      <div class="option-content">
-                        <RobotOutlined class="option-icon" />
-                        <span>Agent</span>
-                      </div>
-                    </a-select-option>
-                    <a-select-option value="chatflow">
-                      <div class="option-content">
-                        <ApartmentOutlined class="option-icon" />
-                        <span>对话流</span>
-                      </div>
-                    </a-select-option>
-                    <a-select-option value="workflow">
-                      <div class="option-content">
-                        <BranchesOutlined class="option-icon" />
-                        <span>工作流</span>
-                      </div>
-                    </a-select-option>
-                  </a-select>
-                </a-form-item>
-
-                <!-- Application Status -->
-                <a-form-item v-if="formOperationType !== 'ADD'" class="form-item" name="status">
-                  <template #label>
-                    <span class="form-label">
-                      应用状态
-                      <span v-if="!isViewMode" class="required">*</span>
-                    </span>
-                  </template>
-                  <a-select
-                    v-model:value="formData.status"
-                    :disabled="true"
-                    class="form-select"
-                    placeholder="选择应用状态"
-                    size="large"
-                  >
-                    <a-select-option value="draft">
-                      <div class="status-option">
-                        <EditOutlined class="status-icon draft" />
-                        <span>草稿</span>
-                      </div>
-                    </a-select-option>
-                    <a-select-option value="published">
-                      <div class="status-option">
-                        <CheckCircleOutlined class="status-icon published" />
-                        <span>已发布</span>
-                      </div>
-                    </a-select-option>
-                    <a-select-option value="disabled">
-                      <div class="status-option">
-                        <StopOutlined class="status-icon disabled" />
-                        <span>已停用</span>
-                      </div>
-                    </a-select-option>
-                  </a-select>
                 </a-form-item>
               </a-form>
             </div>
 
-            <!-- Metadata Section (View Mode Only) -->
             <div v-if="isViewMode && formData.createTime" class="settings-section">
               <div class="section-header">
                 <h3 class="section-title">
                   <InfoCircleOutlined class="section-icon" />
                   元数据信息
                 </h3>
-                <p class="section-description">应用的创建和更新记录</p>
+                <p class="section-description">知识库的创建和更新记录</p>
               </div>
 
               <div class="metadata-grid">
@@ -253,23 +136,11 @@
 <script lang="ts" setup>
   import { computed, nextTick, reactive, ref } from 'vue'
   import { FormInstance, message } from 'ant-design-vue'
-  import {
-    ApartmentOutlined,
-    BranchesOutlined,
-    CheckCircleOutlined,
-    CloseOutlined,
-    CommentOutlined,
-    EditOutlined,
-    InfoCircleOutlined,
-    RobotOutlined,
-    SaveOutlined,
-    StopOutlined,
-    ThunderboltOutlined,
-  } from '@ant-design/icons-vue'
+  import { CloseOutlined, InfoCircleOutlined, SaveOutlined } from '@ant-design/icons-vue'
   import useFormEdit from '/@/hooks/art/useFormEdit'
   import { FormOperationType } from '/@/enums/formOperationType'
-  import { add, get, update } from '/@/api/ai/app/AiAppIndex'
-  import { AiAppDTO } from '/@/api/ai/app/AiAppTypes'
+  import { add, get, update } from '/@/api/ai/dataset/AiDataSetIndex'
+  import { AiDatasetsDTO } from '/@/api/ai/dataset/AiDataSetTypes'
 
   const {
     initFormEditType,
@@ -288,45 +159,17 @@
 
   const isViewMode = computed(() => showable.value)
 
-  const colorPalette = [
-    '#1890ff',
-    '#722ed1',
-    '#13c2c2',
-    '#52c41a',
-    '#fa8c16',
-    '#f5222d',
-    '#eb2f96',
-    '#096dd9',
-    '#389e0d',
-    '#d48806',
-    '#8c8c8c',
-    '#262626',
-    '#fa541c',
-    '#2f54eb',
-    '#73d13d',
-  ]
-
   const rules = reactive({
     name: [
-      { required: true, message: '请输入应用名称', trigger: 'blur' },
-      { min: 1, max: 50, message: '应用名称长度在1-50个字符', trigger: 'blur' },
+      { required: true, message: '请输入名称', trigger: 'blur' },
+      { min: 1, max: 50, message: '名称长度在1-50个字符', trigger: 'blur' },
     ],
-    mode: [{ required: true, message: '请选择应用类型', trigger: 'change' }],
-    status: [{ required: true, message: '请选择应用状态', trigger: 'change' }],
   })
 
-  const formData = ref<AiAppDTO>({
+  const formData = ref<AiDatasetsDTO>({
     id: '',
     name: '',
     description: '',
-    mode: '',
-    icon: '',
-    status: '',
-    createTime: '',
-    createBy: '',
-    updateTime: '',
-    updateBy: '',
-    tenantId: '',
   })
 
   /**
@@ -347,20 +190,8 @@
       try {
         const res = await get(id)
         formData.value = res
-
-        // 解析图标信息
-        if (res.icon) {
-          try {
-            const iconData = JSON.parse(res.icon)
-            if (iconData.color) {
-              selectedColor.value = iconData.color
-            }
-          } catch (e) {
-            // 忽略解析错误，使用默认颜色
-          }
-        }
       } catch (error) {
-        message.error('获取应用信息失败')
+        message.error('获取信息失败')
       }
     }
     confirmLoading.value = false
@@ -373,19 +204,12 @@
     formRef.value?.validate().then(async () => {
       confirmLoading.value = true
       try {
-        // 设置图标信息
-        formData.value.icon = JSON.stringify({
-          type: 'color',
-          color: selectedColor.value,
-          character: formData.value.name?.charAt(0).toUpperCase() || 'A',
-        })
-
         if (formOperationType.value === FormOperationType.ADD) {
           await add(formData.value)
-          message.success('应用创建成功')
+          message.success('创建成功')
         } else if (formOperationType.value === FormOperationType.EDIT) {
           await update(formData.value)
-          message.success('应用更新成功')
+          message.success('更新成功')
         }
 
         handleCancel()
@@ -406,14 +230,6 @@
       id: '',
       name: '',
       description: '',
-      mode: '',
-      icon: '',
-      status: '',
-      createTime: '',
-      createBy: '',
-      updateTime: '',
-      updateBy: '',
-      tenantId: '',
     }
     selectedColor.value = '#1890ff'
     nextTick(() => formRef.value?.resetFields())
@@ -431,34 +247,6 @@
    */
   function getIconCharacter() {
     return formData.value.name ? formData.value.name.charAt(0).toUpperCase() : 'A'
-  }
-
-  /**
-   * 格式化应用类型
-   */
-  function formatMode(mode: string) {
-    const map = {
-      chatbot: '聊天助手',
-      completion: '文本生成',
-      agent: 'Agent',
-      chatflow: '对话流',
-      workflow: '工作流',
-    }
-    return map[mode] || mode
-  }
-
-  /**
-   * 获取应用类型颜色
-   */
-  function getModeColor(mode: string) {
-    const colors = {
-      chatbot: '#1890ff',
-      completion: '#52c41a',
-      agent: '#722ed1',
-      chatflow: '#fa8c16',
-      workflow: '#13c2c2',
-    }
-    return colors[mode] || '#d9d9d9'
   }
 
   /**
