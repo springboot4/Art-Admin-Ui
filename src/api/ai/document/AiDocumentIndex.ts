@@ -5,6 +5,16 @@ import { AiDocumentsDTO } from './AiDocumentTypes'
 /**
  * 分页
  */
+export function graphInfo(documentId) {
+  return defHttp.get<any>({
+    url: '/ai/ai/document/graph/info',
+    params: { documentId },
+  })
+}
+
+/**
+ * 分页
+ */
 export function page(params) {
   return defHttp.get<PageResult<AiDocumentsDTO>>({
     url: '/ai/ai/document/page',

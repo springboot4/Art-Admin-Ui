@@ -58,7 +58,7 @@
             </span>
             <a-divider type="vertical" />
             <span>
-              <a href="javascript:" @click="(r) => r">图谱</a>
+              <a href="javascript:" @click="showGraph(row)">图谱</a>
             </span>
             <a-divider type="vertical" />
             <a-popconfirm cancelText="否" okText="是" title="是否删除" @confirm="remove(row)">
@@ -80,20 +80,37 @@
 
       <!--编辑表单-->
       <AiDocumentsEdit ref="aiDocumentsEdit" @ok="queryPage" />
+
+      <BasicModal
+        :height="600"
+        :showOkBtn="false"
+        :useWrapper="true"
+        :width="1000"
+        :wrapper-footer-offset="0"
+        title="知识图谱"
+        @register="registerModal"
+      >
+        <GraphViewer :graph-data="graphData" />
+      </BasicModal>
     </div>
   </PageWrapper>
 </template>
 
 <script lang="ts" setup>
-  import { defineComponent, onMounted, ref } from 'vue'
+  import { defineComponent, nextTick, onMounted, ref } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { VxeTableInstance, VxeToolbarInstance } from 'vxe-table'
   import useTablePage from '/@/hooks/art/useTablePage'
-  import { del, page } from '/@/api/ai/document/AiDocumentIndex'
+  import { del, graphInfo, page } from '/@/api/ai/document/AiDocumentIndex'
   import { FormOperationType } from '/@/enums/formOperationType'
   import { useMessage } from '/@/hooks/web/useMessage'
   import AiDocumentsEdit from '/@/views/modules/ai/document/AiDocumentsEdit.vue'
   import { PageWrapper } from '/@/components/Page'
+  import GraphViewer from '/@/components/Graph/GraphViewer.vue'
+  import { BasicModal, useModal } from '/@/components/Modal'
+
+  const [registerModal, { openModal }] = useModal()
+  const graphData = ref()
 
   const { handleTableChange, pageQueryResHandel, resetQuery, pagination, model, loading } =
     useTablePage(queryPage)
@@ -162,6 +179,17 @@
         datasetId: item.datasetId,
         documentId: item.id,
       },
+    })
+  }
+
+  function showGraph(item) {
+    graphInfo(item.id).then((res) => {
+      openModal(true)
+      nextTick(() => {
+        setTimeout(() => {
+          graphData.value = res
+        }, 100)
+      })
     })
   }
 
