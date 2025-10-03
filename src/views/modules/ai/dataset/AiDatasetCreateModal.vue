@@ -115,13 +115,7 @@
           </div>
           <div class="footer-right">
             <a-button size="large" @click="handleCancel">取消</a-button>
-            <a-button
-              v-if="currentStep === 0"
-              :disabled="isButtonDisabled"
-              size="large"
-              type="primary"
-              @click="nextStep"
-            >
+            <a-button v-if="currentStep === 0" size="large" type="primary" @click="nextStep">
               下一步
               <template #icon>
                 <RightOutlined />
@@ -256,13 +250,15 @@
       const result = await add(formState as AiDatasetsDTO)
       message.success('知识库创建成功！')
 
-      const documentParam = {
-        datasetsId: result.id,
-        bucketName: fileObj.value.bucketName,
-        fileName: fileObj.value.fileName,
-        indexTypes: 'EMBEDDING' + ',' + 'GRAPH',
+      if (fileObj.value && fileObj.value.bucketName && fileObj.value.fileName) {
+        const documentParam = {
+          datasetsId: result.id,
+          bucketName: fileObj.value.bucketName,
+          fileName: fileObj.value.fileName,
+          indexTypes: 'EMBEDDING' + ',' + 'GRAPH',
+        }
+        document(documentParam)
       }
-      document(documentParam)
 
       visible.value = false
       emit('ok', result.id)

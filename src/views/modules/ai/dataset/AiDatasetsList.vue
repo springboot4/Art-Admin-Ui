@@ -131,14 +131,6 @@
                   {{ item?.updateBy || '系统' }}
                 </span>
               </div>
-              <div class="primary-action" @click.stop="handleOpen(item)">
-                <a-button size="small" type="primary">
-                  打开知识库
-                  <template #icon>
-                    <ArrowRightOutlined />
-                  </template>
-                </a-button>
-              </div>
             </div>
           </div>
         </div>
@@ -177,7 +169,6 @@
   import { useRouter } from 'vue-router'
   import { Empty, message } from 'ant-design-vue'
   import {
-    ArrowRightOutlined,
     ClockCircleOutlined,
     DeleteOutlined,
     MoreOutlined,
@@ -562,9 +553,8 @@
       .grid-view {
         .app-grid {
           display: grid;
-          /* 关键改动：减小卡片的最小宽度 */
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 16px; /* 减小卡片之间的间距 */
+          gap: 16px;
 
           &.loading {
             opacity: 0.6;
@@ -573,87 +563,59 @@
 
           .app-card {
             background: #fff;
-            border: 1px solid #e8e8e8;
-            border-radius: 12px;
-            padding: 20px; /* 减小内边距 */
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 220px; /* 减小最小高度 */
+            transition: all 0.15s ease;
+            min-height: 160px;
             display: flex;
             flex-direction: column;
             position: relative;
-            overflow: hidden;
-
-            &::before {
-              content: '';
-              position: absolute;
-              top: 0;
-              left: 0;
-              right: 0;
-              height: 4px;
-              background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-              opacity: 0;
-              transition: opacity 0.3s;
-            }
 
             &:hover {
-              border-color: #667eea;
-              box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15);
-              transform: translateY(-4px);
-
-              &::before {
-                opacity: 1;
-              }
+              border-color: #d1d5db;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             }
 
             .card-header {
               display: flex;
               justify-content: space-between;
               align-items: flex-start;
-              margin-bottom: 16px; /* 减小下外边距 */
+              margin-bottom: 12px;
 
               .app-icon {
                 .icon-avatar {
-                  width: 48px; /* 缩小头像尺寸 */
-                  height: 48px; /* 缩小头像尺寸 */
-                  border-radius: 10px; /* 相应调整圆角 */
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 6px;
                   display: flex;
                   align-items: center;
                   justify-content: center;
                   color: #fff;
-                  font-size: 20px; /* 缩小头像内文字大小 */
-                  font-weight: 700;
-                  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-                  position: relative;
-
-                  &::after {
-                    content: '';
-                    position: absolute;
-                    inset: 0;
-                    border-radius: 10px;
-                    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
-                  }
+                  font-size: 16px;
+                  font-weight: 600;
                 }
               }
 
               .card-actions {
                 .action-btn {
-                  width: 32px; /* 缩小操作按钮尺寸 */
-                  height: 32px; /* 缩小操作按钮尺寸 */
-                  border-radius: 6px;
+                  width: 24px;
+                  height: 24px;
+                  border-radius: 4px;
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  color: #8c8c8c;
+                  color: #9ca3af;
                   background: transparent;
-                  border: 1px solid transparent;
-                  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                  border: none;
+                  transition: all 0.15s ease;
                   text-decoration: none;
+                  opacity: 1;
 
                   &:hover {
-                    background: #f0f2f5;
-                    border-color: #e8e8e8;
-                    transform: scale(1.05);
+                    background: #f3f4f6;
+                    color: #6b7280;
                   }
                 }
               }
@@ -661,17 +623,17 @@
 
             .card-content {
               flex: 1;
-              margin-bottom: 16px; /* 减小下外边距 */
+              margin-bottom: 12px;
 
               .app-info {
-                margin-bottom: 12px; /* 减小下外边距 */
+                margin-bottom: 8px;
 
                 .app-name {
-                  font-size: 16px; /* 缩小标题字号 */
-                  font-weight: 700;
-                  color: #1a1a1a;
+                  font-size: 15px;
+                  font-weight: 600;
+                  color: #111827;
                   margin: 0 0 6px 0;
-                  line-height: 1.4;
+                  line-height: 1.3;
                   display: -webkit-box;
                   -webkit-line-clamp: 1;
                   -webkit-box-orient: vertical;
@@ -679,45 +641,45 @@
                 }
 
                 .app-type-tag {
-                  font-size: 11px; /* 缩小标签字号 */
-                  font-weight: 600;
-                  border-radius: 5px;
+                  font-size: 11px;
+                  font-weight: 500;
+                  border-radius: 4px;
                   border: none;
                   color: #fff;
-                  padding: 3px 10px; /* 减小标签内边距 */
-                  text-transform: uppercase;
-                  letter-spacing: 0.5px;
+                  padding: 2px 6px;
+                  display: inline-block;
                 }
               }
 
               .app-description {
-                font-size: 13px; /* 缩小描述字号 */
+                font-size: 13px;
                 color: #6b7280;
-                line-height: 1.5; /* 调整行高 */
+                line-height: 1.4;
                 margin: 0;
                 display: -webkit-box;
                 -webkit-line-clamp: 2;
                 -webkit-box-orient: vertical;
                 overflow: hidden;
-                min-height: 38px; /* 调整最小高度以适应新行高 */
+                min-height: 36px;
               }
             }
 
             .card-footer {
-              border-top: 1px solid #f1f3f4;
-              padding-top: 12px; /* 减小上内边距 */
+              border-top: 1px solid #f3f4f6;
+              padding-top: 12px;
               display: flex;
               justify-content: space-between;
-              align-items: center;
+              align-items: flex-end;
 
               .meta-info {
                 display: flex;
                 flex-direction: column;
-                gap: 4px; /* 减小元信息间距 */
+                gap: 4px;
+                flex: 1;
 
                 .update-info,
                 .creator-info {
-                  font-size: 11px; /* 缩小元信息字号 */
+                  font-size: 11px;
                   color: #9ca3af;
                   display: flex;
                   align-items: center;
@@ -729,27 +691,22 @@
                 }
               }
 
-              .primary-action {
-                .ant-btn {
-                  height: 28px; /* 缩小按钮高度 */
-                  border-radius: 6px;
-                  font-size: 12px; /* 缩小按钮字号 */
-                  font-weight: 600;
-                  padding: 0 12px; /* 调整按钮内边距 */
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                  border: none;
-                  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-                  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              .app-status {
+                display: flex;
+                align-items: center;
+                gap: 6px;
 
-                  &:hover {
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
-                    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-                  }
+                .status-dot {
+                  width: 6px;
+                  height: 6px;
+                  border-radius: 50%;
+                  background: #10b981;
+                }
 
-                  .anticon {
-                    font-size: 11px;
-                  }
+                .status-text {
+                  font-size: 11px;
+                  color: #6b7280;
+                  font-weight: 500;
                 }
               }
             }

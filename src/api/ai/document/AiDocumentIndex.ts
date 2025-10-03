@@ -3,7 +3,17 @@ import { PageResult } from '/#/axios'
 import { AiDocumentsDTO } from './AiDocumentTypes'
 
 /**
- * 分页
+ * 重新索引
+ */
+export function reIndex(data: { documentId: string; indexType: string }) {
+  return defHttp.post<AiDocumentsDTO>({
+    url: '/ai/ai/document/reIndex',
+    data,
+  })
+}
+
+/**
+ * 查询图谱信息
  */
 export function graphInfo(documentId) {
   return defHttp.get<any>({
