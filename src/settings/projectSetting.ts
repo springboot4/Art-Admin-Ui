@@ -44,6 +44,7 @@ const setting: ProjectConfig = {
     closeMixSidebarOnChange: false,
     mixSideTrigger: 'click',
     mixSideFixed: false,
+    split: false,
   },
   multiTabsSetting: {
     cache: false,

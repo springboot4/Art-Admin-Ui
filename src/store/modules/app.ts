@@ -1,9 +1,9 @@
 import type {
-  ProjectConfig,
   HeaderSetting,
   MenuSetting,
-  TransitionSetting,
   MultiTabsSetting,
+  ProjectConfig,
+  TransitionSetting,
 } from '/#/config'
 import type { BeforeMiniState } from '/#/store'
 
@@ -26,6 +26,7 @@ interface AppState {
   // When the window shrinks, remember some states, and restore these states when the window is restored
   beforeMiniInfo: BeforeMiniState
 }
+
 let timeId: TimeoutHandle
 export const useAppStore = defineStore({
   id: 'app',
@@ -80,6 +81,13 @@ export const useAppStore = defineStore({
 
     setProjectConfig(config: DeepPartial<ProjectConfig>): void {
       this.projectConfig = deepMerge(this.projectConfig || {}, config)
+
+      // 强制确保导航栏模式始终为顶部菜单模式
+      if (this.projectConfig?.menuSetting) {
+        this.projectConfig.menuSetting.type = 'top-menu'
+        this.projectConfig.menuSetting.mode = 'horizontal'
+      }
+
       Persistent.setLocal(PROJ_CFG_KEY, this.projectConfig)
     },
 

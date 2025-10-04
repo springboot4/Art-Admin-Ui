@@ -6,34 +6,34 @@
       <AppLogo
         v-if="getShowHeaderLogo || getIsMobile"
         :class="`${prefixCls}-logo`"
-        :theme="getHeaderTheme"
         :style="getLogoWidth"
+        :theme="getHeaderTheme"
       />
       <LayoutTrigger
         v-if="
           (getShowContent && getShowHeaderTrigger && !getSplit && !getIsMixSidebar) || getIsMobile
         "
-        :theme="getHeaderTheme"
         :sider="false"
+        :theme="getHeaderTheme"
       />
       <LayoutBreadcrumb v-if="getShowContent && getShowBread" :theme="getHeaderTheme" />
     </div>
     <!-- left end -->
 
     <!-- menu start -->
-    <div :class="`${prefixCls}-menu`" v-if="getShowTopMenu && !getIsMobile">
+    <div v-if="getShowTopMenu && !getIsMobile" :class="`${prefixCls}-menu`">
       <LayoutMenu
         :isHorizontal="true"
-        :theme="getHeaderTheme"
-        :splitType="getSplitType"
         :menuMode="getMenuMode"
+        :splitType="getSplitType"
+        :theme="getHeaderTheme"
       />
     </div>
     <!-- menu-end -->
 
     <!-- action  -->
     <div :class="`${prefixCls}-action`">
-      <AppSearch :class="`${prefixCls}-action__item `" v-if="getShowSearch" />
+      <AppSearch v-if="getShowSearch" :class="`${prefixCls}-action__item `" />
 
       <Notify v-if="getShowNotice" :class="`${prefixCls}-action__item notify-item`" />
 
@@ -41,28 +41,30 @@
 
       <AppLocalePicker
         v-if="getShowLocalePicker"
+        :class="`${prefixCls}-action__item`"
         :reload="true"
         :showText="false"
-        :class="`${prefixCls}-action__item`"
       />
 
       <UserDropDown :theme="getHeaderTheme" />
 
-      <SettingDrawer v-if="getShowSetting" :class="`${prefixCls}-action__item`" />
+      <SettingDrawer
+        v-if="getShowSetting"
+        :class="`${prefixCls}-action__item`"
+        style="display: none !important"
+      />
     </div>
   </Header>
 </template>
 <script lang="ts">
-  import { defineComponent, unref, computed } from 'vue'
+  import { computed, defineComponent, unref } from 'vue'
 
   import { propTypes } from '/@/utils/propTypes'
 
   import { Layout } from 'ant-design-vue'
-  import { AppLogo } from '/@/components/Application'
+  import { AppLocalePicker, AppLogo, AppSearch } from '/@/components/Application'
   import LayoutMenu from '../menu/index.vue'
   import LayoutTrigger from '../trigger/index.vue'
-
-  import { AppSearch } from '/@/components/Application'
 
   import { useHeaderSetting } from '/@/hooks/setting/useHeaderSetting'
   import { useMenuSetting } from '/@/hooks/setting/useMenuSetting'
@@ -70,9 +72,8 @@
 
   import { MenuModeEnum, MenuSplitTyeEnum } from '/@/enums/menuEnum'
   import { SettingButtonPositionEnum } from '/@/enums/appEnum'
-  import { AppLocalePicker } from '/@/components/Application'
 
-  import { UserDropDown, LayoutBreadcrumb, FullScreen, Notify } from './components'
+  import { FullScreen, LayoutBreadcrumb, Notify, UserDropDown } from './components'
   import { useAppInject } from '/@/hooks/web/useAppInject'
   import { useDesign } from '/@/hooks/web/useDesign'
 

@@ -28,6 +28,13 @@ export function initAppConfigStore() {
   const appStore = useAppStore()
   let projCfg: ProjectConfig = Persistent.getLocal(PROJ_CFG_KEY) as ProjectConfig
   projCfg = deepMerge(projectSetting, projCfg || {})
+  
+  // 强制设置为顶部菜单模式，确保导航栏模式始终固定
+  if (projCfg.menuSetting) {
+    projCfg.menuSetting.type = 'top-menu'
+    projCfg.menuSetting.mode = 'horizontal'
+  }
+  
   const darkMode = appStore.getDarkMode
   const {
     colorWeak,
