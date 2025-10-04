@@ -4,7 +4,6 @@
       <div class="header-main">
         <div>
           <h1 class="page-title">应用</h1>
-          <p class="page-subtitle">创建AI应用，构建您的智能工作流</p>
         </div>
         <div class="header-actions">
           <a-button class="create-btn" size="large" type="primary" @click="handleCreate">
@@ -221,10 +220,10 @@
             <!-- Card Content -->
             <div class="card-content">
               <div class="app-info">
-                <h3 :title="item?.name" class="app-name">{{ item?.name }}</h3>
-                <a-tag :color="getModeTagColor(item?.mode || '')" class="app-type-tag">
-                  {{ formatMode(item?.mode || '') }}
-                </a-tag>
+                <h3 :title="item?.name" class="app-name">
+                  {{ item?.name }}
+                  <span class="app-type-indicator">{{ formatMode(item?.mode || '') }}</span>
+                </h3>
               </div>
               <p :title="item?.description" class="app-description">
                 {{ item?.description || '暂无描述' }}
@@ -278,9 +277,7 @@
               </div>
             </div>
             <div class="col-type">
-              <a-tag :color="getModeTagColor(item?.mode || '')">
-                {{ formatMode(item?.mode || '') }}
-              </a-tag>
+              <span class="type-indicator">{{ formatMode(item?.mode || '') }}</span>
             </div>
             <div class="col-updated">
               <div class="update-cell">
@@ -574,20 +571,6 @@
       workflow: '工作流',
     }
     return map[mode] || '未知类型'
-  }
-
-  /**
-   * 获取应用类型标签颜色
-   */
-  function getModeTagColor(mode: string) {
-    const colors = {
-      chatbot: '#1890ff',
-      completion: '#52c41a',
-      agent: '#722ed1',
-      chatflow: '#fa8c16',
-      workflow: '#13c2c2',
-    }
-    return colors[mode] || '#d9d9d9'
   }
 
   /**
@@ -948,16 +931,21 @@
                   -webkit-line-clamp: 1;
                   -webkit-box-orient: vertical;
                   overflow: hidden;
-                }
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
 
-                .app-type-tag {
-                  font-size: 11px;
-                  font-weight: 500;
-                  border-radius: 4px;
-                  border: none;
-                  color: #fff;
-                  padding: 2px 6px;
-                  display: inline-block;
+                  .app-type-indicator {
+                    font-size: 11px;
+                    font-weight: 500;
+                    color: #6b7280;
+                    background: #f3f4f6;
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    white-space: nowrap;
+                    flex-shrink: 0;
+                    opacity: 0.8;
+                  }
                 }
               }
 
@@ -1097,11 +1085,14 @@
               display: flex;
               align-items: center;
 
-              .ant-tag {
+              .type-indicator {
                 font-size: 12px;
-                border-radius: 4px;
-                border: none;
-                padding: 2px 8px;
+                color: #6b7280;
+                background: #f3f4f6;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-weight: 500;
+                opacity: 0.8;
               }
             }
 
@@ -1228,6 +1219,11 @@
 
                 .app-name {
                   font-size: 14px;
+
+                  .app-type-indicator {
+                    font-size: 10px;
+                    padding: 1px 4px;
+                  }
                 }
               }
 
