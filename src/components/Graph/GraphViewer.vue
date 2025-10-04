@@ -68,6 +68,24 @@
         chartInstance.dispose()
       }
       chartInstance = echarts.init(chartRef.value, appStore.getDarkMode)
+      
+      // 添加窗口尺寸变化监听
+      const resizeObserver = new ResizeObserver(() => {
+        if (chartInstance) {
+          chartInstance.resize()
+        }
+      })
+      resizeObserver.observe(chartRef.value)
+      
+      // 监听窗口尺寸变化
+      window.addEventListener('resize', () => {
+        if (chartInstance) {
+          setTimeout(() => {
+            chartInstance.resize()
+          }, 100)
+        }
+      })
+      
       renderChart()
     }
   }

@@ -93,8 +93,9 @@
         :wrapper-footer-offset="0"
         title="知识图谱"
         @register="registerModal"
+        class="knowledge-graph-modal"
       >
-        <GraphViewer :graph-data="graphData" />
+        <GraphViewer :graph-data="graphData" class="knowledge-graph-viewer" />
       </BasicModal>
 
       <!-- 重新索引弹窗 -->
@@ -478,6 +479,56 @@
         &:hover {
           border-color: #40a9ff;
           color: #40a9ff;
+        }
+      }
+    }
+  }
+
+  // 知识图谱弹窗样式优化
+  :deep(.knowledge-graph-modal) {
+    .ant-modal {
+      .ant-modal-content {
+        .ant-modal-body {
+          padding: 0;
+          
+          .knowledge-graph-viewer {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 500px;
+            
+            > div {
+              width: 100% !important;
+              height: 100% !important;
+              min-height: 500px !important;
+            }
+          }
+        }
+      }
+      
+      // 全屏状态下的样式
+      &.ant-modal-fullscreen {
+        .ant-modal-content {
+          height: 100vh;
+          display: flex;
+          flex-direction: column;
+          
+          .ant-modal-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            
+            .knowledge-graph-viewer {
+              flex: 1;
+              min-height: 0;
+              height: auto !important;
+              
+              > div {
+                height: 100% !important;
+                min-height: calc(100vh - 120px) !important;
+              }
+            }
+          }
         }
       }
     }
