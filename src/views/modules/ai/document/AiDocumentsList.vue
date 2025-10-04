@@ -1,143 +1,224 @@
 <template>
-  <PageWrapper :title="`知识库：${datasetName}`">
-    <div class="m-3 p-3 bg-white">
-      <!--搜索表单-->
-      <vxe-form>
-        <vxe-form-item title="文件名">
-          <vxe-input v-model="model.queryParam.fileName" placeholder="请输入" />
-        </vxe-form-item>
-        <vxe-form-item>
-          <a-space>
-            <a-button pre-icon="ant-design:search-outlined" type="primary" @click="queryPage">
-              查询
-            </a-button>
-            <a-button ghost pre-icon="iconamoon:restart-bold" type="primary" @click="resetQuery"
-              >重置
-            </a-button>
-          </a-space>
-        </vxe-form-item>
-      </vxe-form>
-
-      <!--表格工具栏-->
-      <vxe-toolbar ref="xToolbar" :refresh="{ query: queryPage }" custom export print>
-        <template #buttons>
-          <a-button pre-icon="lucide:folder-plus" type="primary" @click="add">新建</a-button>
-        </template>
-      </vxe-toolbar>
-
-      <!--表格-->
-      <vxe-table
-        ref="xTable"
-        :column-config="{ resizable: true }"
-        :data="pagination.records"
-        :export-config="{}"
-        :loading="loading"
-        :print-config="{}"
-        align="center"
-        border
-        show-header-overflow
-        show-overflow
-      >
-        <vxe-column title="序号" type="seq" width="60" />
-        <vxe-column field="fileName" title="文件名" />
-        <vxe-column field="title" title="文档标题" />
-        <vxe-column field="embeddingStatus" title="向量化状态" />
-        <vxe-column field="embeddingStatusChangeTime" title="向量化状态改变时间" />
-        <vxe-column field="graphicalStatus" title="图谱化状态" />
-        <vxe-column field="graphicalStatusChangeTime" title="图谱状态改变时间" />
-        <vxe-column field="createBy" title="创建人" />
-        <vxe-column field="createTime" title="创建时间" />
-        <vxe-column fixed="right" title="操作" width="250">
-          <template #default="{ row }">
-            <span>
-              <a href="javascript:" @click="show(row)">查看</a>
-            </span>
-            <a-divider type="vertical" />
-            <span>
-              <a href="javascript:" @click="showSegment(row)">分块</a>
-            </span>
-            <a-divider type="vertical" />
-            <span>
-              <a href="javascript:" @click="showGraph(row)">图谱</a>
-            </span>
-            <a-divider type="vertical" />
-            <span>
-              <a href="javascript:" @click="showReIndexModal(row)">重试</a>
-            </span>
-            <a-divider type="vertical" />
-            <a-popconfirm cancelText="否" okText="是" title="是否删除" @confirm="remove(row)">
-              <a href="javascript:" style="color: red">删除</a>
-            </a-popconfirm>
-          </template>
-        </vxe-column>
-      </vxe-table>
-
-      <!--表格分页-->
-      <vxe-pager
-        :current-page="pagination.current"
-        :loading="loading"
-        :page-size="pagination.size"
-        :total="pagination.total"
-        size="medium"
-        @page-change="handleTableChange"
-      />
-
-      <!--编辑表单-->
-      <AiDocumentsEdit ref="aiDocumentsEdit" @ok="queryPage" />
-
-      <BasicModal
-        :height="600"
-        :showOkBtn="false"
-        :useWrapper="true"
-        :width="1000"
-        :wrapper-footer-offset="0"
-        title="知识图谱"
-        @register="registerModal"
-        class="knowledge-graph-modal"
-      >
-        <GraphViewer :graph-data="graphData" class="knowledge-graph-viewer" />
-      </BasicModal>
-
-      <!-- 重新索引弹窗 -->
-      <BasicModal
-        :height="450"
-        :useWrapper="true"
-        :width="600"
-        title="重新索引"
-        @ok="handleReIndex"
-        @register="registerReIndexModal"
-      >
-        <div class="reindex-modal">
-          <div class="modal-content">
-            <p class="modal-description"> 请选择需要重新构建的索引类型： </p>
-            <div class="index-type-selection">
-              <CheckboxGroup v-model:value="selectedIndexTypes" class="index-checkboxes">
-                <div class="index-option">
-                  <Checkbox value="EMBEDDING">
-                    <div class="option-content">
-                      <div class="option-title">向量化索引 (EMBEDDING)</div>
-                      <div class="option-description">重新构建文档的向量化索引，用于语义搜索</div>
-                    </div>
-                  </Checkbox>
-                </div>
-                <div class="index-option">
-                  <Checkbox value="GRAPH">
-                    <div class="option-content">
-                      <div class="option-title">知识图谱 (GRAPH)</div>
-                      <div class="option-description">重新构建文档的知识图谱，用于关系分析</div>
-                    </div>
-                  </Checkbox>
-                </div>
-              </CheckboxGroup>
+  <div class="document-knowledge-base">
+    <!-- 知识库标题区域 -->
+    <div class="knowledge-base-header">
+      <div class="header-content">
+        <div class="knowledge-base-info">
+          <div class="kb-icon">
+            <Icon :size="24" icon="ant-design:database-outlined" />
+          </div>
+          <div class="kb-details">
+            <div class="kb-breadcrumb">
+              <span>AI 中心</span>
+              <Icon :size="12" icon="ant-design:right-outlined" />
+              <span>知识库</span>
+              <Icon :size="12" icon="ant-design:right-outlined" />
+              <span class="current-kb">{{ datasetName }}</span>
             </div>
-            <div v-if="selectedIndexTypes.length === 0" class="warning-text">
-              请至少选择一种索引类型
-            </div>
+            <h1 class="kb-title">{{ datasetName }}</h1>
+            <div class="kb-description">文档管理 · 向量化处理 · 知识图谱</div>
           </div>
         </div>
-      </BasicModal>
+        <div class="header-actions">
+          <a-button class="add-doc-btn" type="primary" @click="add">
+            <Icon :size="16" icon="ant-design:plus-outlined" />
+            上传文档
+          </a-button>
+        </div>
+      </div>
     </div>
-  </PageWrapper>
+
+    <!-- 主要内容区域 -->
+    <div class="main-content">
+      <!-- 搜索和筛选区域 -->
+      <div class="search-section">
+        <div class="search-card">
+          <vxe-form class="search-form">
+            <vxe-form-item>
+              <vxe-input
+                v-model="model.queryParam.fileName"
+                class="search-input"
+                placeholder="输入文件名搜索文档..."
+              />
+            </vxe-form-item>
+            <vxe-form-item>
+              <a-space class="search-actions">
+                <a-button class="search-btn" type="primary" @click="queryPage">
+                  <Icon :size="16" icon="ant-design:search-outlined" />
+                  搜索
+                </a-button>
+                <a-button class="reset-btn" @click="resetQuery">
+                  <Icon :size="16" icon="ant-design:reload-outlined" />
+                  重置
+                </a-button>
+              </a-space>
+            </vxe-form-item>
+          </vxe-form>
+        </div>
+      </div>
+
+      <!-- 文档列表区域 -->
+      <div class="documents-section">
+        <div class="table-container">
+          <vxe-table
+            ref="xTable"
+            :column-config="{ resizable: true }"
+            :data="pagination.records"
+            :loading="loading"
+            class="modern-table"
+            show-header-overflow
+            show-overflow
+            stripe
+          >
+            <vxe-column title="序号" type="seq" width="60" />
+            <vxe-column field="fileName" min-width="200" title="文件名">
+              <template #default="{ row }">
+                <div class="file-info">
+                  <Icon :size="16" class="file-icon" icon="ant-design:file-text-outlined" />
+                  <span class="file-name">{{ row.fileName }}</span>
+                </div>
+              </template>
+            </vxe-column>
+            <vxe-column field="title" min-width="200" title="文档标题" />
+            <vxe-column field="embeddingStatus" title="向量化状态" width="120">
+              <template #default="{ row }">
+                <a-tag :color="getStatusColor(row.embeddingStatus)" class="status-tag">
+                  {{ row.embeddingStatus }}
+                </a-tag>
+              </template>
+            </vxe-column>
+            <vxe-column field="embeddingStatusChangeTime" title="向量化时间" width="180" />
+            <vxe-column field="graphicalStatus" title="图谱化状态" width="120">
+              <template #default="{ row }">
+                <a-tag :color="getStatusColor(row.graphicalStatus)" class="status-tag">
+                  {{ row.graphicalStatus }}
+                </a-tag>
+              </template>
+            </vxe-column>
+            <vxe-column field="graphicalStatusChangeTime" title="图谱化时间" width="180" />
+            <vxe-column field="createBy" title="创建人" width="100" />
+            <vxe-column field="createTime" title="创建时间" width="180" />
+            <vxe-column fixed="right" title="操作" width="350">
+              <template #default="{ row }">
+                <a-space class="action-buttons">
+                  <a-button class="action-btn view-btn" size="small" type="link" @click="show(row)">
+                    <Icon :size="10" icon="ant-design:eye-outlined" />
+                    查看
+                  </a-button>
+                  <a-button
+                    class="action-btn segment-btn"
+                    size="small"
+                    type="link"
+                    @click="showSegment(row)"
+                  >
+                    <Icon :size="10" icon="ant-design:block-outlined" />
+                    分块
+                  </a-button>
+                  <a-button
+                    class="action-btn graph-btn"
+                    size="small"
+                    type="link"
+                    @click="showGraph(row)"
+                  >
+                    <Icon :size="10" icon="ant-design:share-alt-outlined" />
+                    图谱
+                  </a-button>
+                  <a-button
+                    class="action-btn retry-btn"
+                    size="small"
+                    type="link"
+                    @click="showReIndexModal(row)"
+                  >
+                    <Icon :size="10" icon="ant-design:reload-outlined" />
+                    重试
+                  </a-button>
+                  <a-popconfirm
+                    cancelText="取消"
+                    okText="确认"
+                    title="确认删除该文档吗？"
+                    @confirm="remove(row)"
+                  >
+                    <a-button class="action-btn delete-btn" size="small" type="link">
+                      <Icon :size="10" icon="ant-design:delete-outlined" />
+                      删除
+                    </a-button>
+                  </a-popconfirm>
+                </a-space>
+              </template>
+            </vxe-column>
+          </vxe-table>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination-container">
+          <vxe-pager
+            :current-page="pagination.current"
+            :loading="loading"
+            :page-size="pagination.size"
+            :total="pagination.total"
+            class="modern-pagination"
+            size="medium"
+            @page-change="handleTableChange"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗保持不变 -->
+    <AiDocumentsEdit ref="aiDocumentsEdit" @ok="queryPage" />
+
+    <BasicModal
+      :height="600"
+      :showOkBtn="false"
+      :useWrapper="true"
+      :width="1000"
+      :wrapper-footer-offset="0"
+      class="knowledge-graph-modal"
+      title="知识图谱"
+      @register="registerModal"
+    >
+      <GraphViewer :graph-data="graphData" class="knowledge-graph-viewer" />
+    </BasicModal>
+
+    <!-- 重新索引弹窗 -->
+    <BasicModal
+      :height="450"
+      :useWrapper="true"
+      :width="600"
+      title="重新索引"
+      @ok="handleReIndex"
+      @register="registerReIndexModal"
+    >
+      <div class="reindex-modal">
+        <div class="modal-content">
+          <p class="modal-description"> 请选择需要重新构建的索引类型： </p>
+          <div class="index-type-selection">
+            <CheckboxGroup v-model:value="selectedIndexTypes" class="index-checkboxes">
+              <div class="index-option">
+                <Checkbox value="EMBEDDING">
+                  <div class="option-content">
+                    <div class="option-title">向量化索引 (EMBEDDING)</div>
+                    <div class="option-description">重新构建文档的向量化索引，用于语义搜索</div>
+                  </div>
+                </Checkbox>
+              </div>
+              <div class="index-option">
+                <Checkbox value="GRAPH">
+                  <div class="option-content">
+                    <div class="option-title">知识图谱 (GRAPH)</div>
+                    <div class="option-description">重新构建文档的知识图谱，用于关系分析</div>
+                  </div>
+                </Checkbox>
+              </div>
+            </CheckboxGroup>
+          </div>
+          <div v-if="selectedIndexTypes.length === 0" class="warning-text">
+            请至少选择一种索引类型
+          </div>
+        </div>
+      </div>
+    </BasicModal>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -145,12 +226,12 @@
   import { useRoute, useRouter } from 'vue-router'
   import { VxeTableInstance, VxeToolbarInstance } from 'vxe-table'
   import { Checkbox, CheckboxGroup } from 'ant-design-vue'
+  import { Icon } from '/@/components/Icon'
   import useTablePage from '/@/hooks/art/useTablePage'
   import { del, graphInfo, page, reIndex } from '/@/api/ai/document/AiDocumentIndex'
   import { FormOperationType } from '/@/enums/formOperationType'
   import { useMessage } from '/@/hooks/web/useMessage'
   import AiDocumentsEdit from '/@/views/modules/ai/document/AiDocumentsEdit.vue'
-  import { PageWrapper } from '/@/components/Page'
   import GraphViewer from '/@/components/Graph/GraphViewer.vue'
   import { BasicModal, useModal } from '/@/components/Modal'
 
@@ -171,6 +252,21 @@
   const datasetId = ref(route.query.datasetId)
   const datasetName = ref(route.query.datasetName)
   const router = useRouter()
+
+  // 状态颜色映射
+  const getStatusColor = (status: string) => {
+    const colorMap: Record<string, string> = {
+      已向量化: 'success',
+      已图谱化: 'success',
+      向量化中: 'processing',
+      图谱化中: 'processing',
+      向量化失败: 'error',
+      图谱化失败: 'error',
+      未向量化: 'default',
+      未图谱化: 'default',
+    }
+    return colorMap[status] || 'default'
+  }
 
   onMounted(() => {
     if (!datasetId.value) {
@@ -305,6 +401,87 @@
 </script>
 
 <style lang="less" scoped>
+  .document-knowledge-base {
+    background: #fff;
+    min-height: 100vh;
+  }
+
+  // 知识库标题区域 - 简洁内敛设计
+  .knowledge-base-header {
+    background: #fafbfc;
+    border-bottom: 1px solid #e8e8e8;
+    padding: 24px;
+    margin-bottom: 16px;
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .knowledge-base-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .kb-icon {
+        width: 48px;
+        height: 48px;
+        background: #f0f2f5;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #595959;
+        border: 1px solid #e8e8e8;
+      }
+
+      .kb-details {
+        .kb-breadcrumb {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: #8c8c8c;
+          font-size: 12px;
+          margin-bottom: 4px;
+
+          .current-kb {
+            color: #1890ff;
+            font-weight: 500;
+          }
+        }
+
+        .kb-title {
+          color: #262626;
+          font-size: 20px;
+          font-weight: 600;
+          margin: 0 0 6px 0;
+          line-height: 1.3;
+        }
+
+        .kb-description {
+          color: #8c8c8c;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+      }
+    }
+
+    .header-actions {
+      .add-doc-btn {
+        height: 36px;
+        padding: 0 16px;
+        border-radius: 6px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // 主内容区域 - 移除宽度限制
+  .main-content {
+    padding: 0 24px;
+  }
+
   .reindex-modal {
     .modal-content {
       padding: 24px 0;
@@ -490,12 +667,12 @@
       .ant-modal-content {
         .ant-modal-body {
           padding: 0;
-          
+
           .knowledge-graph-viewer {
             width: 100% !important;
             height: 100% !important;
             min-height: 500px;
-            
+
             > div {
               width: 100% !important;
               height: 100% !important;
@@ -504,25 +681,25 @@
           }
         }
       }
-      
+
       // 全屏状态下的样式
       &.ant-modal-fullscreen {
         .ant-modal-content {
           height: 100vh;
           display: flex;
           flex-direction: column;
-          
+
           .ant-modal-body {
             flex: 1;
             display: flex;
             flex-direction: column;
             min-height: 0;
-            
+
             .knowledge-graph-viewer {
               flex: 1;
               min-height: 0;
               height: auto !important;
-              
+
               > div {
                 height: 100% !important;
                 min-height: calc(100vh - 120px) !important;

@@ -2,8 +2,19 @@
   <div class="ai-app-list">
     <div class="page-header">
       <div class="header-main">
-        <div>
-          <h1 class="page-title">知识库</h1>
+        <div class="page-info">
+          <div class="page-icon">
+            <Icon :size="20" icon="ant-design:database-outlined" />
+          </div>
+          <div class="page-details">
+            <div class="page-breadcrumb">
+              <span>AI 中心</span>
+              <Icon :size="12" icon="ant-design:right-outlined" />
+              <span class="current-page">知识库</span>
+            </div>
+            <h1 class="page-title">知识库</h1>
+            <div class="page-description">创建和管理您的知识库</div>
+          </div>
         </div>
         <div class="header-actions">
           <a-button class="create-btn" size="large" type="primary" @click="handleCreate">
@@ -176,6 +187,7 @@
     SettingOutlined,
     UserOutlined,
   } from '@ant-design/icons-vue'
+  import { Icon } from '/@/components/Icon'
   import useTablePage from '/@/hooks/art/useTablePage'
   import { del, page } from '/@/api/ai/dataset/AiDataSetIndex'
   import { FormOperationType } from '/@/enums/formOperationType'
@@ -353,7 +365,7 @@
     background: #f5f7fa;
 
     .page-header {
-      background: #fff;
+      background: #fafbfc;
       border-bottom: 1px solid #e8e8e8;
       padding: 24px 32px;
       position: sticky;
@@ -366,11 +378,52 @@
         align-items: center;
         margin-bottom: 20px;
 
-        .page-title {
-          font-size: 24px;
-          font-weight: 600;
-          color: #1d2129;
-          margin: 0 0 4px 0;
+        .page-info {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+
+          .page-icon {
+            width: 48px;
+            height: 48px;
+            background: #f0f2f5;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #595959;
+            border: 1px solid #e8e8e8;
+          }
+
+          .page-details {
+            .page-breadcrumb {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              color: #8c8c8c;
+              font-size: 12px;
+              margin-bottom: 4px;
+
+              .current-page {
+                color: #1890ff;
+                font-weight: 500;
+              }
+            }
+
+            .page-title {
+              color: #262626;
+              font-size: 20px;
+              font-weight: 600;
+              margin: 0 0 6px 0;
+              line-height: 1.3;
+            }
+
+            .page-description {
+              color: #8c8c8c;
+              font-size: 13px;
+              line-height: 1.5;
+            }
+          }
         }
 
         .page-subtitle {
