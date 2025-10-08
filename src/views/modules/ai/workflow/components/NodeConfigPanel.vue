@@ -345,33 +345,127 @@
 
         <!-- 知识检索节点配置 -->
         <template v-if="editData.data.nodeType === 'knowledge'">
-          <a-form-item label="查询内容">
-            <VariableSelector
-              v-model:referenceParameters="editData.data.config.referenceParameters"
-              v-model:value="editData.data.config.query"
-              :edges="edges"
-              :node-id="editData.id"
-              :nodes="nodes"
-              placeholder="请输入查询内容，可以使用变量"
-            />
-          </a-form-item>
-          <a-form-item label="检索数量(topK)">
-            <a-input-number
-              v-model:value="editData.data.config.topK"
-              :max="20"
-              :min="1"
-              placeholder="5"
-            />
-          </a-form-item>
-          <a-form-item label="相似度阈值">
-            <a-slider
-              v-model:value="editData.data.config.threshold"
-              :marks="{ 0: '0', 0.5: '0.5', 1: '1' }"
-              :max="1"
-              :min="0"
-              :step="0.1"
-            />
-          </a-form-item>
+          <!-- 数据集选择卡片 -->
+          <a-card class="config-card" size="small" title="数据集配置">
+            <template #extra>
+              <a-tag
+                v-if="editData.data.config.datasetIds && editData.data.config.datasetIds.length > 0"
+                color="blue"
+                size="small"
+              >
+                {{ editData.data.config.datasetIds.length }} 个数据集
+              </a-tag>
+            </template>
+            <a-form-item label="选择数据集">
+              <a-select
+                v-model:value="editData.data.config.datasetIds"
+                :loading="datasetsLoading"
+                mode="multiple"
+                placeholder="请选择要检索的数据集"
+                show-search
+                style="width: 100%"
+                @focus="loadDatasets"
+              >
+                <a-select-option
+                  v-for="dataset in availableDatasets"
+                  :key="dataset.id"
+                  :value="dataset.id"
+                >
+                  <div class="dataset-option">
+                    <span class="dataset-name">{{ dataset.name }}</span>
+                    <span v-if="dataset.description" class="dataset-desc">{{
+                      dataset.description
+                    }}</span>
+                  </div>
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-card>
+
+          <!-- 检索配置卡片 -->
+          <a-card class="config-card" size="small" title="检索配置">
+            <a-form-item label="检索类型">
+              <div class="retrieval-type-selector">
+                <a-radio-group v-model:value="selectedRetrievalType" class="retrieval-radio-group">
+                  <div class="retrieval-options">
+                    <div
+                      :class="[
+                        'retrieval-option',
+                        {
+                          active: selectedRetrievalType === 'vector',
+                        },
+                      ]"
+                    >
+                      <a-radio value="vector">
+                        <div class="option-content">
+                          <div class="option-icon vector">
+                            <DatabaseOutlined />
+                          </div>
+                          <div class="option-info">
+                            <div class="option-title">向量检索</div>
+                            <div class="option-desc">语义相似度</div>
+                          </div>
+                        </div>
+                      </a-radio>
+                    </div>
+
+                    <div
+                      :class="[
+                        'retrieval-option',
+                        {
+                          active: selectedRetrievalType === 'graph',
+                        },
+                      ]"
+                    >
+                      <a-radio value="graph">
+                        <div class="option-content">
+                          <div class="option-icon graph">
+                            <ShareAltOutlined />
+                          </div>
+                          <div class="option-info">
+                            <div class="option-title">图谱检索</div>
+                            <div class="option-desc">关系图谱</div>
+                          </div>
+                        </div>
+                      </a-radio>
+                    </div>
+
+                    <div
+                      :class="[
+                        'retrieval-option',
+                        {
+                          active: selectedRetrievalType === 'hybrid',
+                        },
+                      ]"
+                    >
+                      <a-radio value="hybrid">
+                        <div class="option-content">
+                          <div class="option-icon hybrid">
+                            <SyncOutlined />
+                          </div>
+                          <div class="option-info">
+                            <div class="option-title">混合检索</div>
+                            <div class="option-desc">融合检索</div>
+                          </div>
+                        </div>
+                      </a-radio>
+                    </div>
+                  </div>
+                </a-radio-group>
+              </div>
+            </a-form-item>
+
+            <a-form-item label="查询内容">
+              <VariableSelector
+                v-model:referenceParameters="editData.data.config.referenceParameters"
+                v-model:value="editData.data.config.query"
+                :edges="edges"
+                :node-id="editData.id"
+                :nodes="nodes"
+                placeholder="请输入查询内容，可以使用变量"
+              />
+            </a-form-item>
+          </a-card>
         </template>
 
         <!-- 模板节点配置 -->
@@ -442,25 +536,27 @@
         </template>
 
         <!-- 高级设置 -->
-        <a-divider orientation="left">高级设置</a-divider>
-        <a-form-item label="执行超时(秒)">
-          <a-input-number
-            v-model:value="editData.data.config.timeout"
-            :default-value="30"
-            :max="300"
-            :min="1"
-            placeholder="30"
-          />
-        </a-form-item>
-        <a-form-item label="重试次数">
-          <a-input-number
-            v-model:value="editData.data.config.retryCount"
-            :default-value="0"
-            :max="5"
-            :min="0"
-            placeholder="0"
-          />
-        </a-form-item>
+        <template v-if="editData.data.nodeType !== 'knowledge'">
+          <a-divider orientation="left">高级设置</a-divider>
+          <a-form-item label="执行超时(秒)">
+            <a-input-number
+              v-model:value="editData.data.config.timeout"
+              :default-value="30"
+              :max="300"
+              :min="1"
+              placeholder="30"
+            />
+          </a-form-item>
+          <a-form-item label="重试次数">
+            <a-input-number
+              v-model:value="editData.data.config.retryCount"
+              :default-value="0"
+              :max="5"
+              :min="0"
+              placeholder="0"
+            />
+          </a-form-item>
+        </template>
 
         <!-- 节点输出参数（输出节点不显示） -->
         <template v-if="editData.data.nodeType !== 'output'">
@@ -545,7 +641,7 @@
 </template>
 
 <script setup>
-  import { ref, watch } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import {
     Button as AButton,
     Card as ACard,
@@ -558,6 +654,8 @@
     FormItem as AFormItem,
     Input as AInput,
     InputNumber as AInputNumber,
+    message,
+    Radio as ARadio,
     RadioButton as ARadioButton,
     RadioGroup as ARadioGroup,
     Row as ARow,
@@ -570,7 +668,13 @@
     Tag as ATag,
     Textarea as ATextarea,
   } from 'ant-design-vue'
-  import { CloseOutlined, PlusOutlined } from '@ant-design/icons-vue'
+  import {
+    CloseOutlined,
+    DatabaseOutlined,
+    PlusOutlined,
+    ShareAltOutlined,
+    SyncOutlined,
+  } from '@ant-design/icons-vue'
   import VariableSelector from './VariableSelector.vue'
   import CodeEditor from './CodeEditor.vue'
   import SimpleKeyValueEditor from './SimpleKeyValueEditor.vue'
@@ -578,6 +682,7 @@
   import EnhancedTextEditor from './EnhancedTextEditor.vue'
   import ConversationMessages from './ConversationMessages.vue'
   import { getDataTypeColor, getDataTypeLabel, getNodeOutputDefinitions } from '../types/variables'
+  import { get as getDatasetById, page as getDatasetPage } from '/@/api/ai/dataset/AiDataSetIndex'
 
   const props = defineProps({
     visible: {
@@ -604,6 +709,24 @@
   const editData = ref({})
   const httpActiveTab = ref('params')
   const showUnifiedVariableSelector = ref(false)
+  const availableDatasets = ref([])
+  const datasetsLoading = ref(false)
+
+  const selectedRetrievalType = computed({
+    get() {
+      const types = editData.value?.data?.config?.retrievalTypes
+      if (Array.isArray(types) && types.length > 0) {
+        return types[0]
+      }
+      return 'hybrid'
+    },
+    set(value) {
+      if (!editData.value?.data?.config) {
+        return
+      }
+      editData.value.data.config.retrievalTypes = value ? [value] : []
+    },
+  })
 
   // 监听节点变化，初始化编辑数据
   watch(
@@ -704,6 +827,32 @@
             ]
           }
         }
+
+        // 确保知识检索节点配置初始化
+        if (editData.value.data.nodeType === 'knowledge') {
+          // 确保datasetIds是数组
+          if (!Array.isArray(editData.value.data.config.datasetIds)) {
+            editData.value.data.config.datasetIds = []
+          }
+          // 确保retrievalTypes是数组
+          if (!Array.isArray(editData.value.data.config.retrievalTypes)) {
+            editData.value.data.config.retrievalTypes = ['hybrid']
+          }
+          // 确保其他字段有默认值
+          if (!editData.value.data.config.query) {
+            editData.value.data.config.query = ''
+          }
+          if (typeof editData.value.data.config.topK !== 'number') {
+            editData.value.data.config.topK = 5
+          }
+          if (typeof editData.value.data.config.threshold !== 'number') {
+            editData.value.data.config.threshold = 0.7
+          }
+
+          // 预加载数据集，确保选择器能显示名称
+          loadDatasets()
+        }
+
         // 初始化超时和重试次数
         if (typeof editData.value.data.config.timeout !== 'number') {
           editData.value.data.config.timeout = 30
@@ -840,10 +989,11 @@
       },
       knowledge: {
         query: '',
-        topK: 5,
-        threshold: 0.7,
+        datasetIds: [],
+        retrievalTypes: ['hybrid'],
         timeout: 15,
         retryCount: 1,
+        referenceParameters: [],
       },
       template: {
         template: '根据用户问题 生成回答',
@@ -944,6 +1094,68 @@
 
     // 更新整个body对象
     editData.value.data.config.body = newBody
+  }
+
+  // 知识检索节点相关方法
+  const loadDatasets = async () => {
+    const selectedIds = Array.isArray(editData.value?.data?.config?.datasetIds)
+      ? editData.value.data.config.datasetIds
+      : []
+
+    const hasMissingSelected = selectedIds.some(
+      (id) => !availableDatasets.value.some((dataset) => String(dataset.id) === String(id)),
+    )
+
+    if (availableDatasets.value.length > 0 && !hasMissingSelected) {
+      return
+    }
+
+    try {
+      datasetsLoading.value = true
+
+      const datasetMap = new Map()
+      availableDatasets.value.forEach((item) => {
+        datasetMap.set(String(item.id), item)
+      })
+
+      const response = await getDatasetPage({
+        current: 1,
+        size: 1000, // 加载所有数据集
+      })
+
+      if (response && response.records) {
+        response.records.forEach((item) => {
+          datasetMap.set(String(item.id), item)
+        })
+      }
+
+      const missingAfterPage = selectedIds.filter((id) => !datasetMap.has(String(id)))
+
+      if (missingAfterPage.length > 0) {
+        const extraDatasets = await Promise.all(
+          missingAfterPage.map(async (id) => {
+            try {
+              const detail = await getDatasetById(id)
+              return detail
+            } catch (error) {
+              console.warn('加载数据集详情失败:', id, error)
+              return null
+            }
+          }),
+        )
+
+        extraDatasets.filter(Boolean).forEach((item) => {
+          datasetMap.set(String(item.id), item)
+        })
+      }
+
+      availableDatasets.value = Array.from(datasetMap.values())
+    } catch (error) {
+      console.error('加载数据集失败:', error)
+      message.error('加载数据集失败，请重试')
+    } finally {
+      datasetsLoading.value = false
+    }
   }
 </script>
 
@@ -1397,5 +1609,163 @@
 
   .config-card :deep(.ant-form-item:last-child) {
     margin-bottom: 0;
+  }
+
+  /* 知识检索节点样式 */
+  .dataset-option {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .dataset-name {
+    font-weight: 500;
+    color: #1f2937;
+  }
+
+  .dataset-desc {
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .retrieval-type-selector {
+    width: 100%;
+  }
+
+  .retrieval-radio-group {
+    width: 100%;
+  }
+
+  .retrieval-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    width: 100%;
+  }
+
+  .retrieval-option {
+    position: relative;
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    padding: 18px 16px;
+    transition: all 0.3s ease;
+    background: #fbfdff;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  .retrieval-option::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .retrieval-option:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  }
+
+  .retrieval-option:hover::before {
+    opacity: 1;
+  }
+
+  .retrieval-option.active {
+    border-color: #3b82f6;
+    box-shadow: 0 12px 32px rgba(59, 130, 246, 0.25);
+    background: linear-gradient(145deg, #eef6ff 0%, #fbfdff 100%);
+  }
+
+  .retrieval-option.active::before {
+    opacity: 1;
+  }
+
+  .retrieval-option :deep(.ant-radio-wrapper) {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .retrieval-option :deep(.ant-radio) {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+
+  .retrieval-option :deep(.ant-radio .ant-radio-inner) {
+    width: 18px;
+    height: 18px;
+    border-width: 2px;
+  }
+
+  .retrieval-option :deep(.ant-radio-checked .ant-radio-inner) {
+    border-color: #3b82f6;
+  }
+
+  .retrieval-option :deep(.ant-radio-checked .ant-radio-inner::after) {
+    background-color: #3b82f6;
+    transform: scale(0.6);
+  }
+
+  .option-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-left: 4px;
+  }
+
+  .option-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .option-icon.vector {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #3b82f6;
+  }
+
+  .option-icon.graph {
+    background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+    color: #ec4899;
+  }
+
+  .option-icon.hybrid {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #10b981;
+  }
+
+  .option-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .option-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: #1f2937;
+    line-height: 1.2;
+  }
+
+  .option-desc {
+    font-size: 11px;
+    color: #6b7280;
+    line-height: 1.2;
+  }
+
+  @media (max-width: 768px) {
+    .retrieval-options {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

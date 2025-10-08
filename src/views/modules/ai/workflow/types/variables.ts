@@ -81,22 +81,10 @@ export const NODE_OUTPUT_DEFINITIONS: Record<string, NodeOutputDefinition[]> = {
   ],
   knowledge: [
     {
-      key: 'documents',
-      name: '检索文档',
+      key: 'results',
+      name: '检索文档列表',
       dataType: VariableDataType.ARRAY,
       description: '检索到的相关文档列表',
-    },
-    {
-      key: 'scores',
-      name: '相似度分数',
-      dataType: VariableDataType.ARRAY,
-      description: '文档相似度分数',
-    },
-    {
-      key: 'query',
-      name: '查询内容',
-      dataType: VariableDataType.STRING,
-      description: '实际执行的查询内容',
     },
   ],
   template: [

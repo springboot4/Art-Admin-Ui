@@ -79,7 +79,7 @@
                 </div>
               </template>
             </vxe-column>
-            <vxe-column field="fileName" min-width="200" title="原始文件名">
+            <vxe-column field="originalFilename" min-width="200" title="原始文件名">
               <template #default="{ row }">
                 <div class="file-info">
                   <Icon :size="16" class="file-icon" icon="ant-design:file-text-outlined" />
