@@ -61,7 +61,6 @@
               </template>
             </a-button>
             <a-button
-              :disabled="messages.length <= 1"
               danger
               size="small"
               title="删除消息"
@@ -333,7 +332,7 @@
 
   // 删除消息
   const handleRemoveMessage = (index) => {
-    if (messages.value.length > 1) {
+    if (messages.value.length > 0) {
       messages.value.splice(index, 1)
       emitUpdate()
     }

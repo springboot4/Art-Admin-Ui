@@ -34,11 +34,6 @@
         <!-- 左侧：查询配置区 -->
         <div class="left-panel">
           <div class="query-section">
-            <div class="section-header">
-              <Icon :size="18" icon="ant-design:setting-outlined" />
-              <span>测试配置</span>
-            </div>
-
             <a-form class="test-form" layout="vertical">
               <a-form-item label="查询语句" required>
                 <a-textarea

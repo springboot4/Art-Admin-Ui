@@ -84,7 +84,9 @@
                 <a-form-item label="模型选择">
                   <a-select v-model:value="editData.data.config.model" placeholder="选择AI模型">
                     <a-select-option value="deepseek-ai/DeepSeek-R1">DeepSeek-R1</a-select-option>
-                    <a-select-option value="deepseek-ai/DeepSeek-V3">DeepSeek-V3</a-select-option>
+                    <a-select-option value="deepseek-ai/DeepSeek-V3.1"
+                      >DeepSeek-V3.1
+                    </a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
