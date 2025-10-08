@@ -97,6 +97,10 @@
                         <SettingOutlined />
                         知识库设置
                       </a-menu-item>
+                      <a-menu-item @click="handleRecallTest(item)">
+                        <Icon :size="14" icon="ant-design:experiment-outlined" />
+                        召回测试
+                      </a-menu-item>
                       <a-menu-divider />
                       <a-menu-item>
                         <a-popconfirm
@@ -172,6 +176,7 @@
     <!-- Modals -->
     <AiDatasetCreateModal ref="createModal" @ok="handleCreateSuccess" />
     <AiDatasetsEdit ref="aiAppEdit" @ok="queryPage" />
+    <RecallTestModal ref="recallTestModal" />
   </div>
 </template>
 
@@ -193,12 +198,14 @@
   import { FormOperationType } from '/@/enums/formOperationType'
   import AiDatasetCreateModal from './AiDatasetCreateModal.vue'
   import AiDatasetsEdit from './AiDatasetsEdit.vue'
+  import RecallTestModal from './RecallTestModal.vue'
 
   const router = useRouter()
   const { pageQueryResHandel, pagination, model, loading } = useTablePage(queryPage)
 
   const createModal = ref()
   const aiAppEdit = ref()
+  const recallTestModal = ref()
   const viewMode = ref('grid')
   const searchValue = ref('')
 
@@ -290,6 +297,13 @@
         datasetName: item.name,
       },
     })
+  }
+
+  /**
+   * 召回测试
+   */
+  function handleRecallTest(item: any) {
+    recallTestModal.value?.init(item.id)
   }
 
   /**

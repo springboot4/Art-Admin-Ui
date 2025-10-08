@@ -1,6 +1,21 @@
 import { defHttp } from '/@/utils/http/axios'
 import { PageResult } from '/#/axios'
-import { AiDatasetsDocument, AiDatasetsDTO } from './AiDataSetTypes'
+import {
+  AiDatasetsDocument,
+  AiDatasetsDTO,
+  RecallTestRequest,
+  RecallTestResponse,
+} from './AiDataSetTypes'
+
+/**
+ * 召回测试
+ */
+export function recallTest(data: RecallTestRequest) {
+  return defHttp.post<RecallTestResponse>({
+    url: '/ai/ai/dataset/recall/test',
+    data,
+  })
+}
 
 /**
  * 上传文档并索引
