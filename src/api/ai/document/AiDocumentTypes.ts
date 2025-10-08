@@ -16,6 +16,10 @@ export type AiDocumentsDTO = {
    */
   fileName?: string
   /**
+   * 原始文件名
+   */
+  originalFilename?: string
+  /**
    * 文档标题
    */
   title?: string

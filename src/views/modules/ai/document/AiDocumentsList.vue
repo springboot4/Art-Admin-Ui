@@ -79,6 +79,14 @@
                 </div>
               </template>
             </vxe-column>
+            <vxe-column field="fileName" min-width="200" title="原始文件名">
+              <template #default="{ row }">
+                <div class="file-info">
+                  <Icon :size="16" class="file-icon" icon="ant-design:file-text-outlined" />
+                  <span class="file-name">{{ row.originalFilename }}</span>
+                </div>
+              </template>
+            </vxe-column>
             <vxe-column field="title" min-width="200" title="文档标题" />
             <vxe-column field="embeddingStatus" title="向量化状态" width="120">
               <template #default="{ row }">

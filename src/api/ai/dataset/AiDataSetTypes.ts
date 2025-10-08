@@ -3,6 +3,7 @@ export type AiDatasetsDocument = {
   indexTypes?: string
   fileName?: string
   bucketName?: string
+  originalFilename?: string
 }
 
 export type AiDatasetsDTO = {

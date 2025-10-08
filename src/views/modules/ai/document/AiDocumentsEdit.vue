@@ -105,7 +105,7 @@
 
   const { uploadHeader, uploadAction } = useUpload('/system/file/add')
 
-  const fileObj = ref({ bucketName: '', fileName: '' })
+  const fileObj = ref({ bucketName: '', fileName: '', originalFilename: '' })
 
   const handleChange = (info: UploadChangeParam) => {
     if (info.file.status === 'done') {
@@ -114,6 +114,7 @@
       fileObj.value = {
         bucketName: info.file.response.data.bucketName,
         fileName: info.file.response.data.fileName,
+        originalFilename: info.file.response.data.originalFilename,
       }
 
       fileList.value = fileList.value.slice(-1)
@@ -123,7 +124,7 @@
   }
 
   const handleRemove = () => {
-    fileObj.value = { bucketName: '', fileName: '' }
+    fileObj.value = { bucketName: '', fileName: '', originalFilename: '' }
   }
 
   let formData: Ref<AiDocumentsDTO> = ref({
@@ -180,6 +181,7 @@
         datasetsId: datasetId.value,
         bucketName: fileObj.value.bucketName,
         fileName: fileObj.value.fileName,
+        originalFilename: fileObj.value.originalFilename,
         indexTypes: 'EMBEDDING' + ',' + 'GRAPH',
       }
       document(documentParam)
@@ -194,7 +196,7 @@
    * 重置表单字段
    */
   function resetForm() {
-    fileObj.value = { bucketName: '', fileName: '' }
+    fileObj.value = { bucketName: '', fileName: '', originalFilename: '' }
     datasetId.value = ''
     fileList.value = []
 
