@@ -74,28 +74,34 @@
                 <template #label>
                   <span class="form-label"> Embedding 模型 </span>
                 </template>
-                <a-select v-model:value="formState.embeddingModel" placeholder="Embedding 模型">
-                  <a-select-option value="Qwen/Qwen3-Embedding-8B"
-                    >Qwen/Qwen3-Embedding-8B
-                  </a-select-option>
-                  <a-select-option value="Qwen/Qwen3-Embedding-4B"
-                    >Qwen/Qwen3-Embedding-4B
-                  </a-select-option>
-                  <a-select-option value="Qwen/Qwen3-Embedding-0.6B"
-                    >Qwen/Qwen3-Embedding-0.6B
-                  </a-select-option>
-                  <a-select-option value="BAAI/bge-m3">BAAI/bge-m3</a-select-option>
-                </a-select>
+                <a-select
+                  v-model:value="formState.embeddingModel"
+                  :loading="modelOptionsLoading"
+                  :options="embeddingModelOptions"
+                  allow-clear
+                  optionFilterProp="label"
+                  placeholder="请选择 Embedding 模型"
+                  show-search
+                  @change="handleEmbeddingModelChange"
+                  @dropdownVisibleChange="(open) => open && loadModelOptions()"
+                />
               </a-form-item>
 
               <a-form-item class="form-item" name="graphicModel">
                 <template #label>
                   <span class="form-label"> GraphicModel 模型 </span>
                 </template>
-                <a-select v-model:value="formState.graphicModel" placeholder="GraphicModel 模型">
-                  <a-select-option value="deepseek-ai/DeepSeek-R1">DeepSeek-R1</a-select-option>
-                  <a-select-option value="deepseek-ai/DeepSeek-V3.1">DeepSeek-V3.1</a-select-option>
-                </a-select>
+                <a-select
+                  v-model:value="formState.graphicModel"
+                  :loading="modelOptionsLoading"
+                  :options="graphicModelOptions"
+                  allow-clear
+                  optionFilterProp="label"
+                  placeholder="请选择 Graphic 模型"
+                  show-search
+                  @change="handleGraphicModelChange"
+                  @dropdownVisibleChange="(open) => open && loadModelOptions()"
+                />
               </a-form-item>
             </a-form>
           </div>
@@ -153,6 +159,13 @@
   import { add, document } from '/@/api/ai/dataset/AiDataSetIndex'
   import { useUpload } from '/@/hooks/art/useUpload'
   import { AiDatasetsDTO } from '/@/api/ai/dataset/AiDataSetTypes'
+  import type { AiModelDTO } from '/@/api/ai/model/AiModelTypes'
+  import type { AiModelPlatformDTO } from '/@/api/ai/model/AiModelPlatformTypes'
+  import {
+    ensureAiModelData,
+    findModelByIdOrName,
+    formatModelLabel,
+  } from '/@/hooks/ai/useAiModelOptions'
 
   const emit = defineEmits(['ok'])
 
@@ -160,7 +173,7 @@
 
   const { uploadHeader, uploadAction } = useUpload('/system/file/add')
 
-  const fileObj = ref({ bucketName: '', fileName: '' })
+  const fileObj = ref({ bucketName: '', fileName: '', originalFilename: '' })
 
   const visible = ref(false)
   const confirmLoading = ref(false)
@@ -175,6 +188,7 @@
       fileObj.value = {
         bucketName: info.file.response.data.bucketName,
         fileName: info.file.response.data.fileName,
+        originalFilename: info.file.response.data.originalFilename,
       }
 
       fileList.value = fileList.value.slice(-1)
@@ -183,18 +197,16 @@
     }
   }
 
-  const isButtonDisabled = computed(() => {
-    return !fileObj.value.bucketName || !fileObj.value.fileName
-  })
-
   const handleRemove = () => {
-    fileObj.value = { bucketName: '', fileName: '' }
+    fileObj.value = { bucketName: '', fileName: '', originalFilename: '' }
   }
 
   const formRef = ref<FormInstance>()
   const formState = reactive<Partial<AiDatasetsDTO>>({
     embeddingModel: '',
+    embeddingModelProvider: '',
     graphicModel: '',
+    graphicModelProvider: '',
   })
 
   const rules = {
@@ -202,24 +214,43 @@
     graphicModel: [{ required: true, message: '请选择graphicModel', trigger: 'blur' }],
   }
 
+  const modelOptionsLoading = ref(false)
+  const allModels = ref<AiModelDTO[]>([])
+  const modelPlatformMap = ref<Record<string, AiModelPlatformDTO>>({})
+
+  const embeddingModelOptions = computed(() =>
+    buildModelOptions('EMBEDDING', normalizeId(formState.embeddingModel)),
+  )
+  const graphicModelOptions = computed(() => {
+    const currentValue = normalizeId(formState.graphicModel)
+    const options = buildModelOptions('RERANK', currentValue)
+    return options.length ? options : buildModelOptions(undefined, currentValue)
+  })
+
   function init() {
     visible.value = true
     currentStep.value = 0
     selectedType.value = ''
     selectedColor.value = '#667eea'
     confirmLoading.value = false
-    fileObj.value = { bucketName: '', fileName: '' }
+    fileObj.value = { bucketName: '', fileName: '', originalFilename: '' }
     fileList.value = []
 
     formState.embeddingModel = ''
+    formState.embeddingModelProvider = ''
     formState.graphicModel = ''
+    formState.graphicModelProvider = ''
     formState.dataSourceType = ''
 
     formRef.value?.resetFields()
+    loadModelOptions()
   }
 
   function nextStep() {
     currentStep.value++
+    if (currentStep.value === 1) {
+      loadModelOptions()
+    }
   }
 
   function prevStep() {
@@ -233,10 +264,12 @@
     selectedColor.value = '#667eea'
     confirmLoading.value = false
 
-    fileObj.value = { bucketName: '', fileName: '' }
+    fileObj.value = { bucketName: '', fileName: '', originalFilename: '' }
 
     formState.embeddingModel = ''
+    formState.embeddingModelProvider = ''
     formState.graphicModel = ''
+    formState.graphicModelProvider = ''
     formState.dataSourceType = ''
 
     formRef.value?.resetFields()
@@ -247,6 +280,8 @@
       await formRef.value?.validate()
       confirmLoading.value = true
 
+      alignModelSelections()
+
       const result = await add(formState as AiDatasetsDTO)
       message.success('知识库创建成功！')
 
@@ -255,6 +290,7 @@
           datasetsId: result.id,
           bucketName: fileObj.value.bucketName,
           fileName: fileObj.value.fileName,
+          originalFilename: fileObj.value.originalFilename,
           indexTypes: 'EMBEDDING' + ',' + 'GRAPH',
         }
         document(documentParam)
@@ -267,6 +303,118 @@
     } finally {
       confirmLoading.value = false
     }
+  }
+
+  function normalizeId(value: unknown) {
+    if (value === undefined || value === null) return ''
+    return String(value)
+  }
+
+  function buildModelOptions(typeFilter?: string, currentValue?: string) {
+    if (!allModels.value.length) {
+      return []
+    }
+
+    const options = allModels.value
+      .filter((model) => {
+        if (!normalizeId(model.id)) {
+          return false
+        }
+        if (model.enable !== undefined && model.enable !== null && String(model.enable) !== '1') {
+          return false
+        }
+        if (typeFilter && model.type !== typeFilter) {
+          return false
+        }
+        return true
+      })
+      .map((model) => {
+        const value = normalizeId(model.id)
+        return {
+          value,
+          label: formatModelLabel(model, modelPlatformMap.value, value),
+        }
+      })
+
+    if (currentValue && !options.some((item) => item.value === currentValue)) {
+      const fallbackModel = findModelByIdOrName(allModels.value, currentValue)
+      const label = fallbackModel
+        ? formatModelLabel(fallbackModel, modelPlatformMap.value, currentValue)
+        : currentValue
+      options.push({ value: currentValue, label })
+    }
+
+    return options
+  }
+
+  async function loadModelOptions() {
+    if (allModels.value.length > 0 || modelOptionsLoading.value) {
+      return
+    }
+
+    try {
+      modelOptionsLoading.value = true
+      const { models, platformMap } = await ensureAiModelData()
+      allModels.value = models
+      modelPlatformMap.value = platformMap
+      alignModelSelections()
+    } catch (error) {
+      console.error('加载模型列表失败', error)
+      message.error('加载模型列表失败，请稍后重试')
+    } finally {
+      modelOptionsLoading.value = false
+    }
+  }
+
+  function alignModelSelections() {
+    syncEmbeddingModel(formState.embeddingModel)
+    syncGraphicModel(formState.graphicModel)
+  }
+
+  function handleEmbeddingModelChange(value: string | undefined | null) {
+    if (!value) {
+      formState.embeddingModel = ''
+      formState.embeddingModelProvider = ''
+      return
+    }
+    syncEmbeddingModel(value)
+  }
+
+  function handleGraphicModelChange(value: string | undefined | null) {
+    if (!value) {
+      formState.graphicModel = ''
+      formState.graphicModelProvider = ''
+      return
+    }
+    syncGraphicModel(value)
+  }
+
+  function syncEmbeddingModel(value: unknown) {
+    const match = findModelByIdOrName(allModels.value, value)
+    if (!match) {
+      if (!value) {
+        formState.embeddingModel = ''
+      }
+      formState.embeddingModelProvider = ''
+      return
+    }
+
+    formState.embeddingModel = normalizeId(match.id)
+    formState.embeddingModelProvider = normalizeId(match.platform)
+  }
+
+  function syncGraphicModel(value: unknown) {
+    const match = findModelByIdOrName(allModels.value, value)
+    if (!match) {
+      if (!value) {
+        formState.graphicModel = ''
+      }
+      formState.graphicModelProvider = ''
+      return
+    }
+
+    formState.graphicModel = normalizeId(match.id)
+    formState.graphicModelProvider = normalizeId(match.platform)
   }
 
   defineExpose({ init })

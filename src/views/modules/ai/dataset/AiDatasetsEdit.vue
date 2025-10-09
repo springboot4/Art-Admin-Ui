@@ -79,35 +79,41 @@
                   />
                 </a-form-item>
 
-                <a-form-item class="form-item" name="description">
+                <a-form-item class="form-item" name="embeddingModel">
                   <template #label>
                     <span class="form-label">向量化模型</span>
                   </template>
-                  <a-input
+                  <a-select
                     v-model:value="formData.embeddingModel"
-                    :maxlength="200"
-                    :readonly="isViewMode"
-                    :rows="3"
-                    class="form-textarea"
-                    disabled
-                    placeholder="描述知识库的用途和功能..."
-                    show-count
+                    :disabled="isViewMode"
+                    :loading="modelOptionsLoading"
+                    :options="embeddingModelOptions"
+                    allow-clear
+                    optionFilterProp="label"
+                    placeholder="请选择向量化模型"
+                    show-search
+                    size="large"
+                    @change="handleEmbeddingModelChange"
+                    @dropdownVisibleChange="(open) => open && loadModelOptions()"
                   />
                 </a-form-item>
 
-                <a-form-item class="form-item" name="description">
+                <a-form-item class="form-item" name="graphicModel">
                   <template #label>
                     <span class="form-label">图谱抽取模型</span>
                   </template>
-                  <a-input
+                  <a-select
                     v-model:value="formData.graphicModel"
-                    :maxlength="200"
-                    :readonly="isViewMode"
-                    :rows="3"
-                    class="form-textarea"
-                    disabled
-                    placeholder="描述知识库的用途和功能..."
-                    show-count
+                    :disabled="isViewMode"
+                    :loading="modelOptionsLoading"
+                    :options="graphicModelOptions"
+                    allow-clear
+                    optionFilterProp="label"
+                    placeholder="请选择图谱抽取模型"
+                    show-search
+                    size="large"
+                    @change="handleGraphicModelChange"
+                    @dropdownVisibleChange="(open) => open && loadModelOptions()"
                   />
                 </a-form-item>
               </a-form>
@@ -173,6 +179,13 @@
   import { FormOperationType } from '/@/enums/formOperationType'
   import { add, get, update } from '/@/api/ai/dataset/AiDataSetIndex'
   import { AiDatasetsDTO } from '/@/api/ai/dataset/AiDataSetTypes'
+  import type { AiModelDTO } from '/@/api/ai/model/AiModelTypes'
+  import type { AiModelPlatformDTO } from '/@/api/ai/model/AiModelPlatformTypes'
+  import {
+    ensureAiModelData,
+    findModelByIdOrName,
+    formatModelLabel,
+  } from '/@/hooks/ai/useAiModelOptions'
 
   const {
     initFormEditType,
@@ -198,19 +211,37 @@
     ],
   })
 
+  const modelOptionsLoading = ref(false)
+  const allModels = ref<AiModelDTO[]>([])
+  const modelPlatformMap = ref<Record<string, AiModelPlatformDTO>>({})
+
+  const embeddingModelOptions = computed(() =>
+    buildModelOptions('EMBEDDING', normalizeId(formData.value.embeddingModel)),
+  )
+  const graphicModelOptions = computed(() => {
+    const currentValue = normalizeId(formData.value.graphicModel)
+    const options = buildModelOptions('RERANK', currentValue)
+    return options.length ? options : buildModelOptions(undefined, currentValue)
+  })
+
   const formData = ref<AiDatasetsDTO>({
     id: '',
     name: '',
     description: '',
+    embeddingModel: '',
+    embeddingModelProvider: '',
+    graphicModel: '',
+    graphicModelProvider: '',
   })
 
   /**
    * 表单初始化
    */
-  function init(id: string, operationType: FormOperationType) {
+  async function init(id: string, operationType: FormOperationType) {
     initFormEditType(operationType)
     resetForm()
-    getInfo(id, operationType)
+    await loadModelOptions()
+    await getInfo(id, operationType)
   }
 
   /**
@@ -221,7 +252,15 @@
       confirmLoading.value = true
       try {
         const res = await get(id)
-        formData.value = res
+        formData.value = {
+          ...formData.value,
+          ...res,
+          embeddingModel: normalizeId(res.embeddingModel),
+          embeddingModelProvider: normalizeId(res.embeddingModelProvider),
+          graphicModel: normalizeId(res.graphicModel),
+          graphicModelProvider: normalizeId(res.graphicModelProvider),
+        }
+        alignModelSelections()
       } catch (error) {
         message.error('获取信息失败')
       }
@@ -262,6 +301,10 @@
       id: '',
       name: '',
       description: '',
+      embeddingModel: '',
+      embeddingModelProvider: '',
+      graphicModel: '',
+      graphicModelProvider: '',
     }
     selectedColor.value = '#1890ff'
     nextTick(() => formRef.value?.resetFields())
@@ -294,6 +337,118 @@
       minute: '2-digit',
       second: '2-digit',
     })
+  }
+
+  function normalizeId(value: unknown) {
+    if (value === undefined || value === null) return ''
+    return String(value)
+  }
+
+  function buildModelOptions(typeFilter?: string, currentValue?: string) {
+    if (!allModels.value.length) {
+      return []
+    }
+
+    const options = allModels.value
+      .filter((model) => {
+        if (!normalizeId(model.id)) {
+          return false
+        }
+        if (model.enable !== undefined && model.enable !== null && String(model.enable) !== '1') {
+          return false
+        }
+        if (typeFilter && model.type !== typeFilter) {
+          return false
+        }
+        return true
+      })
+      .map((model) => {
+        const value = normalizeId(model.id)
+        return {
+          value,
+          label: formatModelLabel(model, modelPlatformMap.value, value),
+        }
+      })
+
+    if (currentValue && !options.some((item) => item.value === currentValue)) {
+      const fallbackModel = findModelByIdOrName(allModels.value, currentValue)
+      const label = fallbackModel
+        ? formatModelLabel(fallbackModel, modelPlatformMap.value, currentValue)
+        : currentValue
+      options.push({ value: currentValue, label })
+    }
+
+    return options
+  }
+
+  async function loadModelOptions() {
+    if (allModels.value.length > 0 || modelOptionsLoading.value) {
+      return
+    }
+
+    try {
+      modelOptionsLoading.value = true
+      const { models, platformMap } = await ensureAiModelData()
+      allModels.value = models
+      modelPlatformMap.value = platformMap
+      alignModelSelections()
+    } catch (error) {
+      console.error('加载模型列表失败', error)
+      message.error('加载模型列表失败，请稍后重试')
+    } finally {
+      modelOptionsLoading.value = false
+    }
+  }
+
+  function alignModelSelections() {
+    syncEmbeddingModel(formData.value.embeddingModel)
+    syncGraphicModel(formData.value.graphicModel)
+  }
+
+  function handleEmbeddingModelChange(value: string | undefined | null) {
+    if (!value) {
+      formData.value.embeddingModel = ''
+      formData.value.embeddingModelProvider = ''
+      return
+    }
+    syncEmbeddingModel(value)
+  }
+
+  function handleGraphicModelChange(value: string | undefined | null) {
+    if (!value) {
+      formData.value.graphicModel = ''
+      formData.value.graphicModelProvider = ''
+      return
+    }
+    syncGraphicModel(value)
+  }
+
+  function syncEmbeddingModel(value: unknown) {
+    const match = findModelByIdOrName(allModels.value, value)
+    if (!match) {
+      if (!value) {
+        formData.value.embeddingModel = ''
+      }
+      formData.value.embeddingModelProvider = ''
+      return
+    }
+
+    formData.value.embeddingModel = normalizeId(match.id)
+    formData.value.embeddingModelProvider = normalizeId(match.platform)
+  }
+
+  function syncGraphicModel(value: unknown) {
+    const match = findModelByIdOrName(allModels.value, value)
+    if (!match) {
+      if (!value) {
+        formData.value.graphicModel = ''
+      }
+      formData.value.graphicModelProvider = ''
+      return
+    }
+
+    formData.value.graphicModel = normalizeId(match.id)
+    formData.value.graphicModelProvider = normalizeId(match.platform)
   }
 
   /**

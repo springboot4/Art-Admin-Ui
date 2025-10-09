@@ -73,7 +73,7 @@
         <!-- LLM 节点 -->
         <div v-if="data.nodeType === 'llm'" class="config-item">
           <span class="config-label">模型:</span>
-          <span class="config-value">{{ data.config.model || 'N/A' }}</span>
+          <span class="config-value">{{ modelDisplay || 'N/A' }}</span>
         </div>
         <!-- HTTP 节点 -->
         <div v-if="data.nodeType === 'http'" class="config-item">
@@ -122,10 +122,11 @@
 </template>
 
 <script setup>
-  import { computed } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import { Handle } from '@vue-flow/core'
   import { Button as AButton } from 'ant-design-vue'
   import { CopyOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons-vue'
+  import { getModelLabelById } from '/@/hooks/ai/useAiModelOptions'
 
   const props = defineProps({
     id: {
@@ -143,6 +144,34 @@
   })
 
   defineEmits(['delete', 'edit', 'copy'])
+
+  const modelDisplay = ref('')
+  let lastLookupId = 0
+
+  watch(
+    () => props.data?.config?.model,
+    async (modelId) => {
+      const token = ++lastLookupId
+      const normalized = modelId === undefined || modelId === null ? '' : String(modelId)
+
+      if (!normalized) {
+        modelDisplay.value = ''
+        return
+      }
+
+      try {
+        const label = await getModelLabelById(normalized)
+        if (token === lastLookupId) {
+          modelDisplay.value = label || normalized
+        }
+      } catch (error) {
+        if (token === lastLookupId) {
+          modelDisplay.value = normalized
+        }
+      }
+    },
+    { immediate: true },
+  )
 
   // HTTP配置摘要
   const hasHttpConfig = computed(() => {

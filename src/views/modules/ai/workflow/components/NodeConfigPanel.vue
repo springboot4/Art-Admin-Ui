@@ -82,12 +82,16 @@
             <a-row :gutter="16">
               <a-col :span="12">
                 <a-form-item label="模型选择">
-                  <a-select v-model:value="editData.data.config.model" placeholder="选择AI模型">
-                    <a-select-option value="deepseek-ai/DeepSeek-R1">DeepSeek-R1</a-select-option>
-                    <a-select-option value="deepseek-ai/DeepSeek-V3.1"
-                      >DeepSeek-V3.1
-                    </a-select-option>
-                  </a-select>
+                  <a-select
+                    v-model:value="editData.data.config.model"
+                    :loading="modelOptionsLoading"
+                    :options="modelSelectOptions"
+                    allow-clear
+                    optionFilterProp="label"
+                    placeholder="选择AI模型"
+                    show-search
+                    @dropdownVisibleChange="(open) => open && loadModelOptions()"
+                  />
                 </a-form-item>
               </a-col>
               <a-col :span="12">
@@ -642,7 +646,7 @@
   </a-drawer>
 </template>
 
-<script setup>
+<script lang="ts" setup>
   import { computed, ref, watch } from 'vue'
   import {
     Button as AButton,
@@ -685,6 +689,13 @@
   import ConversationMessages from './ConversationMessages.vue'
   import { getDataTypeColor, getDataTypeLabel, getNodeOutputDefinitions } from '../types/variables'
   import { get as getDatasetById, page as getDatasetPage } from '/@/api/ai/dataset/AiDataSetIndex'
+  import type { AiModelDTO } from '/@/api/ai/model/AiModelTypes'
+  import type { AiModelPlatformDTO } from '/@/api/ai/model/AiModelPlatformTypes'
+  import {
+    ensureAiModelData,
+    findModelByIdOrName,
+    formatModelLabel,
+  } from '/@/hooks/ai/useAiModelOptions'
 
   const props = defineProps({
     visible: {
@@ -713,6 +724,9 @@
   const showUnifiedVariableSelector = ref(false)
   const availableDatasets = ref([])
   const datasetsLoading = ref(false)
+  const availableModels = ref<AiModelDTO[]>([])
+  const modelPlatformMap = ref<Record<string, AiModelPlatformDTO>>({})
+  const modelOptionsLoading = ref(false)
 
   const selectedRetrievalType = computed({
     get() {
@@ -728,6 +742,43 @@
       }
       editData.value.data.config.retrievalTypes = value ? [value] : []
     },
+  })
+
+  const modelLabelMap = computed(() => {
+    const map: Record<string, string> = {}
+    availableModels.value.forEach((model) => {
+      const key = normalizeId(model.id)
+      if (!key) return
+      map[key] = formatModelLabel(model, modelPlatformMap.value, key)
+    })
+    return map
+  })
+
+  const modelSelectOptions = computed(() => {
+    const options = availableModels.value
+      .filter((model) => {
+        if (model.enable === undefined || model.enable === null) {
+          return true
+        }
+        return String(model.enable) === '1'
+      })
+      .map((model) => {
+        const key = normalizeId(model.id)
+        return {
+          value: key,
+          label: modelLabelMap.value[key] || key,
+        }
+      })
+
+    const currentValue = normalizeId(editData.value?.data?.config?.model)
+    if (currentValue && !options.some((item) => item.value === currentValue)) {
+      options.push({
+        value: currentValue,
+        label: modelLabelMap.value[currentValue] || currentValue,
+      })
+    }
+
+    return options
   })
 
   // 监听节点变化，初始化编辑数据
@@ -777,6 +828,7 @@
 
         // 确保LLM节点配置初始化
         if (editData.value.data.nodeType === 'llm') {
+          loadModelOptions()
           // 兼容旧的userMessage字段，转换为新的messages格式
           if (editData.value.data.config.userMessage && !editData.value.data.config.messages) {
             editData.value.data.config.messages = [
@@ -799,6 +851,11 @@
                 content: '',
               },
             ]
+          }
+
+          if (editData.value.data.config.model) {
+            editData.value.data.config.model = normalizeId(editData.value.data.config.model)
+            alignLLMModelSelection()
           }
         }
 
@@ -1098,7 +1155,42 @@
     editData.value.data.config.body = newBody
   }
 
-  // 知识检索节点相关方法
+  function normalizeId(value) {
+    if (value === undefined || value === null) return ''
+    return String(value)
+  }
+
+  async function loadModelOptions() {
+    if (availableModels.value.length > 0 || modelOptionsLoading.value) {
+      return
+    }
+
+    try {
+      modelOptionsLoading.value = true
+      const { models, platformMap } = await ensureAiModelData()
+      availableModels.value = models
+      modelPlatformMap.value = platformMap
+      alignLLMModelSelection()
+    } catch (error) {
+      console.error('加载模型列表失败', error)
+      message.error('加载模型列表失败，请稍后重试')
+    } finally {
+      modelOptionsLoading.value = false
+    }
+  }
+
+  function alignLLMModelSelection() {
+    const currentValue = editData.value?.data?.config?.model
+    if (!currentValue) {
+      return
+    }
+
+    const matchedModel = findModelByIdOrName(availableModels.value, currentValue)
+    if (matchedModel) {
+      editData.value.data.config.model = normalizeId(matchedModel.id)
+    }
+  }
+
   const loadDatasets = async () => {
     const selectedIds = Array.isArray(editData.value?.data?.config?.datasetIds)
       ? editData.value.data.config.datasetIds
