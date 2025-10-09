@@ -41,8 +41,6 @@
         <vxe-column title="序号" type="seq" width="60" />
         <vxe-column field="name" title="厂商名称" />
         <vxe-column field="baseUrl" title="base_url" />
-        <vxe-column field="apiKey" title="api_key" />
-        <vxe-column field="secretKey" title="secret_key" />
         <vxe-column
           :formatter="formatProxyEnable"
           field="proxyEnable"

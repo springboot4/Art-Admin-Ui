@@ -36,18 +36,42 @@
       <a-form-item label="api_key" name="apiKey">
         <a-input
           v-model:value="formData.apiKey"
-          :disabled="showable"
+          :readonly="showable"
+          :type="showApiKey ? 'text' : 'password'"
           allow-clear
           placeholder="请输入api_key"
-        />
+        >
+          <template #suffix>
+            <a-button
+              class="eye-toggle"
+              size="small"
+              type="text"
+              @click.prevent="showApiKey = !showApiKey"
+            >
+              <component :is="showApiKey ? EyeOutlined : EyeInvisibleOutlined" />
+            </a-button>
+          </template>
+        </a-input>
       </a-form-item>
       <a-form-item label="secret_key" name="secretKey">
         <a-input
           v-model:value="formData.secretKey"
-          :disabled="showable"
+          :readonly="showable"
+          :type="showSecretKey ? 'text' : 'password'"
           allow-clear
           placeholder="请输入secret_key"
-        />
+        >
+          <template #suffix>
+            <a-button
+              class="eye-toggle"
+              size="small"
+              type="text"
+              @click.prevent="showSecretKey = !showSecretKey"
+            >
+              <component :is="showSecretKey ? EyeOutlined : EyeInvisibleOutlined" />
+            </a-button>
+          </template>
+        </a-input>
       </a-form-item>
       <a-form-item label="是否启用代理" name="proxyEnable">
         <a-radio-group v-model:value="formData.proxyEnable" :disabled="showable">
@@ -81,6 +105,7 @@
   import { FormInstance } from 'ant-design-vue'
   import { add, get, update } from '/@/api/ai/model/AiModelPlatformIndex'
   import { AiModelPlatformDTO } from '/@/api/ai/model/AiModelPlatformTypes'
+  import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons-vue'
 
   const {
     initFormEditType,
@@ -129,6 +154,8 @@
   })
 
   const formData = ref<AiModelPlatformDTO>(createDefaultForm())
+  const showApiKey = ref(false)
+  const showSecretKey = ref(false)
 
   /**
    * 表单初始化
@@ -158,6 +185,8 @@
               ? '1'
               : String(res.openaiApiCompatible),
         }
+        showApiKey.value = false
+        showSecretKey.value = false
       })
     }
     confirmLoading.value = false
@@ -185,6 +214,8 @@
    */
   function resetForm() {
     formData.value = createDefaultForm()
+    showApiKey.value = false
+    showSecretKey.value = false
     nextTick(() => formRef.value?.clearValidate())
   }
 
@@ -196,4 +227,11 @@
   })
 </script>
 
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+  .eye-toggle {
+    padding: 0;
+    &:hover {
+      background: transparent;
+    }
+  }
+</style>
