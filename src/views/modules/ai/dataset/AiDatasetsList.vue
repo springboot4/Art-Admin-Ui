@@ -93,6 +93,15 @@
                   </a>
                   <template #overlay>
                     <a-menu>
+                      <a-menu-item @click="handleOpenDocument(item)">
+                        <Icon :size="14" icon="ant-design:file-text-outlined" />
+                        文档列表
+                      </a-menu-item>
+                      <a-menu-item @click="handleOpenQA(item)">
+                        <Icon :size="14" icon="ant-design:question-circle-outlined" />
+                        QA列表
+                      </a-menu-item>
+                      <a-menu-divider />
                       <a-menu-item @click="handleEdit(item)">
                         <SettingOutlined />
                         知识库设置
@@ -287,9 +296,9 @@
   }
 
   /**
-   * 打开
+   * 打开文档列表
    */
-  function handleOpen(item: any) {
+  function handleOpenDocument(item: any) {
     router.push({
       path: '/ai/document',
       query: {
@@ -298,6 +307,24 @@
       },
     })
   }
+
+  /**
+   * 打开QA列表
+   */
+  function handleOpenQA(item: any) {
+    router.push({
+      path: '/ai/dataset/qa',
+      query: {
+        datasetId: item.id,
+        datasetName: item.name,
+      },
+    })
+  }
+
+  /**
+   * 打开
+   */
+  function handleOpen(item: any) {}
 
   /**
    * 召回测试

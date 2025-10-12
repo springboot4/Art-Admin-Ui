@@ -16,7 +16,7 @@
               <span class="current-kb">{{ datasetName }}</span>
             </div>
             <h1 class="kb-title">{{ datasetName }}</h1>
-            <div class="kb-description">文档管理 · 向量化处理 · 知识图谱</div>
+            <div class="kb-description">文档管理</div>
           </div>
         </div>
         <div class="header-actions">

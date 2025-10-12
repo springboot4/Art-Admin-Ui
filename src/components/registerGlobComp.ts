@@ -30,6 +30,12 @@ import {
   Badge,
   Spin,
   Pagination,
+  Statistic,
+  Tooltip,
+  Empty,
+  Drawer,
+  Slider,
+  Typography,
 } from 'ant-design-vue'
 import VXETable from 'vxe-table'
 import 'vxe-table/lib/style.css'
@@ -65,5 +71,11 @@ export function registerGlobComp(app: App) {
     .use(Badge)
     .use(Spin)
     .use(Pagination)
+    .use(Statistic)
+    .use(Tooltip)
+    .use(Empty)
+    .use(Drawer)
+    .use(Slider)
+    .use(Typography)
     .use(VXETable)
 }

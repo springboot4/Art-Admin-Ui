@@ -38,10 +38,10 @@
         </vxe-form-item>
         <vxe-form-item>
           <a-space>
-            <a-button type="primary" pre-icon="ant-design:search-outlined" @click="queryPage">
+            <a-button pre-icon="ant-design:search-outlined" type="primary" @click="queryPage">
               查询
             </a-button>
-            <a-button type="primary" ghost pre-icon="iconamoon:restart-bold" @click="handleReset">
+            <a-button ghost pre-icon="iconamoon:restart-bold" type="primary" @click="handleReset">
               重置
             </a-button>
           </a-space>
@@ -69,31 +69,12 @@
         show-overflow
       >
         <vxe-column title="序号" type="seq" width="60" />
-        <vxe-column
-          field="type"
-          min-width="160"
-          title="模型类型"
-          :formatter="formatModelType"
-        />
-        <vxe-column field="name" title="模型名称" />
-        <vxe-column
-          field="platform"
-          min-width="180"
-          title="所属平台"
-          :formatter="formatPlatform"
-        />
-        <vxe-column
-          field="enable"
-          min-width="120"
-          title="是否启用"
-          :formatter="formatEnable"
-        />
-        <vxe-column field="maxInputTokens" title="最大输入长度" />
-        <vxe-column field="maxOutputTokens" title="最大输出长度" />
-        <vxe-column field="config" title="模型配置" />
-        <vxe-column field="createTime" title="创建日期" />
-        <vxe-column field="createBy" title="创建人" />
-        <vxe-column field="updateTime" title="更新时间" />
+        <vxe-column :formatter="formatModelType" field="type" min-width="120" title="模型类型" />
+        <vxe-column field="name" min-width="180" title="模型名称" />
+        <vxe-column :formatter="formatPlatform" field="platform" min-width="160" title="所属平台" />
+        <vxe-column :formatter="formatEnable" field="enable" min-width="60" title="是否启用" />
+        >
+        <vxe-column field="updateTime" min-width="120" title="更新时间" />
         <vxe-column field="updateBy" title="更新人" />
         <vxe-column fixed="right" title="操作" width="200">
           <template #default="{ row }">
@@ -130,6 +111,7 @@
 
 <script lang="ts" setup>
   import { computed, defineComponent, onMounted, ref } from 'vue'
+  import type { VxeColumnFormatterParams } from 'vxe-table'
   import { VxeTableInstance, VxeToolbarInstance } from 'vxe-table'
   import useTablePage from '/@/hooks/art/useTablePage'
   import { del, page } from '/@/api/ai/model/AiModelIndex'
@@ -137,7 +119,6 @@
   import { useMessage } from '/@/hooks/web/useMessage'
   import AiModelEdit from '/@/views/modules/ai/model/AiModelEdit.vue'
   import { page as fetchPlatformPage } from '/@/api/ai/model/AiModelPlatformIndex'
-  import type { VxeColumnFormatterParams } from 'vxe-table'
 
   const { handleTableChange, pageQueryResHandel, resetQuery, pagination, model, loading } =
     useTablePage(queryPage)
@@ -195,8 +176,8 @@
   function queryPage() {
     loading.value = true
     const filters = Object.fromEntries(
-      Object.entries(model.queryParam || {}).filter(([, value]) =>
-        value !== undefined && value !== null && value !== '',
+      Object.entries(model.queryParam || {}).filter(
+        ([, value]) => value !== undefined && value !== null && value !== '',
       ),
     )
 

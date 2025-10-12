@@ -440,6 +440,27 @@
                       :class="[
                         'retrieval-option',
                         {
+                          active: selectedRetrievalType === 'qa',
+                        },
+                      ]"
+                    >
+                      <a-radio value="qa">
+                        <div class="option-content">
+                          <div class="option-icon qa">
+                            <Icon :size="16" icon="ant-design:question-circle-outlined" />
+                          </div>
+                          <div class="option-info">
+                            <div class="option-title">QA检索</div>
+                            <div class="option-desc">问答对</div>
+                          </div>
+                        </div>
+                      </a-radio>
+                    </div>
+
+                    <div
+                      :class="[
+                        'retrieval-option',
+                        {
                           active: selectedRetrievalType === 'hybrid',
                         },
                       ]"
@@ -1830,6 +1851,11 @@
   .option-icon.graph {
     background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
     color: #ec4899;
+  }
+
+  .option-icon.qa {
+    background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+    color: #f97316;
   }
 
   .option-icon.hybrid {

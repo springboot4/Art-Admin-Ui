@@ -82,6 +82,23 @@
                     </div>
 
                     <div
+                      :class="['retrieval-option', { active: selectedRetrievalType === 'qa' }]"
+                      @click="selectedRetrievalType = 'qa'"
+                    >
+                      <a-radio value="qa">
+                        <div class="option-wrapper">
+                          <div class="option-icon qa">
+                            <Icon :size="18" icon="ant-design:question-circle-outlined" />
+                          </div>
+                          <div class="option-info">
+                            <div class="option-title">QA检索</div>
+                            <div class="option-desc">问答对</div>
+                          </div>
+                        </div>
+                      </a-radio>
+                    </div>
+
+                    <div
                       :class="['retrieval-option', { active: selectedRetrievalType === 'hybrid' }]"
                       @click="selectedRetrievalType = 'hybrid'"
                     >
@@ -332,9 +349,11 @@
     const typeMap: Record<string, string> = {
       vector: '向量检索',
       graph: '图谱检索',
+      qa: 'QA检索',
       hybrid: '混合检索',
       VECTOR: '向量检索',
       GRAPH: '图谱检索',
+      QA: 'QA检索',
       HYBRID: '混合检索',
     }
     return typeMap[type] || type
@@ -348,6 +367,7 @@
     const colorMap: Record<string, string> = {
       vector: 'blue',
       graph: 'purple',
+      qa: 'orange',
       hybrid: 'green',
     }
     return colorMap[typeKey] || 'default'
@@ -361,6 +381,7 @@
     const iconMap: Record<string, string> = {
       vector: 'ant-design:node-index-outlined',
       graph: 'ant-design:share-alt-outlined',
+      qa: 'ant-design:question-circle-outlined',
       hybrid: 'ant-design:sync-outlined',
     }
     return iconMap[typeKey] || 'ant-design:question-circle-outlined'
@@ -374,6 +395,7 @@
     const styleMap: Record<string, Record<string, string>> = {
       vector: { backgroundColor: '#1890ff' },
       graph: { backgroundColor: '#722ed1' },
+      qa: { backgroundColor: '#fa8c16' },
       hybrid: { backgroundColor: '#52c41a' },
     }
     return styleMap[typeKey] || { backgroundColor: '#d9d9d9' }
@@ -574,6 +596,11 @@
                         box-shadow: 0 4px 12px rgba(114, 46, 209, 0.4);
                       }
 
+                      &.qa {
+                        background: linear-gradient(135deg, #fa8c16 0%, #ffa940 100%);
+                        box-shadow: 0 4px 12px rgba(250, 140, 22, 0.4);
+                      }
+
                       &.hybrid {
                         background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
                         box-shadow: 0 4px 12px rgba(82, 196, 26, 0.4);
@@ -617,6 +644,10 @@
 
                         &.graph {
                           background: linear-gradient(135deg, #9254de 0%, #b37feb 100%);
+                        }
+
+                        &.qa {
+                          background: linear-gradient(135deg, #ffa940 0%, #ffc069 100%);
                         }
 
                         &.hybrid {
