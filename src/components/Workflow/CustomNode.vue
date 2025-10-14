@@ -69,7 +69,7 @@
       <!-- 配置预览 -->
       <div v-if="hasConfig" class="node-config-preview">
         <!-- LLM节点配置 -->
-        <template v-if="data.type === 'llm'">
+        <template v-if="isLLMNode">
           <div v-if="data.config.model" class="config-item">
             <span class="config-label">模型:</span>
             <span class="config-value">{{ data.config.model }}</span>
@@ -205,8 +205,11 @@
 
   const emit = defineEmits(['settings', 'duplicate', 'delete'])
 
+  const LLM_NODE_TYPES = new Set(['llm', 'llm_answer'])
+
   const isStartNode = computed(() => props.data.type === 'start')
   const isOutputNode = computed(() => props.data.type === 'output')
+  const isLLMNode = computed(() => LLM_NODE_TYPES.has(props.data.type))
 
   const hasConfig = computed(() => {
     return props.data.config && Object.keys(props.data.config).length > 0
@@ -221,6 +224,7 @@
       code: NODE_CATEGORIES.LOGIC,
       webhook: NODE_CATEGORIES.OUTPUT,
       output: NODE_CATEGORIES.OUTPUT,
+      llm_answer: NODE_CATEGORIES.LLM,
     }
     return categoryMap[type] || 'custom'
   }

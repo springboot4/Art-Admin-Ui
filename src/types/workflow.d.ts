@@ -1,7 +1,7 @@
 import { Node } from '@vue-flow/core'
 
 export interface BaseNodeData {
-  type: string // e.g., 'start', 'llm', 'knowledgeRetrieval', 'custom'
+  type: string // e.g., 'start', 'llm', 'llm_answer', 'knowledgeRetrieval', 'custom'
   label: string
   description?: string
 }
@@ -11,7 +11,7 @@ export interface StartNodeData extends BaseNodeData {
 }
 
 export interface LLMNodeData extends BaseNodeData {
-  type: 'llm'
+  type: 'llm' | 'llm_answer'
   model: string // e.g., 'gpt-3.5-turbo', 'gemini-pro'
   temperature: number
   maxTokens: number

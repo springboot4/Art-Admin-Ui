@@ -46,16 +46,19 @@ export interface NodeOutputDefinition {
 }
 
 // 节点类型对应的输出定义
+const LLM_OUTPUT_DEFINITIONS: NodeOutputDefinition[] = [
+  {
+    key: 'output',
+    name: 'AI回复',
+    dataType: VariableDataType.STRING,
+    description: 'AI模型生成的回复内容',
+  },
+]
+
 export const NODE_OUTPUT_DEFINITIONS: Record<string, NodeOutputDefinition[]> = {
   start: [],
-  llm: [
-    {
-      key: 'output',
-      name: 'AI回复',
-      dataType: VariableDataType.STRING,
-      description: 'AI模型生成的回复内容',
-    },
-  ],
+  llm: LLM_OUTPUT_DEFINITIONS,
+  llm_answer: LLM_OUTPUT_DEFINITIONS,
   http: [
     {
       key: 'body',

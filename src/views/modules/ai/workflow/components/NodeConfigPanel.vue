@@ -76,7 +76,7 @@
         </template>
 
         <!-- LLM 节点特殊配置 -->
-        <template v-if="editData.data.nodeType === 'llm'">
+        <template v-if="isLLMNode">
           <!-- 模型配置卡片 -->
           <a-card class="config-card" size="small" title="模型配置">
             <a-row :gutter="16">
@@ -708,6 +708,7 @@
   import SimpleJsonEditor from './SimpleJsonEditor.vue'
   import EnhancedTextEditor from './EnhancedTextEditor.vue'
   import ConversationMessages from './ConversationMessages.vue'
+  import Icon from '/@/components/Icon'
   import { getDataTypeColor, getDataTypeLabel, getNodeOutputDefinitions } from '../types/variables'
   import { get as getDatasetById, page as getDatasetPage } from '/@/api/ai/dataset/AiDataSetIndex'
   import type { AiModelDTO } from '/@/api/ai/model/AiModelTypes'
@@ -748,6 +749,9 @@
   const availableModels = ref<AiModelDTO[]>([])
   const modelPlatformMap = ref<Record<string, AiModelPlatformDTO>>({})
   const modelOptionsLoading = ref(false)
+
+  const LLM_NODE_TYPES = new Set(['llm', 'llm_answer'])
+  const isLLMNode = computed(() => LLM_NODE_TYPES.has(editData.value?.data?.nodeType || ''))
 
   const selectedRetrievalType = computed({
     get() {
@@ -848,7 +852,7 @@
         }
 
         // 确保LLM节点配置初始化
-        if (editData.value.data.nodeType === 'llm') {
+        if (LLM_NODE_TYPES.has(editData.value.data.nodeType)) {
           loadModelOptions()
           // 兼容旧的userMessage字段，转换为新的messages格式
           if (editData.value.data.config.userMessage && !editData.value.data.config.messages) {
@@ -1019,27 +1023,30 @@
     editData.value.data.config = defaultConfig
   }
 
+  const createLLMDefaultConfig = () => ({
+    model: '',
+    temperature: 0.7,
+    maxTokens: 1024,
+    systemPrompt: '你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。',
+    messages: [
+      {
+        id: `msg_${Date.now()}_0`,
+        role: 'user',
+        content: '',
+      },
+    ],
+    timeout: 30,
+    retryCount: 1,
+  })
+
   // 获取默认配置
   const getDefaultConfig = (nodeType) => {
     const defaultConfigs = {
       start: {
         userInputs: [],
       },
-      llm: {
-        model: '',
-        temperature: 0.7,
-        maxTokens: 1024,
-        systemPrompt: '你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。',
-        messages: [
-          {
-            id: `msg_${Date.now()}_0`,
-            role: 'user',
-            content: '',
-          },
-        ],
-        timeout: 30,
-        retryCount: 1,
-      },
+      llm: createLLMDefaultConfig(),
+      llm_answer: createLLMDefaultConfig(),
       http: {
         method: 'GET',
         url: '',

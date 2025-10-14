@@ -71,7 +71,7 @@
       <!-- 其他节点类型显示关键配置 -->
       <div v-else-if="data.config" class="config-preview">
         <!-- LLM 节点 -->
-        <div v-if="data.nodeType === 'llm'" class="config-item">
+        <div v-if="isLLMNode" class="config-item">
           <span class="config-label">模型:</span>
           <span class="config-value">{{ modelDisplay || 'N/A' }}</span>
         </div>
@@ -144,6 +144,9 @@
   })
 
   defineEmits(['delete', 'edit', 'copy'])
+
+  const LLM_NODE_TYPES = new Set(['llm', 'llm_answer'])
+  const isLLMNode = computed(() => LLM_NODE_TYPES.has(props.data?.nodeType || ''))
 
   const modelDisplay = ref('')
   let lastLookupId = 0

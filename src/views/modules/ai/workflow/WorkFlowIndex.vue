@@ -241,6 +241,14 @@
       category: 'llm',
     },
     {
+      type: 'llm_answer',
+      label: '大模型应答',
+      icon: '💬',
+      color: '#13c2c2',
+      description: '用于生成应答内容的大模型节点',
+      category: 'llm',
+    },
+    {
       type: 'knowledge',
       label: '知识检索',
       icon: '📚',
@@ -492,18 +500,21 @@
   }
 
   // 获取默认配置
+  const createLLMDefaultConfig = () => ({
+    model: '',
+    temperature: 0.7,
+    maxTokens: 1024,
+    systemPrompt: '你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。',
+    userMessage: '',
+  })
+
   const getDefaultConfig = (nodeType) => {
     const defaultConfigs = {
       start: {
         userInputs: [], // 用户输入变量配置
       },
-      llm: {
-        model: '',
-        temperature: 0.7,
-        maxTokens: 1024,
-        systemPrompt: '你是一个有用的AI助手，请根据用户输入提供准确和有帮助的回答。',
-        userMessage: '',
-      },
+      llm: createLLMDefaultConfig(),
+      llm_answer: createLLMDefaultConfig(),
       http: {
         method: 'GET',
         url: '',
