@@ -99,7 +99,7 @@
       <!-- VueFlow 画布 - 全屏显示 -->
       <div v-if="appModeValidated" class="workflow-canvas" @click="handleCanvasClick">
         <VueFlow
-          v-model:edges="edges"
+          v-model:edges="displayEdges"
           v-model:nodes="nodes"
           :default-zoom="0.5"
           :is-valid-connection="isValidConnection"
@@ -205,7 +205,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { nextTick, onMounted, ref, watch } from 'vue'
+  import { computed, nextTick, onMounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import { applyEdgeChanges, applyNodeChanges, VueFlow } from '@vue-flow/core'
   import { Controls } from '@vue-flow/controls'
@@ -230,6 +230,7 @@
     filterNodeTypesByAppMode,
     validateAppMode,
   } from '/@/utils/workflowNodeFilter'
+  import { useWorkflowRuntimeStyles } from './composables/useWorkflowRuntimeStyles'
 
   import '@vue-flow/core/dist/style.css'
   import '@vue-flow/core/dist/theme-default.css'
@@ -326,6 +327,22 @@
     customNode: CustomNode,
   }
 
+  // ==================== 运行时样式管理 ====================
+  // 引入运行时样式管理（UI状态，不持久化）
+  const {
+    setNodeStatus,
+    getNodeStatus,
+    setNodeStates,
+    updateEdgeStylesByNodeStatus,
+    computeDisplayEdges,
+    startRuntimeMode,
+    endRuntimeMode,
+    clearAllRuntimeStates,
+    resetAllNodesToIdle,
+    resetAllEdgesToDefault,
+  } = useWorkflowRuntimeStyles()
+
+  // ==================== 数据状态（持久化） ====================
   // 初始化一个开始节点
   const nodes = ref([
     {
@@ -347,6 +364,21 @@
   ])
 
   const edges = ref([])
+
+  const displayEdges = computed({
+    get: () => computeDisplayEdges(edges.value).value,
+    set: (newEdges) => {
+      edges.value = newEdges.map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle,
+        type: edge.type || 'default',
+      }))
+    },
+  })
+
   const workflowName = ref('新建AI工作流')
   const saving = ref(false)
   const executing = ref(false)
@@ -504,7 +536,6 @@
         return true
       })
       .map((edge) => {
-        // 保持原有的handle信息，确保连接正确恢复
         return {
           id: edge.id || `edge_${Date.now()}_${Math.random()}`,
           source: edge.source,
@@ -512,8 +543,6 @@
           sourceHandle: edge.sourceHandle,
           targetHandle: edge.targetHandle,
           type: edge.type || 'default',
-          animated: edge.animated || false,
-          style: edge.style || { stroke: '#666', strokeWidth: 2 },
         }
       })
 
@@ -605,7 +634,7 @@
   }
 
   const onEdgesChange = (changes) => {
-    edges.value = applyEdgeChanges(changes, edges.value)
+    displayEdges.value = applyEdgeChanges(changes, displayEdges.value)
   }
 
   const onConnect = (params) => {
@@ -613,8 +642,6 @@
       id: `edge_${Date.now()}`,
       ...params,
       type: 'default',
-      animated: false, // 默认不动画
-      style: { stroke: '#666', strokeWidth: 2 },
     }
 
     edges.value.push(newEdge)
@@ -721,7 +748,6 @@
         data: node.data,
       }))
 
-      // 清理边数据，只保留必要的连接信息
       const cleanEdges = edges.value.map((edge) => ({
         id: edge.id,
         source: edge.source,
@@ -729,8 +755,6 @@
         sourceHandle: edge.sourceHandle,
         targetHandle: edge.targetHandle,
         type: edge.type || 'default',
-        animated: edge.animated || false,
-        style: edge.style || { stroke: '#666', strokeWidth: 2 },
       }))
 
       const workflowData = {
@@ -826,8 +850,6 @@
       sourceHandle: edge.sourceHandle,
       targetHandle: edge.targetHandle,
       type: edge.type || 'default',
-      animated: edge.animated || false,
-      style: edge.style || { stroke: '#666', strokeWidth: 2 },
     }))
 
     const workflowData = {
@@ -937,9 +959,10 @@
     }
 
     executing.value = true
-    // workflowStatus.value = 'executing'
 
     try {
+      startRuntimeMode()
+
       // 重置所有节点的UI状态
       workflowNodes.forEach((node) => {
         node.data.status = 'idle'
@@ -947,8 +970,6 @@
 
       // 启动真正的工作流执行，传入用户输入的参数
       await startWorkflowExecution(workflowId, workflowNodes, inputs)
-
-      // workflowStatus.value = 'executing'
     } catch (error) {
       console.error('工作流执行失败:', error)
       workflowStatus.value = 'error'
@@ -994,37 +1015,24 @@
     }
   })
 
-  // 监听节点状态变化，更新画布节点显示
+  // ==================== 运行时状态监听器（重构版） ====================
+  // 监听节点状态变化，使用运行时样式管理
   watch(
     nodeStates,
     (states) => {
       if (!states) return
 
+      // 同步节点运行时状态到运行时管理器
+      setNodeStates(states)
+
+      // 更新每个节点的UI状态和相关边的样式
       nodes.value.forEach((node) => {
         const nodeState = states.get(node.id)
         if (nodeState) {
+          // 更新节点的视觉状态（这个可以保留，因为节点状态需要实时显示）
           node.data.status = nodeState.status
 
-          // 更新相关边的样式
-          const relatedEdges = edges.value.filter(
-            (edge) => edge.source === node.id || edge.target === node.id,
-          )
-
-          relatedEdges.forEach((edge) => {
-            if (nodeState.status === 'running') {
-              edge.animated = true
-              edge.style = { stroke: '#1890ff', strokeWidth: 3 }
-            } else if (nodeState.status === 'success') {
-              edge.animated = false
-              edge.style = { stroke: '#52c41a', strokeWidth: 2 }
-            } else if (nodeState.status === 'error') {
-              edge.animated = false
-              edge.style = { stroke: '#ff4d4f', strokeWidth: 2 }
-            } else {
-              edge.animated = false
-              edge.style = { stroke: '#d9d9d9', strokeWidth: 2 }
-            }
-          })
+          updateEdgeStylesByNodeStatus(node.id, nodeState.status, edges.value)
         }
       })
     },
@@ -1044,14 +1052,13 @@
 
   const handleClearResults = () => {
     clearExecution()
+
     // 重置画布节点状态
     nodes.value.forEach((node) => {
       node.data.status = 'idle'
     })
-    edges.value.forEach((edge) => {
-      edge.animated = false
-      edge.style = { stroke: '#d9d9d9', strokeWidth: 2 }
-    })
+
+    clearAllRuntimeStates()
   }
 
   const publishWorkflow = async () => {
