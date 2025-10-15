@@ -556,8 +556,7 @@
    * 打开应用
    */
   function handleOpenApp(item: any) {
-    if (item?.mode === 'workflow') {
-      // 工作流类型应用跳转到工作流页面，传递应用ID和类型
+    if (item?.mode === 'workflow' || item?.mode === 'chatflow') {
       router.push({
         path: '/ai/workflow',
         query: {
@@ -567,7 +566,6 @@
       })
     } else {
       message.info(`正在打开应用: ${item?.name}`)
-      // TODO: 其他类型应用的跳转逻辑
     }
   }
 

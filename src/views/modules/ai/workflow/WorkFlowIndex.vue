@@ -86,8 +86,18 @@
 
     <!-- 主要内容区域 -->
     <div class="workflow-content">
+      <!-- 应用模式校验失败提示 -->
+      <div v-if="!appModeValidated && appModeValidationError" class="app-mode-error-overlay">
+        <div class="error-content">
+          <div class="error-icon">⚠️</div>
+          <h3 class="error-title">应用模式不匹配</h3>
+          <p class="error-message">{{ appModeValidationError }}</p>
+          <a-button type="primary" @click="$router.back()">返回应用列表</a-button>
+        </div>
+      </div>
+
       <!-- VueFlow 画布 - 全屏显示 -->
-      <div class="workflow-canvas" @click="handleCanvasClick">
+      <div v-if="appModeValidated" class="workflow-canvas" @click="handleCanvasClick">
         <VueFlow
           v-model:edges="edges"
           v-model:nodes="nodes"
@@ -194,7 +204,7 @@
   </div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
   import { nextTick, onMounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import { applyEdgeChanges, applyNodeChanges, VueFlow } from '@vue-flow/core'
@@ -215,6 +225,11 @@
   import StartNodeInputModal from '/@/components/Workflow/StartNodeInputModal.vue'
   import { add, findByAppId, publish } from '/@/api/ai/workflow/AiWorkflowsIndex'
   import { useWorkflowExecution } from './utils'
+  import {
+    type AppMode,
+    filterNodeTypesByAppMode,
+    validateAppMode,
+  } from '/@/utils/workflowNodeFilter'
 
   import '@vue-flow/core/dist/style.css'
   import '@vue-flow/core/dist/theme-default.css'
@@ -222,8 +237,20 @@
 
   const route = useRoute()
 
-  // 可用的节点类型
-  const availableNodeTypes = ref([
+  // 路由参数
+  const appId = ref(route.query.appId)
+  const appMode = ref<AppMode>((route.query.appMode as AppMode) || 'workflow')
+  const currentWorkflowId = ref(null)
+
+  // 后端返回的应用模式，用于校验
+  const backendAppMode = ref<string | undefined>(undefined)
+
+  // 应用模式校验状态
+  const appModeValidated = ref(false)
+  const appModeValidationError = ref<string | undefined>(undefined)
+
+  // 所有节点类型定义
+  const allNodeTypes = [
     {
       type: 'start',
       label: '开始节点',
@@ -289,7 +316,10 @@
       description: '工作流的最终输出',
       category: 'output',
     },
-  ])
+  ]
+
+  // 根据应用模式过滤可用的节点类型
+  const availableNodeTypes = ref(filterNodeTypesByAppMode(allNodeTypes, appMode.value))
 
   // 节点类型映射
   const nodeTypes = {
@@ -324,11 +354,6 @@
   const workflowStatus = ref('draft')
   const workflowVersion = ref(null)
   const fileInput = ref()
-
-  // 路由参数
-  const appId = ref(route.query.appId)
-  const appMode = ref(route.query.appMode)
-  const currentWorkflowId = ref(null)
 
   // 配置面板相关
   const configPanelVisible = ref(false)
@@ -396,6 +421,30 @@
     try {
       const response = await findByAppId(appId.value)
       if (response && response.graph) {
+        // 保存后端返回的应用模式
+        backendAppMode.value = response.type
+
+        // 校验应用模式
+        const validation = validateAppMode(appMode.value, backendAppMode.value)
+
+        if (!validation.valid) {
+          // 校验失败，设置错误状态
+          appModeValidationError.value = validation.message
+          appModeValidated.value = false
+          message.error(validation.message || '应用模式校验失败')
+
+          // 不加载流程图数据
+          return
+        }
+
+        // 校验通过
+        appModeValidated.value = true
+        appModeValidationError.value = undefined
+
+        // 更新可用节点类型（使用后端返回的模式或路由模式）
+        const currentMode = (backendAppMode.value || appMode.value) as AppMode
+        availableNodeTypes.value = filterNodeTypesByAppMode(allNodeTypes, currentMode)
+
         // 保存工作流ID和版本信息用于后续更新
         currentWorkflowId.value = response.id
         workflowVersion.value = response.version
@@ -411,10 +460,16 @@
         message.success('工作流数据加载成功')
       } else {
         workflowVersion.value = null
+        // 没有数据时也标记为已校验
+        appModeValidated.value = true
+        appModeValidationError.value = undefined
       }
     } catch (error) {
       console.error('加载工作流数据失败:', error)
       message.warning('加载工作流数据失败，使用默认流程图')
+      // 加载失败时也标记为已校验，允许继续操作
+      appModeValidated.value = true
+      appModeValidationError.value = undefined
     }
   }
 
@@ -882,7 +937,7 @@
     }
 
     executing.value = true
-    workflowStatus.value = 'executing'
+    // workflowStatus.value = 'executing'
 
     try {
       // 重置所有节点的UI状态
@@ -893,7 +948,7 @@
       // 启动真正的工作流执行，传入用户输入的参数
       await startWorkflowExecution(workflowId, workflowNodes, inputs)
 
-      workflowStatus.value = 'executing'
+      // workflowStatus.value = 'executing'
     } catch (error) {
       console.error('工作流执行失败:', error)
       workflowStatus.value = 'error'
@@ -1624,6 +1679,62 @@
     }
     to {
       stroke-dashoffset: 0;
+    }
+  }
+
+  /* 应用模式校验失败提示样式 */
+  .app-mode-error-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    z-index: 1000;
+
+    .error-content {
+      text-align: center;
+      padding: 48px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(239, 68, 68, 0.15);
+      max-width: 500px;
+
+      .error-icon {
+        font-size: 64px;
+        margin-bottom: 24px;
+        animation: shake 0.5s ease-in-out;
+      }
+
+      .error-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #dc2626;
+        margin-bottom: 16px;
+      }
+
+      .error-message {
+        font-size: 16px;
+        color: #6b7280;
+        line-height: 1.6;
+        margin-bottom: 32px;
+      }
+    }
+  }
+
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-10px);
+    }
+    75% {
+      transform: translateX(10px);
     }
   }
 </style>
