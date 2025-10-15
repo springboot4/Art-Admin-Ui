@@ -465,7 +465,6 @@
    * 获取Tab下的应用数量
    */
   function getTabCount(tabKey: string) {
-    console.log('pagination:{}', pagination)
     if (!pagination.records) return 0
 
     if (tabKey === 'all') {

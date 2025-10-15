@@ -410,7 +410,6 @@
 
   // 处理键盘事件
   const handleKeyDown = (e) => {
-    console.log('Key pressed:', e.key, 'Ctrl:', e.ctrlKey, 'Meta:', e.metaKey)
 
     // Mac: Cmd+Space, Windows: Ctrl+Space 打开变量面板
     if ((e.ctrlKey || e.metaKey) && e.key === ' ') {
@@ -431,7 +430,6 @@
   // 切换变量面板
   const toggleVariablePanel = () => {
     panelVisible.value = !panelVisible.value
-    console.log('Panel toggled to:', panelVisible.value)
 
     // 确保面板打开时重置搜索
     if (panelVisible.value) {
@@ -490,20 +488,15 @@
 
   // 处理变量点击 - 继承基础逻辑并添加文本插入
   const handleVariableClick = (variable) => {
-    console.log('Variable clicked:', variable)
     const { reference } = baseHandleSelectVariable(variable)
     insertTextAtCursor(reference)
 
     // 关闭面板
     closeVariablePanel()
-
-    console.log('Variable inserted successfully:', reference)
   }
 
   // 在光标位置插入文本
   const insertTextAtCursor = (text) => {
-    console.log('Inserting text:', text)
-
     const textarea = textareaRef.value?.resizableTextArea?.textArea
     if (!textarea) {
       console.error('Textarea not found, trying alternative access method')
@@ -523,18 +516,13 @@
     }
 
     const targetTextarea = textarea || textareaRef.value?.$el?.querySelector('textarea')
-    console.log('Target textarea found:', targetTextarea)
 
     const start = targetTextarea.selectionStart || 0
     const end = targetTextarea.selectionEnd || 0
     const currentValue = editorValue.value || ''
 
-    console.log('Current value:', currentValue)
-    console.log('Selection start:', start, 'end:', end)
-
     const newValue = currentValue.slice(0, start) + text + currentValue.slice(end)
 
-    console.log('New value:', newValue)
 
     editorValue.value = newValue
     emit('update:value', newValue)
@@ -545,7 +533,6 @@
       const newPosition = start + text.length
       targetTextarea.setSelectionRange(newPosition, newPosition)
       targetTextarea.focus()
-      console.log('Cursor set to position:', newPosition)
     })
   }
 
