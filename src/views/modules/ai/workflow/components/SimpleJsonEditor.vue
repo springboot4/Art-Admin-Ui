@@ -44,7 +44,8 @@
 
 <script setup>
   import { computed, nextTick, ref, watch } from 'vue'
-  import { Button as AButton, Textarea as ATextarea } from 'ant-design-vue'
+  import { Button as AButton } from 'ant-design-vue'
+  import { Textarea as ATextarea } from 'ant-design-vue/es/input'
   import { ExclamationCircleOutlined, FormatPainterOutlined } from '@ant-design/icons-vue'
 
   const props = defineProps({

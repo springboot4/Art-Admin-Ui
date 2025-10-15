@@ -98,7 +98,10 @@
   import { FormInstance } from 'ant-design-vue'
   import { add, get, update } from '/@/api/ai/model/AiModelIndex'
   import { AiModelDTO } from '/@/api/ai/model/AiModelTypes'
-  import { page as fetchPlatforms, get as fetchPlatformDetail } from '/@/api/ai/model/AiModelPlatformIndex'
+  import {
+    page as fetchPlatforms,
+    get as fetchPlatformDetail,
+  } from '/@/api/ai/model/AiModelPlatformIndex'
   import type { AiModelPlatformDTO } from '/@/api/ai/model/AiModelPlatformTypes'
   import type { SelectProps } from 'ant-design-vue'
 
@@ -230,8 +233,7 @@
           ...createDefaultForm(),
           ...res,
           platform: res.platform ? String(res.platform) : '',
-          enable:
-            res.enable === undefined || res.enable === null ? '1' : String(res.enable),
+          enable: res.enable === undefined || res.enable === null ? '1' : String(res.enable),
           maxInputTokens: res.maxInputTokens ? Number(res.maxInputTokens) : 2048,
           maxOutputTokens: res.maxOutputTokens ? Number(res.maxOutputTokens) : 2048,
           config: res.config || '{}',

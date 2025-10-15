@@ -159,12 +159,12 @@
     Select as ASelect,
     SelectOption as ASelectOption,
     Switch as ASwitch,
-    Textarea as ATextarea,
     Tag as ATag,
     Checkbox as ACheckbox,
     Popconfirm as APopconfirm,
     message,
   } from 'ant-design-vue'
+  import { Textarea as ATextarea } from 'ant-design-vue/es/input'
   import { PlusOutlined, ImportOutlined, ExportOutlined } from '@ant-design/icons-vue'
   import type { WorkflowVariable } from '../../types/workflow'
 

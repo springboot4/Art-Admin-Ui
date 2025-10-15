@@ -11,7 +11,9 @@
           <Icon :icon="action.icon" :size="28" class="text-blue-500" />
         </div>
         <span class="text-sm font-semibold text-gray-800 mb-1">{{ action.title }}</span>
-        <span class="text-xs text-gray-600 text-center leading-relaxed">{{ action.description }}</span>
+        <span class="text-xs text-gray-600 text-center leading-relaxed">{{
+          action.description
+        }}</span>
       </div>
     </div>
   </Card>

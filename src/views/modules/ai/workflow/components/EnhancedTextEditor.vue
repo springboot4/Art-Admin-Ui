@@ -279,8 +279,8 @@
     Empty as AEmpty,
     Input as AInput,
     Tag as ATag,
-    Textarea as ATextarea,
   } from 'ant-design-vue'
+  import { Textarea as ATextarea } from 'ant-design-vue/es/input'
   import {
     CloseOutlined,
     DeleteOutlined,

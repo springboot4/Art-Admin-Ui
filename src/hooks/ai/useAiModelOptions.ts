@@ -27,9 +27,7 @@ const normalizeModels = (records: AiModelDTO[] | undefined | null): AiModelDTO[]
   }))
 }
 
-const normalizePlatforms = (
-  records: AiModelPlatformDTO[] | undefined | null,
-): PlatformMap => {
+const normalizePlatforms = (records: AiModelPlatformDTO[] | undefined | null): PlatformMap => {
   const map: PlatformMap = {}
   if (!Array.isArray(records)) {
     return map
@@ -78,11 +76,7 @@ export const ensureAiModelData = async () => {
   }
 }
 
-export const formatModelLabel = (
-  model: AiModelDTO,
-  platformMap: PlatformMap,
-  fallback = '',
-) => {
+export const formatModelLabel = (model: AiModelDTO, platformMap: PlatformMap, fallback = '') => {
   if (!model) {
     return fallback
   }

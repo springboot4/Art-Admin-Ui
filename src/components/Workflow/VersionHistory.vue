@@ -141,13 +141,13 @@
     Form as AForm,
     FormItem as AFormItem,
     Input as AInput,
-    Textarea as ATextarea,
     Select as ASelect,
     SelectOption as ASelectOption,
     Statistic as AStatistic,
     Tag as ATag,
     message,
   } from 'ant-design-vue'
+  import { Textarea as ATextarea } from 'ant-design-vue/es/input'
   import { PlusOutlined, ApartmentOutlined, UserOutlined } from '@ant-design/icons-vue'
 
   const emit = defineEmits(['restore', 'close'])

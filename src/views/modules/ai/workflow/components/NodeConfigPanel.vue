@@ -683,7 +683,6 @@
     InputNumber as AInputNumber,
     message,
     Radio as ARadio,
-    RadioButton as ARadioButton,
     RadioGroup as ARadioGroup,
     Row as ARow,
     Select as ASelect,
@@ -693,8 +692,9 @@
     TabPane as ATabPane,
     Tabs as ATabs,
     Tag as ATag,
-    Textarea as ATextarea,
   } from 'ant-design-vue'
+  import { Textarea as ATextarea } from 'ant-design-vue/es/input'
+  import { RadioButton as ARadioButton } from 'ant-design-vue/es/radio'
   import {
     CloseOutlined,
     DatabaseOutlined,

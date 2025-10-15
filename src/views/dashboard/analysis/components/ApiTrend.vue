@@ -4,12 +4,8 @@
       <div class="text-center text-gray-500 mt-20">
         <Icon icon="ant-design:line-chart-outlined" :size="48" class="mb-4" />
         <div>API调用趋势图</div>
-        <div class="text-sm mt-2">
-          最近7天：{{ mockData.total.toLocaleString() }} 次调用
-        </div>
-        <div class="text-xs text-green-600 mt-1">
-          相比上周增长 {{ mockData.growth }}%
-        </div>
+        <div class="text-sm mt-2"> 最近7天：{{ mockData.total.toLocaleString() }} 次调用 </div>
+        <div class="text-xs text-green-600 mt-1"> 相比上周增长 {{ mockData.growth }}% </div>
       </div>
     </div>
   </Card>

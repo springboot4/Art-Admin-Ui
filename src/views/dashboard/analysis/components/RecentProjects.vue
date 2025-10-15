@@ -16,28 +16,35 @@
           </div>
         </div>
         <div class="flex items-center space-x-3">
-          <Tag 
-            :color="project.status === 'running' ? 'green' : 'gray'"
-            class="rounded-full px-3"
-          >
+          <Tag :color="project.status === 'running' ? 'green' : 'gray'" class="rounded-full px-3">
             {{ project.status === 'running' ? '运行中' : '已停止' }}
           </Tag>
           <Icon icon="ant-design:right-outlined" :size="16" class="text-gray-400" />
         </div>
       </div>
     </div>
-    
+
     <div v-if="activeKey === 'system'" class="space-y-4">
-      <div v-for="status in systemStatus" :key="status.name" class="flex items-center justify-between">
+      <div
+        v-for="status in systemStatus"
+        :key="status.name"
+        class="flex items-center justify-between"
+      >
         <div class="flex items-center space-x-2">
           <Icon :icon="status.icon" :size="20" />
           <span>{{ status.name }}</span>
         </div>
         <div class="flex items-center space-x-2">
           <div class="w-32 bg-gray-200 rounded-full h-2">
-            <div 
-              class="h-2 rounded-full" 
-              :class="status.usage > 80 ? 'bg-red-500' : status.usage > 60 ? 'bg-yellow-500' : 'bg-green-500'"
+            <div
+              class="h-2 rounded-full"
+              :class="
+                status.usage > 80
+                  ? 'bg-red-500'
+                  : status.usage > 60
+                  ? 'bg-yellow-500'
+                  : 'bg-green-500'
+              "
               :style="{ width: status.usage + '%' }"
             ></div>
           </div>

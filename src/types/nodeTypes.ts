@@ -97,7 +97,12 @@ const LLM_CONFIG_SCHEMA: ConfigField[] = [
   },
 ]
 
-const createLLMNodeType = (type: string, label: string, description: string, icon: string): NodeType => ({
+const createLLMNodeType = (
+  type: string,
+  label: string,
+  description: string,
+  icon: string,
+): NodeType => ({
   type,
   label,
   category: NODE_CATEGORIES.LLM,

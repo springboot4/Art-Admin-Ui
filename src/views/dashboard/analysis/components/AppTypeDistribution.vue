@@ -5,7 +5,11 @@
         <Icon icon="ant-design:pie-chart-outlined" :size="48" class="mb-4" />
         <div class="text-sm">应用类型分布图</div>
         <div class="space-y-3 mt-6 text-left max-w-xs mx-auto">
-          <div v-for="item in appTypeData" :key="item.type" class="flex items-center justify-between">
+          <div
+            v-for="item in appTypeData"
+            :key="item.type"
+            class="flex items-center justify-between"
+          >
             <div class="flex items-center space-x-2">
               <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></div>
               <span class="text-sm">{{ item.type }}</span>

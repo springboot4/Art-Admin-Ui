@@ -325,7 +325,6 @@
     Form as AForm,
     FormItem as AFormItem,
     Input as AInput,
-    Textarea as ATextarea,
     Select as ASelect,
     SelectOption as ASelectOption,
     InputNumber as AInputNumber,
@@ -342,6 +341,7 @@
     DatePicker as ADatePicker,
     TimePicker as ATimePicker,
   } from 'ant-design-vue'
+  import { Textarea as ATextarea } from 'ant-design-vue/es/input'
   import { UploadOutlined } from '@ant-design/icons-vue'
   import { getNodeTypeConfig, getCategoryLabel, NODE_CATEGORIES } from '../../types/nodeTypes'
 

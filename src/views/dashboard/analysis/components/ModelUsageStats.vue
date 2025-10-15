@@ -11,9 +11,12 @@
               <span class="text-sm font-medium">{{ model.usage }}次</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                class="h-2 rounded-full" 
-                :style="{ backgroundColor: model.color, width: (model.usage / maxUsage * 100) + '%' }"
+              <div
+                class="h-2 rounded-full"
+                :style="{
+                  backgroundColor: model.color,
+                  width: (model.usage / maxUsage) * 100 + '%',
+                }"
               ></div>
             </div>
           </div>
@@ -63,5 +66,5 @@
     },
   ]
 
-  const maxUsage = computed(() => Math.max(...modelUsageData.map(item => item.usage)))
+  const maxUsage = computed(() => Math.max(...modelUsageData.map((item) => item.usage)))
 </script>

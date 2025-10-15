@@ -158,7 +158,6 @@
     Form as AForm,
     FormItem as AFormItem,
     Input as AInput,
-    Textarea as ATextarea,
     InputNumber as AInputNumber,
     Select as ASelect,
     SelectOption as ASelectOption,
@@ -170,6 +169,7 @@
     Card as ACard,
     message,
   } from 'ant-design-vue'
+  import { Textarea as ATextarea } from 'ant-design-vue/es/input'
 
   interface Props {
     settings?: any

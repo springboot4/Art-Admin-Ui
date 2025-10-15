@@ -173,8 +173,8 @@
     Space as ASpace,
     Switch as ASwitch,
     Tag as ATag,
-    Textarea as ATextarea,
   } from 'ant-design-vue'
+  import { Textarea as ATextarea } from 'ant-design-vue/es/input'
   import { PlayCircleOutlined } from '@ant-design/icons-vue'
 
   interface UserInput {

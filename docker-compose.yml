@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: art-admin-nginx
+    ports:
+      - "80:80"
+      # 如果需要 HTTPS，取消注释下面一行
+      # - "443:443"
+    volumes:
+      # Vue 构建产物
+      - ./dist:/var/www/art-admin-ui/dist:ro
+      # Nginx 配置文件
+      - ./nginx.conf:/etc/nginx/conf.d/art-admin.conf:ro
+      # 日志目录
+      - ./nginx-logs:/var/log/nginx
+      # 如果需要 HTTPS，挂载证书目录
+      # - ./ssl:/etc/nginx/ssl:ro
+    restart: unless-stopped
+    networks:
+      - art-admin-network
+
+networks:
+  art-admin-network:
+    driver: bridge
