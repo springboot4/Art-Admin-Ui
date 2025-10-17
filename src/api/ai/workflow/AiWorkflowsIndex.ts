@@ -6,7 +6,7 @@ import { AiWorkflowsPublishDTO } from '/@/api/ai/workflow/AiWorkflowsPublishType
 /**
  * 工作流运行时执行接口
  */
-export function executeWorkflowRuntime(data: { workflowId: string; input: Record<string, any> }) {
+export function executeWorkflowRuntime(data: { workflowId: string; inputs: Record<string, any> }) {
   return defHttp.post<any>({
     url: '/ai/ai/workflows/runtime/run',
     data,

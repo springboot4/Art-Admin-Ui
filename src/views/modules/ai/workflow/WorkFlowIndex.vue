@@ -172,8 +172,9 @@
       @change="handleFileImport"
     />
 
-    <!-- 工作流执行结果面板 -->
+    <!-- 工作流执行结果面板 - 仅在工作流模式下显示 -->
     <WorkflowResultPanel
+      v-if="appMode === 'workflow'"
       :completed-nodes="executionMetrics.completedNodes"
       :errors="executionErrors"
       :execution-id="executionId"
@@ -191,6 +192,15 @@
       @stop="handleStopExecution"
       @select-node="selectNodeResult"
       @clear-results="handleClearResults"
+    />
+
+    <!-- 对话流预览面板 - 仅在对话流模式下显示 -->
+    <ChatPreviewPanel
+      v-if="appMode === 'chatflow'"
+      :initial-inputs="chatInitialInputs"
+      :visible="chatPreviewVisible"
+      :workflow-id="currentWorkflowId"
+      @close="closeChatPreview"
     />
 
     <!-- 开始节点输入变量模态框 -->
@@ -222,6 +232,7 @@
   import CustomNode from './components/CustomNode.vue'
   import NodeConfigPanel from './components/NodeConfigPanel.vue'
   import WorkflowResultPanel from './components/WorkflowResultPanel.vue'
+  import ChatPreviewPanel from './components/ChatPreviewPanel.vue'
   import StartNodeInputModal from '/@/components/Workflow/StartNodeInputModal.vue'
   import { add, findByAppId, publish } from '/@/api/ai/workflow/AiWorkflowsIndex'
   import { useWorkflowExecution } from './utils'
@@ -399,6 +410,10 @@
   // 开始节点输入模态框相关
   const startNodeInputModalVisible = ref(false)
   const pendingExecutionData = ref(null)
+
+  // 对话预览相关状态
+  const chatPreviewVisible = ref(false)
+  const chatInitialInputs = ref({})
 
   // 工作流执行逻辑
   const {
@@ -926,6 +941,34 @@
       return
     }
 
+    // 对话流模式：直接显示对话预览面板
+    if (appMode.value === 'chatflow') {
+      // 获取开始节点的用户输入配置
+      const userInputs = getStartNodeUserInputs()
+
+      // 如果开始节点有用户输入变量，先显示输入表单
+      if (userInputs && userInputs.length > 0) {
+        pendingExecutionData.value = {
+          workflowId: currentWorkflowId.value,
+          nodes: nodes.value,
+          isChatflow: true,
+        }
+
+        startNodeInputModalVisible.value = true
+
+        // 使用nextTick确保响应式更新
+        await nextTick()
+
+        return
+      }
+
+      // 没有用户输入，直接打开对话预览
+      chatInitialInputs.value = {}
+      chatPreviewVisible.value = true
+      return
+    }
+
+    // 工作流
     // 获取开始节点的用户输入配置
     const userInputs = getStartNodeUserInputs()
 
@@ -984,6 +1027,16 @@
   // 处理开始节点输入模态框的运行事件
   const handleStartNodeInputRun = (inputs) => {
     startNodeInputModalVisible.value = false
+
+    // 对话流模式：保存初始输入并打开对话预览
+    if (pendingExecutionData.value?.isChatflow) {
+      chatInitialInputs.value = inputs
+      chatPreviewVisible.value = true
+      pendingExecutionData.value = null
+      return
+    }
+
+    // 工作流模式：执行工作流
     executeWorkflowWithInputs(inputs)
   }
 
@@ -991,6 +1044,12 @@
   const handleStartNodeInputCancel = () => {
     startNodeInputModalVisible.value = false
     pendingExecutionData.value = null
+  }
+
+  // 关闭对话预览
+  const closeChatPreview = () => {
+    chatPreviewVisible.value = false
+    chatInitialInputs.value = {}
   }
 
   // 监听执行状态变化，同步UI状态

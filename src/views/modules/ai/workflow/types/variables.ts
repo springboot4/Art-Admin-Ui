@@ -118,63 +118,36 @@ export const NODE_OUTPUT_DEFINITIONS: Record<string, NodeOutputDefinition[]> = {
 // 系统变量定义
 export const SYSTEM_VARIABLES: VariableDefinition[] = [
   {
-    id: 'sys_user_id',
-    name: 'userId',
+    id: 'sys_user_query',
+    name: 'query',
     type: VariableType.SYSTEM,
     dataType: VariableDataType.STRING,
     access: VariableAccess.READONLY,
-    description: '当前用户的唯一标识',
+    description: '用户对话输入',
     required: true,
-  },
-  {
-    id: 'sys_session_id',
-    name: 'sessionId',
-    type: VariableType.SYSTEM,
-    dataType: VariableDataType.STRING,
-    access: VariableAccess.READONLY,
-    description: '当前会话的唯一标识',
-    required: true,
-  },
-  {
-    id: 'sys_timestamp',
-    name: 'timestamp',
-    type: VariableType.SYSTEM,
-    dataType: VariableDataType.NUMBER,
-    access: VariableAccess.READONLY,
-    description: '当前时间戳',
-    required: true,
-  },
-  {
-    id: 'sys_request_id',
-    name: 'requestId',
-    type: VariableType.SYSTEM,
-    dataType: VariableDataType.STRING,
-    access: VariableAccess.READONLY,
-    description: '当前请求的唯一标识',
-    required: true,
-  },
+  }
 ]
 
-// 环境变量定义（示例）
+// 环境变量定义
 export const ENVIRONMENT_VARIABLES: VariableDefinition[] = [
-  {
-    id: 'env_api_key',
-    name: 'apiKey',
-    type: VariableType.ENVIRONMENT,
-    dataType: VariableDataType.STRING,
-    access: VariableAccess.READONLY,
-    description: 'API密钥',
-    required: false,
-  },
-  {
-    id: 'env_base_url',
-    name: 'baseUrl',
-    type: VariableType.ENVIRONMENT,
-    dataType: VariableDataType.STRING,
-    access: VariableAccess.READONLY,
-    description: '基础URL地址',
-    required: false,
-  },
+  // {
+  //   id: 'env_api_key',
+  //   name: 'apiKey',
+  //   type: VariableType.ENVIRONMENT,
+  //   dataType: VariableDataType.STRING,
+  //   access: VariableAccess.READONLY,
+  //   description: 'API密钥',
+  //   required: false,
+  // },
+  // {
+  //   id: 'env_base_url',
+  //   name: 'baseUrl',
+  //   type: VariableType.ENVIRONMENT,
+  //   dataType: VariableDataType.STRING,
+  //   access: VariableAccess.READONLY,
+  //   description: '基础URL地址',
+  //   required: false,
+  // },
 ]
 
 // 变量引用格式

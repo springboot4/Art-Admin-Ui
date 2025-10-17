@@ -183,28 +183,28 @@ export class NodeDependencyAnalyzer {
   }
 
   /**
-   * 获取会话变量（示例）
+   * 获取会话变量
    */
   private getConversationVariables(): VariableDefinition[] {
     return [
-      {
-        id: 'conversation_chat_history',
-        name: 'chatHistory',
-        type: VariableType.CONVERSATION,
-        dataType: VariableDataType.ARRAY,
-        access: VariableAccess.READWRITE,
-        description: '对话历史记录',
-        required: false,
-      },
-      {
-        id: 'conversation_user_context',
-        name: 'userContext',
-        type: VariableType.CONVERSATION,
-        dataType: VariableDataType.OBJECT,
-        access: VariableAccess.READWRITE,
-        description: '用户上下文信息',
-        required: false,
-      },
+      // {
+      //   id: 'conversation_chat_history',
+      //   name: 'chatHistory',
+      //   type: VariableType.CONVERSATION,
+      //   dataType: VariableDataType.ARRAY,
+      //   access: VariableAccess.READWRITE,
+      //   description: '对话历史记录',
+      //   required: false,
+      // },
+      // {
+      //   id: 'conversation_user_context',
+      //   name: 'userContext',
+      //   type: VariableType.CONVERSATION,
+      //   dataType: VariableDataType.OBJECT,
+      //   access: VariableAccess.READWRITE,
+      //   description: '用户上下文信息',
+      //   required: false,
+      // },
     ]
   }
 
