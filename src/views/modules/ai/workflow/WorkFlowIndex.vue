@@ -234,7 +234,7 @@
   import WorkflowResultPanel from './components/WorkflowResultPanel.vue'
   import ChatPreviewPanel from './components/ChatPreviewPanel.vue'
   import StartNodeInputModal from '/@/components/Workflow/StartNodeInputModal.vue'
-  import { add, findByAppId, publish } from '/@/api/ai/workflow/AiWorkflowsIndex'
+  import { draft, findByAppId, publish } from '/@/api/ai/workflow/AiWorkflowsIndex'
   import { useWorkflowExecution } from './utils'
   import {
     type AppMode,
@@ -783,12 +783,12 @@
       const saveData = {
         name: workflowName.value,
         appId: appId.value,
-        version: 'draft', // 固定为 draft
+        version: 'draft',
         graph: JSON.stringify(workflowData),
         type: appMode.value,
       }
 
-      const response = await add(saveData)
+      const response = await draft(saveData)
 
       if (response === true || response) {
         // 保存成功，通过findByAppId获取工作流信息

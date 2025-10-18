@@ -74,6 +74,16 @@ export function add(data: AiWorkflowsDTO) {
 }
 
 /**
+ * 草稿
+ */
+export function draft(data: AiWorkflowsDTO) {
+  return defHttp.post<AiWorkflowsDTO>({
+    url: '/ai/ai/workflows/draft',
+    data,
+  })
+}
+
+/**
  * 删除
  */
 export function del(id) {
