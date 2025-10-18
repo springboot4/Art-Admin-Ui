@@ -1505,113 +1505,172 @@
 
   .workflow-toolbar {
     position: absolute;
-    top: 24px;
-    left: 24px;
-    right: 24px;
+    top: 16px;
+    left: 16px;
+    right: 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     z-index: 10;
-    pointer-events: none; /* 允许点击穿透到画布 */
+    pointer-events: none;
   }
 
   .toolbar-left,
   .toolbar-right {
-    pointer-events: auto; /* Restore click events for children */
+    pointer-events: auto;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
   }
 
   .workflow-name-input {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
-    border: 1px solid #d1d5db;
-    background-color: #ffffff;
-    color: #1f2937;
-    padding: 6px 12px;
-    border-radius: 12px;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: none;
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    color: #111827;
+    padding: 8px 12px;
+    min-width: 200px;
+    max-width: 400px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
   }
 
   .workflow-name-input:hover {
-    border-color: #9ca3af;
+    color: #000000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.08);
   }
 
   .workflow-name-input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    outline: none;
+    color: #000000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 
-  /* Buttons floating directly on the canvas */
+  .workflow-name-input::placeholder {
+    color: #9ca3af;
+  }
+
+  /* 按钮样式 - 顶级专业设计 */
   .toolbar-right :deep(.ant-btn) {
-    border-radius: 12px;
-    height: 38px;
-    padding: 0 16px;
+    border-radius: 7px;
+    height: 34px;
+    padding: 0 14px;
+    font-size: 13px;
     font-weight: 500;
-    transition: all 0.2s ease-in-out;
-    border: 1px solid #d1d5db; /* Clean border */
-    background-color: #ffffff; /* Solid background */
+    letter-spacing: 0.01em;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
     color: #374151;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Subtle shadow */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .toolbar-right :deep(.ant-btn .anticon) {
+    font-size: 15px;
+    line-height: 1;
   }
 
   .toolbar-right :deep(.ant-btn:hover) {
+    border-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(249, 250, 251, 0.98);
+    color: #111827;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
     transform: translateY(-1px);
-    border-color: #9ca3af;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
   }
 
-  .toolbar-right :deep(.ant-btn:focus),
   .toolbar-right :deep(.ant-btn:active) {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
   }
 
-  /* Primary button (Save) */
+  .toolbar-right :deep(.ant-btn:focus) {
+    outline: none;
+  }
+
+  /* Primary buttons */
   .toolbar-right :deep(.ant-btn-primary) {
-    background-color: #3b82f6;
+    background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
     color: white;
     border-color: transparent;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   .toolbar-right :deep(.ant-btn-primary:hover) {
-    background-color: #2563eb;
+    background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.25), 0 2px 4px rgba(0, 0, 0, 0.1);
     transform: translateY(-1px);
   }
 
-  /* Special "Run" button */
+  .toolbar-right :deep(.ant-btn-primary:active) {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  }
+
+  /* Run button */
   .toolbar-right :deep(.btn-run) {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
     border-color: transparent;
     color: white;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   .toolbar-right :deep(.btn-run:hover) {
+    background: linear-gradient(180deg, #059669 0%, #047857 100%);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.25), 0 2px 4px rgba(0, 0, 0, 0.1);
     transform: translateY(-1px);
-    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
   }
 
-  /* Special "Publish" button */
+  .toolbar-right :deep(.btn-run:active) {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+  }
+
+  /* Publish button */
   .toolbar-right :deep(.btn-publish) {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
     border-color: transparent;
     color: white;
+    box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   .toolbar-right :deep(.btn-publish:hover) {
+    background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
+    box-shadow: 0 4px 8px rgba(139, 92, 246, 0.25), 0 2px 4px rgba(0, 0, 0, 0.1);
     transform: translateY(-1px);
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
   }
 
+  .toolbar-right :deep(.btn-publish:active) {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+  }
+
+  /* Loading state */
+  .toolbar-right :deep(.ant-btn-loading) {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  /* Disabled state */
+  .toolbar-right :deep(.ant-btn[disabled]) {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  /* Divider - 更精致 */
   .toolbar-right :deep(.ant-divider-vertical) {
     height: 20px;
-    margin: 0;
-    border-left: 1px solid #e5e7eb;
+    margin: 0 4px;
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
   }
 
   .workflow-status {
@@ -1631,21 +1690,20 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 10px;
-    border-radius: 16px;
-    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
     font-weight: 500;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(67, 56, 202, 0.1) 100%);
+    background: rgba(255, 255, 255, 0.95);
     color: #4f46e5;
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.04);
     transition: all 0.2s ease;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
   }
 
   .version-tag:hover {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(67, 56, 202, 0.15) 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.08);
   }
 
   .version-icon {
@@ -1716,15 +1774,17 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 6px 14px;
-    border-radius: 20px;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: 8px;
     font-size: 13px;
     font-weight: 500;
     transition: all 0.2s ease;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.04);
     min-height: 32px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
   }
 
   .status-dot {
