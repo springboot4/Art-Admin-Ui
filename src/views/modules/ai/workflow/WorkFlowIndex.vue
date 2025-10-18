@@ -8,10 +8,16 @@
           class="workflow-name-input"
           placeholder="输入工作流名称..."
         />
+        <!-- 统一的状态展示 -->
         <div class="workflow-status">
-          <div :class="['modern-status-tag', `status-${workflowStatus}`]">
-            <div class="status-dot"></div>
-            <span class="status-text">{{ getStatusText(workflowStatus) }}</span>
+          <div :class="['modern-status-tag', `status-${getUnifiedStatus}`]">
+            <!-- 自动保存状态图标 -->
+            <span v-if="autoSaveStatus === 'saving'" class="status-icon icon-loading">⏳</span>
+            <span v-else-if="autoSaveStatus === 'error'" class="status-icon icon-error">⚠️</span>
+            <span v-else-if="autoSaveStatus === 'pending'" class="status-icon icon-pending">●</span>
+            <!-- 普通状态点 -->
+            <div v-else class="status-dot"></div>
+            <span class="status-text">{{ getUnifiedStatusText }}</span>
           </div>
         </div>
 
@@ -55,13 +61,6 @@
           </a-button>
 
           <a-divider type="vertical" />
-
-          <a-button :loading="saving" type="primary" @click="saveWorkflow">
-            <template #icon>
-              <SaveOutlined />
-            </template>
-            保存
-          </a-button>
 
           <a-button :loading="executing" class="btn-run" type="primary" @click="executeWorkflow">
             <template #icon>
@@ -227,7 +226,6 @@
     ImportOutlined,
     PlayCircleOutlined,
     PlusOutlined,
-    SaveOutlined,
   } from '@ant-design/icons-vue'
   import CustomNode from './components/CustomNode.vue'
   import NodeConfigPanel from './components/NodeConfigPanel.vue'
@@ -242,6 +240,7 @@
     validateAppMode,
   } from '/@/utils/workflowNodeFilter'
   import { useWorkflowRuntimeStyles } from './composables/useWorkflowRuntimeStyles'
+  import { useAutoSave } from './composables/useAutoSave'
 
   import '@vue-flow/core/dist/style.css'
   import '@vue-flow/core/dist/theme-default.css'
@@ -435,6 +434,24 @@
     clearExecution,
   } = useWorkflowExecution()
 
+  // ==================== 自动保存逻辑 ====================
+  const {
+    status: autoSaveStatus,
+    statusText: autoSaveStatusText,
+    isSaving: autoSaving,
+    hasUnsavedChanges,
+    pause: pauseAutoSave,
+    resume: resumeAutoSave,
+    setupAutoSave,
+  } = useAutoSave({
+    debounceDelay: 5000, // 5秒防抖
+    maxWaitTime: 30000, // 最长30秒
+    enabled: true,
+    maxRetries: 3,
+    retryDelay: 2000,
+    saveOnUnmount: true,
+  })
+
   // 节点 ID 生成器
   let nodeId = 1
   const generateNodeId = () => `node_${nodeId++}`
@@ -575,8 +592,82 @@
   }
 
   // 组件挂载时加载数据
-  onMounted(() => {
-    loadWorkflowByAppId()
+  onMounted(async () => {
+    await loadWorkflowByAppId()
+
+    // 加载完成后设置自动保存
+    // 只有在有 appId 的情况下才启用自动保存
+    if (appId.value) {
+      setupAutoSave(
+        [nodes, edges], // 监听节点和边的变化
+        // 获取要保存的数据
+        () => ({
+          nodes: nodes.value,
+          edges: edges.value,
+          name: workflowName.value,
+        }),
+        // 执行保存的函数
+        async () => {
+          try {
+            // 清理节点数据，只保留必要的属性
+            const cleanNodes = nodes.value.map((node) => ({
+              id: node.id,
+              type: node.type,
+              position: node.position,
+              label: node.label,
+              data: node.data,
+            }))
+
+            const cleanEdges = edges.value.map((edge) => ({
+              id: edge.id,
+              source: edge.source,
+              target: edge.target,
+              sourceHandle: edge.sourceHandle,
+              targetHandle: edge.targetHandle,
+              type: edge.type || 'default',
+            }))
+
+            const workflowData = {
+              name: workflowName.value,
+              nodes: cleanNodes,
+              edges: cleanEdges,
+              exportTime: new Date().toISOString(),
+            }
+
+            // 构建保存数据
+            const saveData = {
+              name: workflowName.value,
+              appId: appId.value,
+              version: 'draft',
+              graph: JSON.stringify(workflowData),
+              type: appMode.value,
+            }
+
+            const response = await draft(saveData)
+
+            if (response === true || response) {
+              // 保存成功，更新工作流信息
+              try {
+                const workflowInfo = await findByAppId(appId.value)
+                if (workflowInfo && workflowInfo.id) {
+                  currentWorkflowId.value = workflowInfo.id
+                  workflowVersion.value = workflowInfo.version || 'draft'
+                }
+              } catch (error) {
+                console.error('[AutoSave] 获取工作流信息失败:', error)
+              }
+              workflowStatus.value = 'saved'
+              return true
+            } else {
+              return false
+            }
+          } catch (error) {
+            console.error('[AutoSave] 自动保存失败:', error)
+            return false
+          }
+        },
+      )
+    }
   })
 
   // 创建节点的统一方法
@@ -660,7 +751,6 @@
     }
 
     edges.value.push(newEdge)
-    message.success('节点连接成功')
   }
 
   const onNodeClick = (_event, _node) => {}
@@ -693,14 +783,12 @@
 
     // 关闭菜单
     showAddNodeMenu.value = false
-    message.success(`${nodeType.label} 已添加到画布`)
   }
 
   // 节点操作处理
   const handleDeleteNode = (nodeId) => {
     nodes.value = nodes.value.filter((node) => node.id !== nodeId)
     edges.value = edges.value.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
-    message.success('节点已删除')
   }
 
   const handleEditNode = (nodeId) => {
@@ -726,7 +814,6 @@
     }
 
     nodes.value.push(newNode)
-    message.success('节点已复制')
   }
 
   // 配置面板相关
@@ -743,8 +830,6 @@
 
       // 强制触发响应式更新
       nodes.value = [...nodes.value]
-
-      message.success('节点配置已保存')
     }
     configPanelVisible.value = false
     selectedNode.value = null
@@ -1057,6 +1142,11 @@
     executing.value = running
     if (running) {
       workflowStatus.value = 'executing'
+      // 执行时暂停自动保存
+      pauseAutoSave()
+    } else {
+      // 执行完成后恢复自动保存
+      resumeAutoSave()
     }
   })
 
@@ -1169,7 +1259,51 @@
     }
   }
 
-  // 状态相关
+  // 统一的状态计算（优先级：自动保存 > 工作流执行 > 发布状态）
+  const getUnifiedStatus = computed(() => {
+    // 自动保存状态优先级最高
+    if (autoSaveStatus.value === 'saving') return 'saving'
+    if (autoSaveStatus.value === 'error') return 'error'
+    if (autoSaveStatus.value === 'pending') return 'pending'
+
+    // 其次是工作流执行状态
+    if (workflowStatus.value === 'executing') return 'executing'
+    if (workflowStatus.value === 'error') return 'error'
+
+    // 最后是发布状态
+    if (workflowStatus.value === 'published') return 'published'
+
+    // 默认显示保存状态
+    if (autoSaveStatus.value === 'success' || autoSaveStatus.value === 'idle') {
+      return 'saved'
+    }
+
+    return 'draft'
+  })
+
+  const getUnifiedStatusText = computed(() => {
+    // 自动保存状态文本
+    if (autoSaveStatus.value === 'saving') return '保存中...'
+    if (autoSaveStatus.value === 'pending') return '等待保存...'
+    if (autoSaveStatus.value === 'error') return '保存失败'
+
+    // 工作流执行状态文本
+    if (workflowStatus.value === 'executing') return '执行中'
+    if (workflowStatus.value === 'error') return '执行失败'
+
+    // 发布状态文本
+    if (workflowStatus.value === 'published') return '已发布'
+
+    // 保存成功状态文本（显示时间）
+    if (autoSaveStatus.value === 'success' && autoSaveStatusText.value) {
+      return autoSaveStatusText.value
+    }
+
+    // 默认状态
+    return '草稿'
+  })
+
+  // 原有的状态文本方法保留（用于其他地方）
   const getStatusText = (status) => {
     const statusMap = {
       draft: '草稿',
@@ -1213,22 +1347,49 @@
       return false
     }
 
+    // 检查源节点的输出端口是否已经连接了其他节点
+    const existingOutputConnection = edges.value.find(
+      (edge) => edge.source === connection.source && edge.sourceHandle === connection.sourceHandle,
+    )
+
+    if (existingOutputConnection) {
+      // 如果是相同的连接（同一个目标节点和目标端口），则允许通过（重复连接）
+      if (
+        existingOutputConnection.target === connection.target &&
+        existingOutputConnection.targetHandle === connection.targetHandle
+      ) {
+        // 重复连接，允许（VueFlow可能会重新触发）
+        return true
+      } else {
+        // 该输出端口已经连接了其他节点
+        console.warn('❌ 连接失败：源节点的输出端口已经连接了其他节点', {
+          sourceNode: connection.source,
+          sourceHandle: connection.sourceHandle,
+          existingTarget: existingOutputConnection.target,
+        })
+        return false
+      }
+    }
+
     // 检查目标节点的输入端口是否已经被其他节点连接
-    const existingConnection = edges.value.find(
+    const existingInputConnection = edges.value.find(
       (edge) => edge.target === connection.target && edge.targetHandle === connection.targetHandle,
     )
 
-    if (existingConnection) {
-      // 如果是相同的连接（同一个源节点和源端口），则允许通过
+    if (existingInputConnection) {
+      // 如果是相同的连接（同一个源节点和源端口），则允许通过（重复连接）
       if (
-        existingConnection.source === connection.source &&
-        existingConnection.sourceHandle === connection.sourceHandle
+        existingInputConnection.source === connection.source &&
+        existingInputConnection.sourceHandle === connection.sourceHandle
       ) {
+        // 重复连接，允许（VueFlow可能会重新触发）
+        return true
       } else {
+        // 不同的节点试图连接到已被占用的输入端口
         console.warn('❌ 连接失败：目标节点的输入端口已经被其他节点连接', {
           targetNode: connection.target,
           targetHandle: connection.targetHandle,
-          existingSource: existingConnection.source,
+          existingSource: existingInputConnection.source,
         })
         return false
       }
@@ -1497,18 +1658,73 @@
     font-weight: 600;
   }
 
+  /* 统一状态图标样式 */
+  .status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .icon-loading {
+    animation: rotate 2s linear infinite;
+    display: inline-block;
+  }
+
+  .icon-error {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .icon-pending {
+    font-size: 10px;
+    line-height: 1;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* 新增 saving 和 pending 状态样式 */
+  .status-saving {
+    background: linear-gradient(135deg, rgba(24, 144, 255, 0.1) 0%, rgba(69, 139, 255, 0.1) 100%);
+    border-color: rgba(24, 144, 255, 0.3);
+  }
+
+  .status-saving .status-text {
+    color: #1890ff;
+  }
+
+  .status-pending {
+    background: linear-gradient(135deg, rgba(250, 173, 20, 0.1) 0%, rgba(250, 219, 20, 0.1) 100%);
+    border-color: rgba(250, 173, 20, 0.3);
+  }
+
+  .status-pending .status-text {
+    color: #faad14;
+  }
+
   /* 现代化状态标签样式 */
   .modern-status-tag {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    padding: 6px 12px;
+    padding: 6px 14px;
     border-radius: 20px;
     font-size: 13px;
     font-weight: 500;
     transition: all 0.2s ease;
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    min-height: 32px;
   }
 
   .status-dot {
@@ -1516,10 +1732,14 @@
     height: 8px;
     border-radius: 50%;
     transition: all 0.2s ease;
+    flex-shrink: 0;
   }
 
   .status-text {
     white-space: nowrap;
+    line-height: 1.5;
+    display: inline-flex;
+    align-items: center;
   }
 
   /* 不同状态的样式 */
