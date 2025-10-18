@@ -599,7 +599,7 @@
     // 只有在有 appId 的情况下才启用自动保存
     if (appId.value) {
       setupAutoSave(
-        [nodes, edges], // 监听节点和边的变化
+        [nodes, edges, workflowName], // 监听节点、边和工作流名称的变化
         // 获取要保存的数据
         () => ({
           nodes: nodes.value,
