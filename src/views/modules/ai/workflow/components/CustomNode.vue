@@ -215,148 +215,259 @@
 
 <style scoped>
   .custom-node {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    min-width: 200px;
-    max-width: 280px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
-    transition: all 0.2s ease-in-out;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    min-width: 240px;
+    max-width: 300px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    overflow: visible; /* Allow handles and buttons to overflow */
+    overflow: visible;
   }
 
   .custom-node:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    transform: translateY(-2px);
-    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
+    border-color: #d1d5db;
+    transform: translateY(-0.5px);
   }
 
+  /* 选中状态 - 使用单一强调色 */
   .custom-node.selected {
     border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
-  /* Status-specific styles */
+  /* 运行中 - 微妙的蓝色左边框强调 */
   .custom-node.status-running {
-    border-left: 4px solid #3b82f6;
+    border-left: 2px solid #3b82f6;
+    border-left-width: 3px;
   }
 
+  /* 成功 - 微妙的绿色左边框 */
   .custom-node.status-success {
-    border-left: 4px solid #22c55e;
+    border-left: 2px solid #10b981;
+    border-left-width: 3px;
   }
 
+  /* 错误 - 微妙的红色左边框 */
   .custom-node.status-error {
-    border-left: 4px solid #ef4444;
+    border-left: 2px solid #ef4444;
+    border-left-width: 3px;
   }
 
+  /* 头部 - 极简设计 */
   .node-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    color: #1f2937;
+    gap: 8px;
+    padding: 11px 12px 10px;
+    color: #111827;
     font-weight: 600;
-    border-bottom: 1px solid #f1f5f9;
-    background-color: #f8fafc;
-    border-top-left-radius: 11px;
-    border-top-right-radius: 11px;
+    border-bottom: 1px solid #f3f4f6;
+    background: #fafafa;
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
   }
 
   .node-icon {
-    font-size: 18px;
+    font-size: 16px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 
   .node-title {
     flex: 1;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #111827;
   }
 
   .node-actions {
     display: flex;
-    gap: 4px;
+    gap: 2px;
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.15s ease;
   }
 
   .custom-node:hover .node-actions {
     opacity: 1;
   }
 
-  .node-actions .ant-btn {
-    color: #64748b;
+  .node-actions :deep(.ant-btn) {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
     background: transparent;
     border: none;
+    border-radius: 4px;
+    font-size: 13px;
   }
 
-  .node-actions .ant-btn:hover {
-    color: #1f2937;
-    background: #e2e8f0;
+  .node-actions :deep(.ant-btn:hover) {
+    color: #111827;
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  .node-actions :deep(.ant-btn.ant-btn-dangerous:hover) {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
   }
 
   .node-content {
-    padding: 12px 14px;
-    font-size: 13px;
-    color: #475569;
-  }
-
-  /* Modern Port (Handle) Styles */
-  .node-handle {
-    width: 12px;
-    height: 12px;
-    border: 2px solid #e2e8f0;
+    padding: 12px;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.5;
     background: #ffffff;
-    border-radius: 50%;
-    transition: all 0.2s ease-in-out;
-    opacity: 0; /* Hidden by default */
-    transform: scale(0.8);
   }
 
-  /* Show handles on node hover or when node is selected */
-  .custom-node:hover .node-handle,
-  .custom-node.selected .node-handle {
+  .node-description {
+    color: #6b7280;
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+
+  .config-preview {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f3f4f6;
+  }
+
+  .config-item {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+
+  .config-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .config-label {
+    color: #9ca3af;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .config-value {
+    color: #374151;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 端口设计 - 极简专业
+   * 默认低调灰色，激活时单一蓝色
+   */
+  .node-handle {
+    width: 10px;
+    height: 10px;
+    border: 2px solid #ffffff;
+    background: #9ca3af;
+    border-radius: 50%;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  /* 始终显示端口 */
+  .node-handle {
     opacity: 1;
     transform: scale(1);
   }
 
-  /* Highlight handle when connecting or hovering directly */
+  /* 激活状态 - 单一蓝色 */
   .node-handle.connecting,
   .node-handle:hover {
-    border-color: #3b82f6;
+    border-color: #ffffff;
     background: #3b82f6;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
-    transform: scale(1.2); /* Add extra emphasis */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), 0 1px 3px rgba(0, 0, 0, 0.15);
+    transform: scale(1.15);
   }
 
   .input-handle {
-    left: -7px;
+    left: -6px;
   }
 
   .output-handle {
-    right: -7px;
+    right: -6px;
   }
 
-  /* Condition Node Specific Styles */
+  /* 条件节点 - 极简列表风格 */
   .condition-preview {
-    margin-top: 8px;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #f3f4f6;
   }
 
   .condition-item-with-port {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
+    padding: 8px 6px;
+    margin: 4px -6px;
     position: relative;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+    background: transparent;
+  }
+
+  .condition-item-with-port:hover {
+    background: #f9fafb;
   }
 
   .condition-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .condition-label {
     font-size: 12px;
-    color: #334155;
+    font-weight: 500;
+    color: #111827;
+  }
+
+  .condition-expr {
+    font-size: 11px;
+    color: #6b7280;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New',
+      monospace;
+  }
+
+  .condition-expr.else-expr {
+    color: #9ca3af;
+    font-style: italic;
   }
 
   .inline-condition-handle {
-    position: static; /* Remove absolute positioning */
-    transform: none;
-    margin-left: 12px;
+    position: relative !important;
+    transform: none !important;
+    margin-left: 8px;
+    flex-shrink: 0;
+  }
+
+  /* else条件端口 - 使用灰色系保持统一 */
+  .inline-condition-handle.else-handle {
+    background: #6b7280;
+  }
+
+  .inline-condition-handle.else-handle:hover,
+  .inline-condition-handle.else-handle.connecting {
+    background: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), 0 1px 3px rgba(0, 0, 0, 0.15);
   }
 </style>

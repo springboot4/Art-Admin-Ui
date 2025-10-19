@@ -197,6 +197,7 @@
     <ChatPreviewPanel
       v-if="appMode === 'chatflow'"
       :initial-inputs="chatInitialInputs"
+      :user-inputs-schema="getStartNodeUserInputs()"
       :visible="chatPreviewVisible"
       :workflow-id="currentWorkflowId"
       @close="closeChatPreview"
@@ -216,7 +217,7 @@
 <script lang="ts" setup>
   import { computed, nextTick, onMounted, provide, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
-  import { applyEdgeChanges, applyNodeChanges, VueFlow } from '@vue-flow/core'
+  import { applyEdgeChanges, applyNodeChanges, VueFlow, useVueFlow } from '@vue-flow/core'
   import { Controls } from '@vue-flow/controls'
   import { Button as AButton, Input as AInput, message, Space as ASpace } from 'ant-design-vue'
   import {
@@ -247,6 +248,9 @@
   import '@vue-flow/controls/dist/style.css'
 
   const route = useRoute()
+
+  // VueFlow实例 - 用于获取视口信息
+  const { project, getViewport } = useVueFlow()
 
   // 路由参数
   const appId = ref(route.query.appId)
@@ -774,19 +778,47 @@
 
   const onEdgeClick = (_event, _edge) => {}
 
-  // 从菜单添加节点 - 添加到画布中央，不自动连接
+  // 从菜单添加节点 - 添加到当前视口中央
   const addNodeFromMenu = (nodeType) => {
-    // 计算画布中央位置
-    const canvas = document.querySelector('.vue-flow-container')
-    const canvasRect = canvas?.getBoundingClientRect()
+    try {
+      // 获取画布容器尺寸
+      const canvas = document.querySelector('.vue-flow-container')
+      const canvasRect = canvas?.getBoundingClientRect()
 
-    const centerPosition = {
-      x: canvasRect ? canvasRect.width / 2 - 100 : 400,
-      y: canvasRect ? canvasRect.height / 2 - 60 : 300,
+      if (!canvasRect) {
+        console.warn('无法获取画布尺寸，使用默认位置')
+        const newNode = createNode(nodeType, { x: 400, y: 300 })
+        nodes.value.push(newNode)
+        showAddNodeMenu.value = false
+        return
+      }
+
+      // 获取当前视口信息（考虑缩放和平移）
+      const viewport = getViewport()
+
+      // 计算视口中心在屏幕上的像素坐标
+      const centerX = canvasRect.width / 2
+      const centerY = canvasRect.height / 2
+
+      // 将屏幕坐标转换为画布坐标（考虑缩放和平移）
+      const canvasPosition = project({
+        x: centerX,
+        y: centerY,
+      })
+
+      // 创建新节点（节点宽度约240px，高度约120px，所以偏移一半）
+      const newNode = createNode(nodeType, {
+        x: canvasPosition.x - 120,
+        y: canvasPosition.y - 60,
+      })
+
+      nodes.value.push(newNode)
+    } catch (error) {
+      console.error('添加节点失败:', error)
+      // 降级到默认位置
+      const newNode = createNode(nodeType, { x: 400, y: 300 })
+      nodes.value.push(newNode)
     }
-
-    const newNode = createNode(nodeType, centerPosition)
-    nodes.value.push(newNode)
 
     // 关闭菜单
     showAddNodeMenu.value = false
@@ -810,13 +842,47 @@
     const originalNode = nodes.value.find((n) => n.id === nodeId)
     if (!originalNode) return
 
+    // 智能计算复制节点的位置
+    // 如果原节点在视口内，则偏移一小段距离
+    // 如果原节点不在视口内，则放到视口中央
+    let newPosition = {
+      x: originalNode.position.x + 50,
+      y: originalNode.position.y + 50,
+    }
+
+    try {
+      const viewport = getViewport()
+      const canvas = document.querySelector('.vue-flow-container')
+      const canvasRect = canvas?.getBoundingClientRect()
+
+      if (canvasRect) {
+        // 检查原节点是否在当前视口内
+        const nodeInViewport = project({
+          x: canvasRect.width / 2,
+          y: canvasRect.height / 2,
+        })
+
+        // 如果原节点距离视口中心太远（超过1000px），则将新节点放到视口中央
+        const distanceToCenter = Math.sqrt(
+          Math.pow(originalNode.position.x - nodeInViewport.x, 2) +
+            Math.pow(originalNode.position.y - nodeInViewport.y, 2),
+        )
+
+        if (distanceToCenter > 1000) {
+          newPosition = {
+            x: nodeInViewport.x - 120,
+            y: nodeInViewport.y - 60,
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('计算复制位置失败，使用默认偏移:', error)
+    }
+
     const newNode = {
       ...originalNode,
       id: generateNodeId(),
-      position: {
-        x: originalNode.position.x + 50,
-        y: originalNode.position.y + 50,
-      },
+      position: newPosition,
       label: `${originalNode.label} 副本`,
     }
 

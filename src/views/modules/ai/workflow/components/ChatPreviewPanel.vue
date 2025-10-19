@@ -65,6 +65,19 @@
         </div>
       </div>
       <div class="status-right">
+        <!-- 初始参数按钮 -->
+        <Button
+          v-if="hasInitialInputs"
+          size="small"
+          type="text"
+          class="initial-inputs-btn"
+          @click="toggleInitialInputs"
+        >
+          <template #icon>
+            <FormOutlined />
+          </template>
+          初始参数
+        </Button>
         <Dropdown>
           <Button size="small" type="text">
             <template #icon>
@@ -91,6 +104,138 @@
         </Dropdown>
       </div>
     </div>
+
+    <!-- 初始参数展示区域 -->
+    <transition name="slide-down">
+      <div v-if="hasInitialInputs && showInitialInputs" class="initial-inputs-panel">
+        <div class="panel-title-row">
+          <div class="title-content">
+            <FormOutlined class="title-icon" />
+            <span class="title-text">初始参数</span>
+          </div>
+          <div class="title-actions">
+            <Button
+              v-if="!isEditingInputs"
+              size="small"
+              type="text"
+              class="edit-btn"
+              @click="startEditInputs"
+            >
+              <EditOutlined />
+              编辑
+            </Button>
+            <template v-else>
+              <Button size="small" type="text" class="save-btn" @click="saveEditInputs">
+                <CheckOutlined />
+                保存
+              </Button>
+              <Button size="small" type="text" class="cancel-btn" @click="cancelEditInputs">
+                <CloseOutlined />
+                取消
+              </Button>
+            </template>
+          </div>
+        </div>
+        <div class="inputs-content">
+          <!-- 查看模式 -->
+          <div v-if="!isEditingInputs" class="inputs-view">
+            <div v-for="(value, key) in currentInputs" :key="`view-${key}`" class="input-item-view">
+              <div class="input-label">
+                {{ getInputDisplayName(key) }}
+                <span
+                  v-if="getInputSchema(key)"
+                  :class="['type-badge-small', `type-${getInputSchema(key).dataType}`]"
+                >
+                  {{ getTypeDisplayName(getInputSchema(key).dataType) }}
+                </span>
+              </div>
+              <!-- 布尔值特殊展示 -->
+              <div v-if="getInputDataType(key) === 'boolean'" class="input-value boolean-value">
+                <span :class="['boolean-badge', value ? 'is-true' : 'is-false']">
+                  {{ value ? '✓ 是' : '✗ 否' }}
+                </span>
+              </div>
+              <!-- JSON/数组特殊展示 -->
+              <div
+                v-else-if="getInputDataType(key) === 'json' || getInputDataType(key) === 'array'"
+                class="input-value code-value"
+              >
+                {{ formatJsonValue(value) }}
+              </div>
+              <!-- 普通值 -->
+              <div v-else class="input-value">{{ value }}</div>
+            </div>
+          </div>
+          <!-- 编辑模式 -->
+          <div v-else class="inputs-edit">
+            <div v-for="(value, key) in editingInputs" :key="`edit-${key}`" class="input-item-edit">
+              <div class="input-label-edit">
+                {{ getInputDisplayName(key) }}
+                <span
+                  v-if="getInputSchema(key)"
+                  :class="['type-badge', `type-${getInputSchema(key).dataType}`]"
+                >
+                  {{ getTypeDisplayName(getInputSchema(key).dataType) }}
+                </span>
+              </div>
+
+              <!-- 字符串类型 -->
+              <a-input
+                v-if="getInputDataType(key) === 'string' || !getInputDataType(key)"
+                v-model:value="editingInputs[key]"
+                :placeholder="`请输入${getInputDisplayName(key)}`"
+                class="input-field"
+              />
+
+              <!-- 多行文本 -->
+              <a-textarea
+                v-else-if="getInputDataType(key) === 'text'"
+                v-model:value="editingInputs[key]"
+                :placeholder="`请输入${getInputDisplayName(key)}`"
+                :rows="3"
+                class="input-field textarea-field"
+              />
+
+              <!-- 数字类型 -->
+              <a-input-number
+                v-else-if="getInputDataType(key) === 'number'"
+                v-model:value="editingInputs[key]"
+                :placeholder="`请输入${getInputDisplayName(key)}`"
+                class="input-field number-field"
+                style="width: 100%"
+              />
+
+              <!-- 布尔类型 -->
+              <div v-else-if="getInputDataType(key) === 'boolean'" class="switch-field">
+                <a-switch v-model:checked="editingInputs[key]" class="modern-switch" />
+                <span class="switch-label">
+                  {{ editingInputs[key] ? '是' : '否' }}
+                </span>
+              </div>
+
+              <!-- JSON/数组类型 -->
+              <a-textarea
+                v-else-if="getInputDataType(key) === 'json' || getInputDataType(key) === 'array'"
+                v-model:value="editingInputs[key]"
+                :placeholder="
+                  getInputDataType(key) === 'array' ? '请输入数组格式' : '请输入JSON格式'
+                "
+                :rows="4"
+                class="input-field code-field"
+              />
+
+              <!-- 默认字符串 -->
+              <a-input
+                v-else
+                v-model:value="editingInputs[key]"
+                :placeholder="`请输入${getInputDisplayName(key)}`"
+                class="input-field"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- 对话消息区域 -->
     <div class="chat-messages-container">
@@ -232,7 +377,15 @@
 <script lang="ts" setup>
   import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
-  import { Button, Dropdown, Input as AInput, message, Menu } from 'ant-design-vue'
+  import {
+    Button,
+    Dropdown,
+    Input as AInput,
+    InputNumber as AInputNumber,
+    message,
+    Menu,
+    Switch as ASwitch,
+  } from 'ant-design-vue'
   import { Textarea as ATextarea } from 'ant-design-vue/es/input'
   import {
     CheckOutlined,
@@ -242,6 +395,7 @@
     EditOutlined,
     ExclamationCircleOutlined,
     ExportOutlined,
+    FormOutlined,
     LoadingOutlined,
     MoreOutlined,
     PlusOutlined,
@@ -254,14 +408,25 @@
   import { useChatflowExecution } from '../composables/useChatflowExecution'
   import { updateName } from '/@/api/ai/conversation/AiConversationsIndex'
 
+  interface UserInput {
+    name: string
+    displayName?: string
+    dataType: 'string' | 'text' | 'number' | 'boolean' | 'json' | 'array'
+    description?: string
+    required: boolean
+    defaultValue?: any
+  }
+
   interface Props {
     visible: boolean
     workflowId: string | null
     initialInputs?: Record<string, any>
+    userInputsSchema?: UserInput[]
   }
 
   const props = withDefaults(defineProps<Props>(), {
     initialInputs: () => ({}),
+    userInputsSchema: () => [],
   })
 
   const emit = defineEmits<{
@@ -288,7 +453,20 @@
   const editingName = ref('')
   const nameInputRef = ref()
 
+  // 初始表单相关
+  const showInitialInputs = ref(false)
+  const isEditingInputs = ref(false)
+  const editingInputs = ref<Record<string, any>>({})
+  const currentInputs = ref<Record<string, any>>({})
+
   // ==================== 计算属性 ====================
+
+  /**
+   * 是否有初始输入参数
+   */
+  const hasInitialInputs = computed(() => {
+    return Object.keys(currentInputs.value).length > 0
+  })
 
   /**
    * 是否可以发送消息
@@ -407,7 +585,7 @@
         conversationId: conversationManager.conversationId.value,
         workflowId: props.workflowId,
         userInput,
-        inputs: props.initialInputs,
+        inputs: currentInputs.value,
       },
       {
         // 用户消息回调
@@ -605,6 +783,132 @@
     }
   }
 
+  /**
+   * 切换显示初始表单
+   */
+  const toggleInitialInputs = () => {
+    showInitialInputs.value = !showInitialInputs.value
+  }
+
+  /**
+   * 开始编辑初始输入
+   */
+  const startEditInputs = () => {
+    // 复制当前数据到编辑状态
+    const copied: Record<string, any> = {}
+
+    for (const key in currentInputs.value) {
+      const schema = getInputSchema(key)
+      let value = currentInputs.value[key]
+
+      // JSON和数组类型需要转换为字符串以供编辑
+      if (schema && (schema.dataType === 'json' || schema.dataType === 'array')) {
+        if (typeof value === 'object') {
+          copied[key] = JSON.stringify(value, null, 2)
+        } else {
+          copied[key] = value || ''
+        }
+      } else {
+        copied[key] = value
+      }
+    }
+
+    editingInputs.value = copied
+    isEditingInputs.value = true
+  }
+
+  /**
+   * 取消编辑初始输入
+   */
+  const cancelEditInputs = () => {
+    isEditingInputs.value = false
+    editingInputs.value = {}
+  }
+
+  /**
+   * 保存初始输入
+   */
+  const saveEditInputs = () => {
+    // 验证和处理数据
+    const processedInputs: Record<string, any> = {}
+
+    for (const key in editingInputs.value) {
+      const schema = getInputSchema(key)
+      let value = editingInputs.value[key]
+
+      if (schema) {
+        // 处理JSON和数组类型
+        if (schema.dataType === 'json' || schema.dataType === 'array') {
+          if (value && typeof value === 'string') {
+            try {
+              value = JSON.parse(value)
+            } catch (error) {
+              message.error(`${schema.displayName || key} 的JSON格式不正确`)
+              return
+            }
+          } else if (!value) {
+            value = schema.dataType === 'array' ? [] : {}
+          }
+        }
+      }
+
+      processedInputs[key] = value
+    }
+
+    currentInputs.value = processedInputs
+    isEditingInputs.value = false
+    message.success('初始参数已更新')
+  }
+
+  /**
+   * 获取输入字段的schema
+   */
+  const getInputSchema = (name: string): UserInput | undefined => {
+    return props.userInputsSchema?.find((input) => input.name === name)
+  }
+
+  /**
+   * 获取输入字段的显示名称
+   */
+  const getInputDisplayName = (name: string): string => {
+    const schema = getInputSchema(name)
+    return schema?.displayName || name
+  }
+
+  /**
+   * 获取输入字段的数据类型
+   */
+  const getInputDataType = (name: string): string => {
+    const schema = getInputSchema(name)
+    return schema?.dataType || 'string'
+  }
+
+  /**
+   * 获取数据类型显示名称
+   */
+  const getTypeDisplayName = (dataType: string): string => {
+    const typeMap: Record<string, string> = {
+      string: '文本',
+      text: '长文本',
+      number: '数字',
+      boolean: '布尔',
+      json: 'JSON',
+      array: '数组',
+    }
+    return typeMap[dataType] || '文本'
+  }
+
+  /**
+   * 格式化JSON值用于展示
+   */
+  const formatJsonValue = (value: any): string => {
+    if (value === null || value === undefined) return ''
+    if (typeof value === 'object') {
+      return JSON.stringify(value, null, 2)
+    }
+    return String(value)
+  }
+
   // ==================== 生命周期 ====================
 
   /**
@@ -622,21 +926,26 @@
     () => props.visible,
     async (visible) => {
       if (visible && appId.value) {
-        // 1. 初始化会话管理器
+        // 1. 初始化当前输入参数
+        currentInputs.value = { ...props.initialInputs }
+
+        // 2. 初始化会话管理器
         await conversationManager.initialize(appId.value)
 
-        // 2. 加载历史消息
+        // 3. 加载历史消息
         if (conversationManager.conversationId.value) {
           await messageHistory.loadMessages(conversationManager.conversationId.value)
           await scrollToBottom()
         }
 
-        // 3. 聚焦输入框
+        // 4. 聚焦输入框
         await nextTick()
         inputRef.value?.focus()
       } else if (!visible) {
         // 面板关闭时清理
         chatflowExecution.reset()
+        showInitialInputs.value = false
+        isEditingInputs.value = false
       }
     },
   )
@@ -838,6 +1147,16 @@
     border-bottom: 1px solid #f0f0f0;
     min-height: 48px;
 
+    .status-left {
+      flex: 1;
+    }
+
+    .status-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .status-indicator {
       display: flex;
       align-items: center;
@@ -849,6 +1168,354 @@
         font-weight: 500;
       }
     }
+
+    .initial-inputs-btn {
+      color: #1890ff;
+      font-size: 13px;
+
+      &:hover {
+        background: rgba(24, 144, 255, 0.08);
+      }
+
+      :deep(.anticon) {
+        font-size: 14px;
+      }
+    }
+  }
+
+  // 初始参数面板
+  .initial-inputs-panel {
+    background: #ffffff;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 12px 20px 16px;
+
+    .panel-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+
+      .title-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .title-icon {
+          font-size: 14px;
+          color: #1890ff;
+        }
+
+        .title-text {
+          font-size: 13px;
+          font-weight: 600;
+          color: #262626;
+        }
+      }
+
+      .title-actions {
+        display: flex;
+        gap: 6px;
+
+        :deep(.ant-btn) {
+          font-size: 12px;
+          padding: 0 8px;
+          height: 24px;
+        }
+
+        .edit-btn {
+          color: #1890ff;
+
+          &:hover {
+            background: rgba(24, 144, 255, 0.08);
+          }
+        }
+
+        .save-btn {
+          color: #52c41a;
+
+          &:hover {
+            background: rgba(82, 196, 26, 0.08);
+          }
+        }
+
+        .cancel-btn {
+          color: #8c8c8c;
+
+          &:hover {
+            background: rgba(0, 0, 0, 0.04);
+          }
+        }
+      }
+    }
+
+    .inputs-content {
+      background: #fafafa;
+      border: 1px solid #f0f0f0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    // 查看模式
+    .inputs-view {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .input-item-view {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .input-label {
+          font-size: 11px;
+          font-weight: 600;
+          color: #8c8c8c;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+
+          .type-badge-small {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+
+            &.type-string {
+              background: #e6f7ff;
+              color: #1890ff;
+            }
+
+            &.type-text {
+              background: #e6fffb;
+              color: #13c2c2;
+            }
+
+            &.type-number {
+              background: #f6ffed;
+              color: #52c41a;
+            }
+
+            &.type-boolean {
+              background: #fff7e6;
+              color: #fa8c16;
+            }
+
+            &.type-json {
+              background: #f9f0ff;
+              color: #722ed1;
+            }
+
+            &.type-array {
+              background: #fff0f6;
+              color: #eb2f96;
+            }
+          }
+        }
+
+        .input-value {
+          font-size: 13px;
+          color: #262626;
+          padding: 8px 10px;
+          background: #ffffff;
+          border: 1px solid #e8e8e8;
+          border-radius: 6px;
+          word-break: break-word;
+
+          &.boolean-value {
+            padding: 6px 10px;
+            border: none;
+            background: transparent;
+
+            .boolean-badge {
+              display: inline-flex;
+              align-items: center;
+              padding: 4px 12px;
+              border-radius: 12px;
+              font-size: 13px;
+              font-weight: 600;
+
+              &.is-true {
+                background: #f6ffed;
+                color: #52c41a;
+                border: 1px solid #b7eb8f;
+              }
+
+              &.is-false {
+                background: #fff1f0;
+                color: #ff4d4f;
+                border: 1px solid #ffccc7;
+              }
+            }
+          }
+
+          &.code-value {
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 12px;
+            background: #f7fafc;
+            white-space: pre-wrap;
+          }
+        }
+      }
+    }
+
+    // 编辑模式
+    .inputs-edit {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .input-item-edit {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+
+        .input-label-edit {
+          font-size: 12px;
+          font-weight: 600;
+          color: #595959;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          .type-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+
+            &.type-string {
+              background: #ebf8ff;
+              color: #2b6cb0;
+              border: 1px solid #bee3f8;
+            }
+
+            &.type-text {
+              background: #e6fffa;
+              color: #285e61;
+              border: 1px solid #9decf9;
+            }
+
+            &.type-number {
+              background: #f0fff4;
+              color: #276749;
+              border: 1px solid #9ae6b4;
+            }
+
+            &.type-boolean {
+              background: #fffaf0;
+              color: #c05621;
+              border: 1px solid #fbd38d;
+            }
+
+            &.type-json {
+              background: #faf5ff;
+              color: #553c9a;
+              border: 1px solid #c4b5fd;
+            }
+
+            &.type-array {
+              background: #fdf2f8;
+              color: #97266d;
+              border: 1px solid #f3e8ff;
+            }
+          }
+        }
+
+        .input-field {
+          border-radius: 6px;
+          border: 2px solid #e8e8e8;
+          transition: all 0.2s ease;
+
+          &:hover {
+            border-color: #d9d9d9;
+          }
+
+          &:focus-within {
+            border-color: #1890ff;
+            box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
+          }
+
+          :deep(.ant-input) {
+            font-size: 13px;
+          }
+
+          &.textarea-field {
+            :deep(textarea) {
+              font-size: 13px;
+            }
+          }
+
+          &.code-field {
+            :deep(textarea) {
+              font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+              font-size: 12px;
+              background: #f7fafc;
+            }
+          }
+
+          &.number-field {
+            :deep(.ant-input-number-input) {
+              font-size: 13px;
+            }
+          }
+        }
+
+        .switch-field {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          background: #f7fafc;
+          border: 2px solid #e8e8e8;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+
+          &:hover {
+            border-color: #d9d9d9;
+            background: #edf2f7;
+          }
+
+          .modern-switch {
+            :deep(.ant-switch) {
+              background: #d9d9d9;
+
+              &.ant-switch-checked {
+                background: #1890ff;
+              }
+            }
+          }
+
+          .switch-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #595959;
+          }
+        }
+      }
+    }
+  }
+
+  // 滑入动画
+  .slide-down-enter-active,
+  .slide-down-leave-active {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 400px;
+    overflow: hidden;
+  }
+
+  .slide-down-enter-from,
+  .slide-down-leave-to {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 
   // 消息容器
