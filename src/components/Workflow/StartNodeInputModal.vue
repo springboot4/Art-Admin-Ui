@@ -14,7 +14,7 @@
           <div class="icon-wrapper"> 🚀 </div>
         </div>
         <div class="header-content">
-          <h3 class="header-title">运行工作流</h3>
+          <h3 class="header-title">运行</h3>
           <p class="header-subtitle">配置输入参数并开始执行</p>
         </div>
       </div>
@@ -26,7 +26,7 @@
           <div class="icon-circle"> ⚡ </div>
         </div>
         <h3 class="empty-title">准备就绪</h3>
-        <p class="empty-description">当前工作流无需输入参数，可以直接运行</p>
+        <p class="empty-description">当前流程无需输入参数，可以直接运行</p>
       </div>
 
       <div v-else class="form-content">
@@ -34,7 +34,7 @@
           <div class="intro-icon">📝</div>
           <div class="intro-text">
             <h4>输入参数</h4>
-            <p>请填写以下必要的参数以启动工作流</p>
+            <p>请填写以下必要的参数以启动流程</p>
           </div>
         </div>
 
