@@ -12,6 +12,7 @@ interface SSEServiceOptions {
   onRetry?: (retryCount: number) => void
   onStart?: () => void // 新增：流程开始事件
   onDone?: () => void // 新增：流程结束事件
+  disableRetry?: boolean // 新增：禁用重试（默认false）
 }
 
 export class SSEService {
@@ -164,6 +165,11 @@ export class EnhancedSSEService extends SSEService {
         onerror: (error) => {
           console.error('增强SSE连接错误:', error)
           this.options.onError?.(error)
+
+          // 如果禁用重试，直接抛出错误终止连接
+          if (this.options.disableRetry) {
+            throw error
+          }
 
           return null
         },

@@ -1,7 +1,7 @@
 import {
   ENVIRONMENT_VARIABLES,
   NODE_OUTPUT_DEFINITIONS,
-  SYSTEM_VARIABLES,
+  getSystemVariables,
   VariableAccess,
   VariableDataType,
   VariableDefinition,
@@ -33,10 +33,12 @@ export interface WorkflowEdge {
 export class NodeDependencyAnalyzer {
   private nodes: WorkflowNode[]
   private edges: WorkflowEdge[]
+  private appMode: 'workflow' | 'chatflow'
 
-  constructor(nodes: WorkflowNode[], edges: WorkflowEdge[]) {
+  constructor(nodes: WorkflowNode[], edges: WorkflowEdge[], appMode: 'workflow' | 'chatflow' = 'workflow') {
     this.nodes = nodes
     this.edges = edges
+    this.appMode = appMode
   }
 
   /**
@@ -77,8 +79,8 @@ export class NodeDependencyAnalyzer {
   getAvailableVariables(nodeId: string): VariableDefinition[] {
     const variables: VariableDefinition[] = []
 
-    // 1. 添加系统变量（所有节点都可访问）
-    variables.push(...SYSTEM_VARIABLES)
+    // 1. 添加系统变量（所有节点都可访问，根据应用模式）
+    variables.push(...getSystemVariables(this.appMode))
 
     // 2. 添加环境变量（所有节点都可访问）
     variables.push(...ENVIRONMENT_VARIABLES)

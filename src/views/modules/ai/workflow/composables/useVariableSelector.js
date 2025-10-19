@@ -1,8 +1,11 @@
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { NodeDependencyAnalyzer } from '../utils/variableUtils'
 import { VariableType } from '../types'
 
 export function useVariableSelector(props, emit) {
+  // 从父组件注入 appMode，避免层层传递 props
+  const appMode = inject('appMode', ref('workflow'))
+
   // 状态
   const searchText = ref('')
   const activeGroups = ref(['system', 'environment', 'userInput', 'conversation', 'nodeOutput'])
@@ -11,7 +14,8 @@ export function useVariableSelector(props, emit) {
   const dependencyAnalyzer = computed(() => {
     const nodeList = props.nodes || []
     const edgeList = props.edges || []
-    return new NodeDependencyAnalyzer(nodeList, edgeList)
+    const mode = appMode.value || 'workflow'
+    return new NodeDependencyAnalyzer(nodeList, edgeList, mode)
   })
 
   const availableVariables = computed(() => {

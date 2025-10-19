@@ -115,8 +115,11 @@ export const NODE_OUTPUT_DEFINITIONS: Record<string, NodeOutputDefinition[]> = {
   output: [], // 输出节点没有输出参数
 }
 
-// 系统变量定义
-export const SYSTEM_VARIABLES: VariableDefinition[] = [
+// 系统变量定义 - 工作流模式
+export const SYSTEM_VARIABLES: VariableDefinition[] = []
+
+// 系统变量定义 - 对话流模式（包含用户查询）
+export const CHATFLOW_SYSTEM_VARIABLES: VariableDefinition[] = [
   {
     id: 'sys_user_query',
     name: 'query',
@@ -127,6 +130,14 @@ export const SYSTEM_VARIABLES: VariableDefinition[] = [
     required: true,
   }
 ]
+
+/**
+ * 根据应用模式获取系统变量
+ * @param appMode 应用模式：'workflow' | 'chatflow'
+ */
+export const getSystemVariables = (appMode: 'workflow' | 'chatflow'): VariableDefinition[] => {
+  return appMode === 'chatflow' ? CHATFLOW_SYSTEM_VARIABLES : SYSTEM_VARIABLES
+}
 
 // 环境变量定义
 export const ENVIRONMENT_VARIABLES: VariableDefinition[] = [

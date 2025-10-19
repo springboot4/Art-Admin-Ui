@@ -214,7 +214,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, nextTick, onMounted, ref, watch } from 'vue'
+  import { computed, nextTick, onMounted, provide, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import { applyEdgeChanges, applyNodeChanges, VueFlow } from '@vue-flow/core'
   import { Controls } from '@vue-flow/controls'
@@ -252,6 +252,9 @@
   const appId = ref(route.query.appId)
   const appMode = ref<AppMode>((route.query.appMode as AppMode) || 'workflow')
   const currentWorkflowId = ref(null)
+
+  // 提供 appMode 给所有子组件使用，避免层层传递 props
+  provide('appMode', appMode)
 
   // 后端返回的应用模式，用于校验
   const backendAppMode = ref<string | undefined>(undefined)
@@ -505,9 +508,13 @@
         appModeValidated.value = true
         appModeValidationError.value = undefined
 
-        // 更新可用节点类型（使用后端返回的模式或路由模式）
-        const currentMode = (backendAppMode.value || appMode.value) as AppMode
-        availableNodeTypes.value = filterNodeTypesByAppMode(allNodeTypes, currentMode)
+        // 更新应用模式为后端返回的真实模式
+        if (backendAppMode.value) {
+          appMode.value = backendAppMode.value as AppMode
+        }
+
+        // 更新可用节点类型
+        availableNodeTypes.value = filterNodeTypesByAppMode(allNodeTypes, appMode.value)
 
         // 保存工作流ID和版本信息用于后续更新
         currentWorkflowId.value = response.id

@@ -7,9 +7,40 @@
           <span class="title-icon">💬</span>
           <h3>对话预览</h3>
         </div>
-        <div v-if="sessionId" class="session-id">
-          <span class="label">会话ID:</span>
-          <code class="session-code">{{ sessionId }}</code>
+        <div v-if="conversationManager.conversationId.value" class="session-info">
+          <span class="label">会话:</span>
+          <!-- 编辑模式 -->
+          <div v-if="isEditingName" class="session-name-editor">
+            <a-input
+              ref="nameInputRef"
+              v-model:value="editingName"
+              size="small"
+              class="session-name-input"
+              :maxlength="50"
+              @blur="handleNameBlur"
+              @keydown="handleNameKeydown"
+            />
+            <div class="edit-actions">
+              <Button size="small" type="text" class="action-btn save-btn" @click="handleSaveName">
+                <CheckOutlined />
+              </Button>
+              <Button
+                size="small"
+                type="text"
+                class="action-btn cancel-btn"
+                @click="handleCancelEdit"
+              >
+                <CloseOutlined />
+              </Button>
+            </div>
+          </div>
+          <!-- 显示模式 -->
+          <div v-else class="session-name-display" @dblclick="startEditName">
+            <code class="session-code">{{ conversationManager.conversationName.value }}</code>
+            <Button size="small" type="text" class="edit-btn" @click="startEditName">
+              <EditOutlined />
+            </Button>
+          </div>
         </div>
       </div>
       <div class="header-right">
@@ -24,15 +55,14 @@
     <!-- 对话状态栏 -->
     <div class="chat-status-bar">
       <div class="status-left">
-<!--        <div :class="['status-indicator', `status-${currentStatus}`]">-->
-<!--          <div class="status-dot">-->
-<!--            <LoadingOutlined v-if="currentStatus === 'running'" spin />-->
-<!--            <CheckCircleOutlined v-else-if="currentStatus === 'success'" />-->
-<!--            <CloseCircleOutlined v-else-if="currentStatus === 'error'" />-->
-<!--            <span v-else class="status-icon">⏸</span>-->
-<!--          </div>-->
-<!--          <span class="status-text">{{ getStatusText() }}</span>-->
-<!--        </div>-->
+        <div v-if="conversationManager.isLoading.value" class="status-indicator">
+          <LoadingOutlined spin />
+          <span class="status-text">加载会话中...</span>
+        </div>
+        <div v-else-if="messageHistory.isLoading.value" class="status-indicator">
+          <LoadingOutlined spin />
+          <span class="status-text">加载历史消息...</span>
+        </div>
       </div>
       <div class="status-right">
         <Dropdown>
@@ -43,13 +73,18 @@
           </Button>
           <template #overlay>
             <Menu>
-              <Menu.Item @click="clearConversation">
-                <ClearOutlined />
-                清空对话
-              </Menu.Item>
-              <Menu.Item @click="exportConversation">
-                <ExportOutlined />
-                导出对话
+              <!--              <Menu.Item @click="handleClearConversation">-->
+              <!--                <ClearOutlined />-->
+              <!--                清空对话-->
+              <!--              </Menu.Item>-->
+              <!--              <Menu.Item @click="handleExportConversation">-->
+              <!--                <ExportOutlined />-->
+              <!--                导出对话-->
+              <!--              </Menu.Item>-->
+              <!--              <Menu.Divider />-->
+              <Menu.Item @click="handleCreateNewConversation">
+                <PlusOutlined />
+                新建会话
               </Menu.Item>
             </Menu>
           </template>
@@ -61,57 +96,59 @@
     <div class="chat-messages-container">
       <div ref="messagesScrollRef" class="messages-scroll-area">
         <!-- 欢迎消息 -->
-        <div v-if="messages.length === 0" class="welcome-section">
+        <div
+          v-if="messageHistory.messages.value.length === 0 && !messageHistory.isLoading.value"
+          class="welcome-section"
+        >
           <div class="welcome-icon">👋</div>
           <h3 class="welcome-title">开始对话</h3>
           <p class="welcome-description">请输入您的问题,我将为您提供帮助</p>
         </div>
 
         <!-- 消息列表 -->
-        <div v-for="(message, index) in messages" :key="index" class="message-wrapper">
+        <div
+          v-for="(msg, index) in messageHistory.messages.value"
+          :key="index"
+          class="message-wrapper"
+        >
           <!-- 用户消息 -->
-          <div v-if="message.role === 'user'" class="message-item user-message">
+          <div v-if="msg.role === 'user'" class="message-item user-message">
             <div class="message-avatar user-avatar">
               <UserOutlined />
             </div>
             <div class="message-content">
               <div class="message-header">
                 <span class="message-role">您</span>
-                <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+                <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
               </div>
-              <div class="message-text">{{ message.content }}</div>
+              <div class="message-text">{{ msg.content }}</div>
             </div>
           </div>
 
           <!-- AI消息 -->
-          <div v-if="message.role === 'assistant'" class="message-item assistant-message">
+          <div v-if="msg.role === 'assistant'" class="message-item assistant-message">
             <div class="message-avatar assistant-avatar">
               <RobotOutlined />
             </div>
             <div class="message-content">
               <div class="message-header">
                 <span class="message-role">AI助手</span>
-                <span v-if="message.nodeName" class="node-badge">{{ message.nodeName }}</span>
-                <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+                <span v-if="msg.nodeName" class="node-badge">{{ msg.nodeName }}</span>
+                <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
               </div>
               <div class="message-text">
-                <div v-if="message.loading" class="loading-dots">
-                  <span></span><span></span><span></span>
-                </div>
-                <template v-else>
-                  {{ message.content }}
-                </template>
+                <!-- 始终显示内容，实现打字机效果 -->
+                <span v-if="msg.content">{{ msg.content }}</span>
+                <!-- 如果正在加载且没有内容，显示等待提示 -->
+                <span v-else-if="msg.loading" class="thinking-text">思考中...</span>
+                <!-- 加载时在内容后显示光标 -->
+                <span v-if="msg.loading && msg.content" class="typing-cursor">▊</span>
               </div>
               <!-- 消息操作 -->
-              <div v-if="!message.loading" class="message-actions">
-                <Button size="small" type="text" @click="copyMessage(message.content)">
+              <div v-if="!msg.loading" class="message-actions">
+                <Button size="small" type="text" @click="copyMessage(msg.content)">
                   <template #icon>
                     <CopyOutlined />
-                  </template>
-                </Button>
-                <Button size="small" type="text" @click="retryMessage(index)">
-                  <template #icon>
-                    <ReloadOutlined />
                   </template>
                 </Button>
               </div>
@@ -119,31 +156,29 @@
           </div>
 
           <!-- 错误消息 -->
-          <div v-if="message.role === 'error'" class="message-item error-message">
+          <div v-if="msg.role === 'error'" class="message-item error-message">
             <div class="message-avatar error-avatar">
               <ExclamationCircleOutlined />
             </div>
             <div class="message-content">
               <div class="message-header">
                 <span class="message-role">错误</span>
-                <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+                <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
               </div>
-              <div class="message-text error-text">{{ message.content }}</div>
+              <div class="message-text error-text">{{ msg.content }}</div>
             </div>
           </div>
         </div>
 
-        <!-- AI思考中提示 -->
-        <div v-if="isProcessing && activeNodeMessages.size === 0" class="thinking-indicator">
+        <!-- AI思考中提示 - 只在发送中且没有任何loading消息时显示 -->
+        <div v-if="showThinkingIndicator" class="thinking-indicator">
           <div class="thinking-avatar">
             <RobotOutlined />
           </div>
           <div class="thinking-content">
             <div class="thinking-text">
               <span class="thinking-label">AI正在思考</span>
-              <div class="thinking-dots">
-                <span></span><span></span><span></span>
-              </div>
+              <div class="thinking-dots"> <span></span><span></span><span></span> </div>
             </div>
           </div>
         </div>
@@ -160,28 +195,28 @@
           ref="inputRef"
           v-model:value="inputMessage"
           :auto-size="{ minRows: 1, maxRows: 4 }"
-          :disabled="isProcessing"
-          :placeholder="isProcessing ? '正在思考中...' : '和Bot聊天'"
+          :disabled="isSending || !conversationManager.hasConversation.value"
+          :placeholder="getInputPlaceholder()"
           class="chat-input"
           @keydown="handleKeyDown"
         />
         <div class="input-actions">
           <Button
-            :disabled="!canSend || isProcessing"
-            :loading="isProcessing"
+            :disabled="!canSend"
+            :loading="isSending"
             class="send-button"
             type="primary"
             @click="handleSendMessage"
           >
             <template #icon>
-              <SendOutlined v-if="!isProcessing" />
+              <SendOutlined v-if="!isSending" />
             </template>
-            {{ isProcessing ? 'AI思考中...' : '发送' }}
+            {{ isSending ? 'AI思考中...' : '发送' }}
           </Button>
         </div>
       </div>
       <div class="input-tips">
-        <span v-if="!isProcessing" class="tip-item">
+        <span v-if="!isSending" class="tip-item">
           <span class="tip-icon">💡</span>
           提示: 按 <kbd>Enter</kbd> 发送,<kbd>Shift + Enter</kbd> 换行
         </span>
@@ -196,34 +231,28 @@
 
 <script lang="ts" setup>
   import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
-  import { Button, Dropdown, message, Menu } from 'ant-design-vue'
+  import { useRoute } from 'vue-router'
+  import { Button, Dropdown, Input as AInput, message, Menu } from 'ant-design-vue'
   import { Textarea as ATextarea } from 'ant-design-vue/es/input'
   import {
-    CheckCircleOutlined,
+    CheckOutlined,
     ClearOutlined,
-    CloseCircleOutlined,
     CloseOutlined,
     CopyOutlined,
+    EditOutlined,
     ExclamationCircleOutlined,
     ExportOutlined,
     LoadingOutlined,
     MoreOutlined,
-    ReloadOutlined,
+    PlusOutlined,
     RobotOutlined,
     SendOutlined,
     UserOutlined,
   } from '@ant-design/icons-vue'
-  import { EnhancedSSEService } from '../utils/sseService'
-  import type { SSEChunkMessage, SSENodeOutputMessage } from '../types'
-
-  interface Message {
-    role: 'user' | 'assistant' | 'error'
-    content: string
-    timestamp: number
-    loading?: boolean
-    nodeId?: string // 关联的节点ID
-    nodeName?: string // 节点名称
-  }
+  import { useConversationManager } from '../composables/useConversationManager'
+  import { useMessageHistory } from '../composables/useMessageHistory'
+  import { useChatflowExecution } from '../composables/useChatflowExecution'
+  import { updateName } from '/@/api/ai/conversation/AiConversationsIndex'
 
   interface Props {
     visible: boolean
@@ -239,45 +268,79 @@
     (e: 'close'): void
   }>()
 
-  // 状态管理
-  const messages = ref<Message[]>([])
+  // ==================== 路由参数 ====================
+  const route = useRoute()
+  const appId = ref(route.query.appId as string)
+
+  // ==================== Composables ====================
+  const conversationManager = useConversationManager()
+  const messageHistory = useMessageHistory()
+  const chatflowExecution = useChatflowExecution()
+
+  // ==================== 本地状态 ====================
   const inputMessage = ref('')
-  const isProcessing = ref(false)
-  const sessionId = ref<string | null>(null)
   const messagesScrollRef = ref<HTMLElement>()
   const messagesEndRef = ref<HTMLElement>()
   const inputRef = ref()
 
-  // SSE连接实例
-  let sseService: EnhancedSSEService | null = null
+  // 会话名称编辑相关
+  const isEditingName = ref(false)
+  const editingName = ref('')
+  const nameInputRef = ref()
 
-  // 当前正在处理的节点消息映射 (nodeId -> messageIndex)
-  const activeNodeMessages = ref<Map<string, number>>(new Map())
+  // ==================== 计算属性 ====================
 
-  // 计算属性
-  const currentStatus = computed(() => {
-    if (isProcessing.value) return 'running'
-    const lastMessage = messages.value[messages.value.length - 1]
-    if (lastMessage?.role === 'error') return 'error'
-    if (messages.value.length > 0) return 'success'
-    return 'idle'
-  })
-
+  /**
+   * 是否可以发送消息
+   * 必须同时满足：有输入内容、没有正在发送、有会话
+   */
   const canSend = computed(() => {
-    return inputMessage.value.trim().length > 0 && !isProcessing.value
+    return (
+      inputMessage.value.trim().length > 0 &&
+      !chatflowExecution.isSending.value &&
+      conversationManager.hasConversation.value
+    )
   })
 
-  // 方法
-  const getStatusText = () => {
-    const statusMap = {
-      idle: '等待输入',
-      running: '处理中',
-      success: '就绪',
-      error: '出错',
+  /**
+   * 是否正在发送（直接使用 composable 状态）
+   */
+  const isSending = computed(() => {
+    return chatflowExecution.isSending.value
+  })
+
+  /**
+   * 是否显示"AI正在思考"提示
+   * 条件：正在发送 且 没有任何loading状态的消息
+   */
+  const showThinkingIndicator = computed(() => {
+    if (!isSending.value) {
+      return false
     }
-    return statusMap[currentStatus.value] || '未知状态'
+    // 检查是否有loading状态的消息（已经开始接收chunk）
+    const hasLoadingMessage = messageHistory.messages.value.some((msg) => msg.loading === true)
+    // 只有在没有loading消息时才显示思考提示
+    return !hasLoadingMessage
+  })
+
+  // ==================== 方法 ====================
+
+  /**
+   * 获取输入框占位符
+   */
+  const getInputPlaceholder = () => {
+    if (!conversationManager.hasConversation.value) {
+      return '正在初始化会话...'
+    }
+    if (isSending.value) {
+      return '正在思考中...'
+    }
+    return '和Bot聊天'
   }
 
+  /**
+   * 格式化时间
+   */
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp)
     const hours = date.getHours().toString().padStart(2, '0')
@@ -285,15 +348,20 @@
     return `${hours}:${minutes}`
   }
 
+  /**
+   * 滚动到底部
+   */
   const scrollToBottom = async () => {
     await nextTick()
     messagesEndRef.value?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  /**
+   * 处理键盘事件
+   */
   const handleKeyDown = (event: KeyboardEvent) => {
     // Shift + Enter: 换行
     if (event.key === 'Enter' && event.shiftKey) {
-      // 允许默认行为(换行)
       return
     }
 
@@ -304,155 +372,98 @@
     }
   }
 
+  /**
+   * 发送消息
+   * 核心逻辑：
+   * 1. 验证发送条件
+   * 2. 立即清空输入框（防止重复发送）
+   * 3. 调用 sendMessage（内部会设置 isSending = true）
+   * 4. 等待 onDone 回调（内部会设置 isSending = false）
+   */
   const handleSendMessage = async () => {
-    if (!canSend.value || !props.workflowId) return
+    // 1. 前置验证
+    if (!canSend.value) {
+      return
+    }
 
+    if (!props.workflowId) {
+      console.error('[ChatPreview] workflowId 不存在')
+      return
+    }
+
+    if (!conversationManager.conversationId.value) {
+      message.warning('会话未初始化，请稍候...')
+      return
+    }
+
+    // 2. 立即保存用户输入并清空输入框（防止用户继续输入）
     const userInput = inputMessage.value.trim()
     inputMessage.value = ''
+    await nextTick()
 
-    // 添加用户消息
-    messages.value.push({
-      role: 'user',
-      content: userInput,
-      timestamp: Date.now(),
-    })
-
-    await scrollToBottom()
-
-    isProcessing.value = true
-
-    // 关闭之前的连接(如果存在)
-    if (sseService) {
-      sseService.disconnect()
-      sseService = null
-    }
-
-    // 清空节点消息映射
-    activeNodeMessages.value.clear()
-
-    try {
-      // 生成或更新会话ID
-      if (!sessionId.value) {
-        sessionId.value = `chat_${Date.now()}`
-      }
-
-      // 创建SSE连接
-      sseService = new EnhancedSSEService({
-        url: '/ai/ai/workflows/runtime/run',
-        requestBody: {
-          workflowId: props.workflowId,
-          inputs: props.initialInputs, // 开始节点的初始输入参数
-          systems: {
-            query: userInput, // 用户当前输入的消息
-          },
+    // 3. 调用发送方法（内部会立即设置 isSending = true）
+    await chatflowExecution.sendMessage(
+      {
+        conversationId: conversationManager.conversationId.value,
+        workflowId: props.workflowId,
+        userInput,
+        inputs: props.initialInputs,
+      },
+      {
+        // 用户消息回调
+        onUserMessage: (msg) => {
+          messageHistory.appendMessage(msg)
+          scrollToBottom()
         },
-        onStart: () => {
-          console.log('对话流SSE开始')
+
+        // AI消息开始回调
+        onAssistantMessageStart: (nodeId, nodeName) => {
+          messageHistory.appendMessage({
+            role: 'assistant',
+            content: '',
+            timestamp: Date.now(),
+            loading: true,
+            nodeId,
+            nodeName,
+          })
+          scrollToBottom()
         },
-        onMessage: (data: SSENodeOutputMessage | SSEChunkMessage) => {
-          // 处理chunk消息 - 流式输出
-          if ('chunk' in data && data.chunk) {
-            const { nodeId, nodeName, chunk } = data
 
-            // 检查该节点是否已有对应的消息
-            let messageIndex = activeNodeMessages.value.get(nodeId)
-
-            if (messageIndex === undefined) {
-              // 为该节点创建新的AI消息
-              messageIndex = messages.value.length
-              messages.value.push({
-                role: 'assistant',
-                content: chunk,
-                timestamp: Date.now(),
-                loading: true,
-                nodeId,
-                nodeName,
-              })
-              activeNodeMessages.value.set(nodeId, messageIndex)
-            } else {
-              // 追加chunk到已有消息
-              const currentMessage = messages.value[messageIndex]
-              if (currentMessage) {
-                currentMessage.content += chunk
-                currentMessage.loading = false
-              }
-            }
-
-            // 自动滚动到底部
+        // AI消息chunk回调
+        onAssistantMessageChunk: (nodeId, chunk) => {
+          const index = messageHistory.findLoadingMessageIndex(nodeId)
+          if (index !== -1) {
+            messageHistory.appendToMessage(index, chunk)
             scrollToBottom()
           }
-          // 处理节点完成消息
-          else if ('outputs' in data) {
-            console.log('节点完成:', data.nodeId, data.nodeName)
-          }
         },
-        onDone: () => {
-          console.log('对话流SSE结束')
-          isProcessing.value = false
 
-          // 标记所有活跃节点的消息为完成状态
-          activeNodeMessages.value.forEach((messageIndex) => {
-            const currentMessage = messages.value[messageIndex]
-            if (currentMessage) {
-              currentMessage.loading = false
-              // 如果没有内容,显示默认消息
-              if (!currentMessage.content) {
-                currentMessage.content = '(无响应内容)'
-              }
-            }
-          })
-
-          // 如果没有收到任何节点的chunk消息,显示提示
-          if (activeNodeMessages.value.size === 0) {
-            messages.value.push({
-              role: 'assistant',
-              content: '工作流执行完成,但未收到任何节点的流式输出',
-              timestamp: Date.now(),
-              loading: false,
-            })
+        // AI消息完成回调
+        onAssistantMessageComplete: (nodeId) => {
+          const index = messageHistory.findLoadingMessageIndex(nodeId)
+          if (index !== -1) {
+            messageHistory.updateMessage(index, { loading: false })
           }
-
-          activeNodeMessages.value.clear()
           scrollToBottom()
         },
+
+        // 错误回调
         onError: (error) => {
-          console.error('SSE连接错误:', error)
-          isProcessing.value = false
-
-          // 移除加载消息,添加错误消息
-          messages.value.splice(aiMessageIndex, 1)
-          messages.value.push({
-            role: 'error',
-            content: '抱歉,处理您的消息时出现错误,请稍后重试。',
-            timestamp: Date.now(),
-          })
-
-          message.error('发送消息失败')
+          messageHistory.appendErrorMessage(error)
           scrollToBottom()
         },
-        onClose: () => {
+
+        // 完成回调（此时 isSending 会被设置为 false）
+        onDone: () => {
+          conversationManager.refreshCurrentConversation()
         },
-      })
-
-      // 启动SSE连接
-      await sseService.connect()
-    } catch (error: any) {
-      console.error('发送消息失败:', error)
-      isProcessing.value = false
-
-      // 移除加载消息,添加错误消息
-      messages.value.splice(aiMessageIndex, 1)
-      messages.value.push({
-        role: 'error',
-        content: error.message || '抱歉,处理您的消息时出现错误,请稍后重试。',
-        timestamp: Date.now(),
-      })
-
-      message.error('发送消息失败')
-      await scrollToBottom()
-    }
+      },
+    )
   }
 
+  /**
+   * 复制消息
+   */
   const copyMessage = (content: string) => {
     navigator.clipboard
       .writeText(content)
@@ -464,38 +475,22 @@
       })
   }
 
-  const retryMessage = async (index: number) => {
-    // 找到对应的用户消息
-    let userMessageIndex = -1
-    for (let i = index - 1; i >= 0; i--) {
-      if (messages.value[i].role === 'user') {
-        userMessageIndex = i
-        break
-      }
-    }
-
-    if (userMessageIndex === -1) return
-
-    const userMessage = messages.value[userMessageIndex].content
-    inputMessage.value = userMessage
-
-    // 移除之后的所有消息
-    messages.value = messages.value.slice(0, userMessageIndex)
-
-    // 重新发送
-    await handleSendMessage()
-  }
-
-  const clearConversation = () => {
-    messages.value = []
-    sessionId.value = null
+  /**
+   * 清空对话
+   */
+  const handleClearConversation = () => {
+    messageHistory.clear()
     message.success('对话已清空')
   }
 
-  const exportConversation = () => {
+  /**
+   * 导出对话
+   */
+  const handleExportConversation = () => {
     const conversationData = {
-      sessionId: sessionId.value,
-      messages: messages.value,
+      conversationId: conversationManager.conversationId.value,
+      conversationName: conversationManager.conversationName.value,
+      messages: messageHistory.messages.value,
       exportTime: new Date().toISOString(),
     }
 
@@ -505,36 +500,154 @@
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `conversation_${sessionId.value || Date.now()}.json`
+    a.download = `conversation_${conversationManager.conversationId.value || Date.now()}.json`
     a.click()
     URL.revokeObjectURL(url)
 
     message.success('对话已导出')
   }
 
-  // 监听面板打开,自动聚焦输入框
+  /**
+   * 新建会话
+   */
+  const handleCreateNewConversation = async () => {
+    await conversationManager.createNewConversation()
+    messageHistory.clear()
+    message.success('已创建新会话')
+  }
+
+  /**
+   * 开始编辑会话名称
+   */
+  const startEditName = async () => {
+    if (!conversationManager.currentConversation.value) {
+      return
+    }
+    editingName.value = conversationManager.conversationName.value
+    isEditingName.value = true
+    await nextTick()
+    nameInputRef.value?.focus()
+  }
+
+  /**
+   * 取消编辑
+   */
+  const handleCancelEdit = () => {
+    isEditingName.value = false
+    editingName.value = ''
+  }
+
+  /**
+   * 保存会话名称
+   */
+  const handleSaveName = async () => {
+    const newName = editingName.value.trim()
+
+    // 验证
+    if (!newName) {
+      message.warning('会话名称不能为空')
+      return
+    }
+
+    if (newName === conversationManager.conversationName.value) {
+      // 名称没有变化，直接关闭编辑
+      handleCancelEdit()
+      return
+    }
+
+    if (!conversationManager.conversationId.value) {
+      message.error('会话ID不存在')
+      handleCancelEdit()
+      return
+    }
+
+    try {
+      // 调用API更新名称
+      await updateName({
+        conversationId: conversationManager.conversationId.value,
+        name: newName,
+      })
+
+      // 更新本地状态
+      if (conversationManager.currentConversation.value) {
+        conversationManager.currentConversation.value.name = newName
+      }
+
+      message.success('会话名称已更新')
+      handleCancelEdit()
+    } catch (error: any) {
+      console.error('[ChatPreview] 更新会话名称失败:', error)
+      message.error('更新会话名称失败: ' + (error.message || '未知错误'))
+    }
+  }
+
+  /**
+   * 处理输入框失焦（延迟触发，避免与按钮点击冲突）
+   */
+  const handleNameBlur = () => {
+    setTimeout(() => {
+      if (isEditingName.value) {
+        handleSaveName()
+      }
+    }, 200)
+  }
+
+  /**
+   * 处理会话名称输入框的键盘事件
+   */
+  const handleNameKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      handleSaveName()
+    } else if (event.key === 'Escape') {
+      event.preventDefault()
+      handleCancelEdit()
+    }
+  }
+
+  // ==================== 生命周期 ====================
+
+  /**
+   * 监听 isSending 状态变化（用于调试）
+   */
+  watch(
+    () => chatflowExecution.isSending.value,
+    (newVal, oldVal) => {},
+  )
+
+  /**
+   * 监听面板打开，初始化会话和消息
+   */
   watch(
     () => props.visible,
     async (visible) => {
-      if (visible) {
+      if (visible && appId.value) {
+        // 1. 初始化会话管理器
+        await conversationManager.initialize(appId.value)
+
+        // 2. 加载历史消息
+        if (conversationManager.conversationId.value) {
+          await messageHistory.loadMessages(conversationManager.conversationId.value)
+          await scrollToBottom()
+        }
+
+        // 3. 聚焦输入框
         await nextTick()
         inputRef.value?.focus()
-      } else {
-        // 面板关闭时断开SSE连接
-        if (sseService) {
-          sseService.disconnect()
-          sseService = null
-        }
+      } else if (!visible) {
+        // 面板关闭时清理
+        chatflowExecution.reset()
       }
     },
   )
 
-  // 组件卸载时清理SSE连接
+  /**
+   * 组件卸载时清理
+   */
   onUnmounted(() => {
-    if (sseService) {
-      sseService.disconnect()
-      sseService = null
-    }
+    chatflowExecution.reset()
+    conversationManager.reset()
+    messageHistory.clear()
   })
 </script>
 
@@ -594,7 +707,7 @@
       }
     }
 
-    .session-id {
+    .session-info {
       display: flex;
       align-items: center;
       gap: 6px;
@@ -605,11 +718,112 @@
         font-weight: 500;
       }
 
-      .session-code {
-        background: #f6f6f6;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-family: 'Monaco', 'Menlo', monospace;
+      // 显示模式
+      .session-name-display {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.02);
+
+          .edit-btn {
+            opacity: 1;
+          }
+        }
+
+        .session-code {
+          background: transparent;
+          padding: 0;
+          font-family: 'Monaco', 'Menlo', monospace;
+          font-size: 12px;
+          color: #262626;
+          font-weight: 500;
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .edit-btn {
+          opacity: 0;
+          transition: opacity 0.2s ease;
+          color: #8c8c8c;
+          padding: 0 4px;
+          height: 20px;
+          min-width: 20px;
+
+          &:hover {
+            color: #1890ff;
+          }
+
+          :deep(.anticon) {
+            font-size: 12px;
+          }
+        }
+      }
+
+      // 编辑模式
+      .session-name-editor {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .session-name-input {
+          width: 200px;
+          border-radius: 6px;
+          border: 2px solid #1890ff;
+          transition: all 0.2s ease;
+
+          &:focus {
+            box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
+          }
+
+          :deep(.ant-input) {
+            font-size: 12px;
+            padding: 2px 8px;
+            height: 24px;
+          }
+        }
+
+        .edit-actions {
+          display: flex;
+          gap: 2px;
+
+          .action-btn {
+            padding: 0 4px;
+            height: 24px;
+            min-width: 24px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+
+            :deep(.anticon) {
+              font-size: 12px;
+            }
+          }
+
+          .save-btn {
+            color: #52c41a;
+
+            &:hover {
+              background: rgba(82, 196, 26, 0.1);
+              color: #389e0d;
+            }
+          }
+
+          .cancel-btn {
+            color: #ff4d4f;
+
+            &:hover {
+              background: rgba(255, 77, 79, 0.1);
+              color: #cf1322;
+            }
+          }
+        }
       }
     }
   }
@@ -622,48 +836,17 @@
     padding: 12px 20px;
     background: #fafafa;
     border-bottom: 1px solid #f0f0f0;
+    min-height: 48px;
 
     .status-indicator {
       display: flex;
       align-items: center;
       gap: 8px;
-
-      .status-dot {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s ease;
-      }
-
-      &.status-idle .status-dot {
-        background: linear-gradient(135deg, #d9d9d9 0%, #f0f0f0 100%);
-        color: #666;
-      }
-
-      &.status-running .status-dot {
-        background: linear-gradient(135deg, #1890ff 0%, #69c0ff 100%);
-        color: white;
-      }
-
-      &.status-success .status-dot {
-        background: linear-gradient(135deg, #52c41a 0%, #95de64 100%);
-        color: white;
-      }
-
-      &.status-error .status-dot {
-        background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
-        color: white;
-      }
+      font-size: 13px;
+      color: #1890ff;
 
       .status-text {
-        font-size: 13px;
         font-weight: 500;
-        color: #262626;
       }
     }
   }
@@ -725,7 +908,7 @@
 
   // 消息项
   .message-wrapper {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 
     &:last-child {
       margin-bottom: 0;
@@ -734,28 +917,28 @@
 
   .message-item {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: flex-start;
 
     .message-avatar {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      font-size: 16px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      font-size: 14px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
 
     .user-avatar {
-      background: linear-gradient(135deg, #1890ff 0%, #69c0ff 100%);
+      background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
       color: white;
     }
 
     .assistant-avatar {
-      background: linear-gradient(135deg, #52c41a 0%, #95de64 100%);
+      background: linear-gradient(135deg, #722ed1 0%, #9254de 100%);
       color: white;
     }
 
@@ -765,7 +948,9 @@
     }
 
     .message-content {
-      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 75%;
       min-width: 0;
     }
 
@@ -777,62 +962,117 @@
       flex-wrap: wrap;
 
       .message-role {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
-        color: #262626;
+        color: #595959;
       }
 
       .node-badge {
         display: inline-flex;
         align-items: center;
-        padding: 2px 8px;
-        border-radius: 10px;
+        padding: 2px 6px;
+        border-radius: 8px;
         font-size: 11px;
         font-weight: 500;
-        background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
-        color: #0050b3;
-        border: 1px solid #91d5ff;
+        background: #f0f5ff;
+        color: #1890ff;
+        border: 1px solid #d6e4ff;
       }
 
       .message-time {
-        font-size: 12px;
-        color: #8c8c8c;
-        margin-left: auto;
+        font-size: 11px;
+        color: #bfbfbf;
       }
     }
 
     .message-text {
       background: white;
-      padding: 12px 16px;
-      border-radius: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
       font-size: 14px;
       line-height: 1.6;
       color: #262626;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
       word-wrap: break-word;
       white-space: pre-wrap;
+      position: relative;
+      display: inline-block;
+      width: fit-content;
+
+      // 思考中文本样式
+      .thinking-text {
+        color: #8c8c8c;
+        font-style: italic;
+      }
+
+      // 打字机光标样式
+      .typing-cursor {
+        display: inline-block;
+        margin-left: 2px;
+        color: #1890ff;
+        animation: blink 1s step-end infinite;
+      }
     }
 
-    &.user-message .message-text {
-      background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
-      border: 1px solid #91d5ff;
+    @keyframes blink {
+      0%,
+      50% {
+        opacity: 1;
+      }
+      51%,
+      100% {
+        opacity: 0;
+      }
     }
 
-    &.assistant-message .message-text {
-      background: white;
-      border: 1px solid #f0f0f0;
+    // 用户消息：右对齐，蓝色气泡
+    &.user-message {
+      flex-direction: row-reverse;
+
+      .message-content {
+        align-items: flex-end;
+      }
+
+      .message-header {
+        flex-direction: row-reverse;
+      }
+
+      .message-text {
+        background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+      }
+
+      .message-actions {
+        justify-content: flex-end;
+      }
     }
 
-    &.error-message .message-text {
-      background: #fff1f0;
-      border: 1px solid #ffccc7;
-      color: #cf1322;
+    // AI消息：左对齐，白色气泡
+    &.assistant-message {
+      .message-text {
+        background: white;
+        border: 1px solid #f0f0f0;
+        color: #262626;
+      }
+    }
+
+    // 错误消息：左对齐，红色气泡
+    &.error-message {
+      .message-text {
+        background: #fff1f0;
+        border: 1px solid #ffccc7;
+        color: #cf1322;
+      }
     }
 
     .message-actions {
       display: flex;
       gap: 4px;
-      margin-top: 8px;
+      margin-top: 6px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
 
       :deep(.ant-btn) {
         color: #8c8c8c;
@@ -841,6 +1081,10 @@
           color: #1890ff;
         }
       }
+    }
+
+    &:hover .message-actions {
+      opacity: 1;
     }
   }
 
