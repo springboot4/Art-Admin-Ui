@@ -117,6 +117,40 @@
             </a-form-item>
           </a-card>
 
+          <!-- 记忆配置卡片 (仅对话流模式) -->
+          <a-card v-if="isConversationMode" class="config-card" size="small" title="记忆配置">
+            <template #extra>
+              <a-switch
+                v-model:checked="editData.data.config.memory.enabled"
+                checked-children="开"
+                size="small"
+                un-checked-children="关"
+              />
+            </template>
+            <div v-if="editData.data.config.memory.enabled" class="memory-config-content">
+              <a-form-item label="历史消息窗口大小">
+                <a-input-number
+                  v-model:value="editData.data.config.memory.window.size"
+                  :max="100"
+                  :min="1"
+                  placeholder="10"
+                  style="width: 100%"
+                />
+                <div class="memory-help-text">
+                  <Icon :size="12" icon="ant-design:info-circle-outlined" />
+                  设置保留的历史消息条数，默认 10 条
+                </div>
+              </a-form-item>
+            </div>
+            <div v-else class="memory-disabled-hint">
+              <a-empty
+                :image="false"
+                description="记忆功能未启用，开启后将保留历史对话上下文"
+                size="small"
+              />
+            </div>
+          </a-card>
+
           <!-- 系统提示词配置卡片 -->
           <a-card class="config-card" size="small" title="系统提示词">
             <template #extra>
@@ -669,6 +703,7 @@
 
 <script lang="ts" setup>
   import { computed, ref, watch } from 'vue'
+  import { useRoute } from 'vue-router'
   import {
     Button as AButton,
     Card as ACard,
@@ -689,6 +724,7 @@
     SelectOption as ASelectOption,
     Slider as ASlider,
     Space as ASpace,
+    Switch as ASwitch,
     TabPane as ATabPane,
     Tabs as ATabs,
     Tag as ATag,
@@ -741,6 +777,7 @@
 
   const emit = defineEmits(['update:visible', 'save', 'close'])
 
+  const route = useRoute()
   const editData = ref({})
   const httpActiveTab = ref('params')
   const showUnifiedVariableSelector = ref(false)
@@ -752,6 +789,7 @@
 
   const LLM_NODE_TYPES = new Set(['llm', 'llm_answer'])
   const isLLMNode = computed(() => LLM_NODE_TYPES.has(editData.value?.data?.nodeType || ''))
+  const isConversationMode = computed(() => route.query.appMode === 'chatflow')
 
   const selectedRetrievalType = computed({
     get() {
@@ -876,6 +914,26 @@
                 content: '',
               },
             ]
+          }
+
+          // 确保memory配置初始化
+          if (!editData.value.data.config.memory) {
+            editData.value.data.config.memory = {
+              enabled: false,
+              window: {
+                size: 10,
+              },
+            }
+          } else {
+            // 确保memory对象有必要的属性
+            if (typeof editData.value.data.config.memory.enabled !== 'boolean') {
+              editData.value.data.config.memory.enabled = false
+            }
+            if (!editData.value.data.config.memory.window) {
+              editData.value.data.config.memory.window = { size: 10 }
+            } else if (typeof editData.value.data.config.memory.window.size !== 'number') {
+              editData.value.data.config.memory.window.size = 10
+            }
           }
 
           if (editData.value.data.config.model) {
@@ -1035,6 +1093,12 @@
         content: '',
       },
     ],
+    memory: {
+      enabled: false,
+      window: {
+        size: 10,
+      },
+    },
     timeout: 30,
     retryCount: 1,
   })
@@ -1894,5 +1958,28 @@
     .retrieval-options {
       grid-template-columns: 1fr;
     }
+  }
+
+  /* 记忆配置样式 */
+  .memory-config-content {
+    padding-top: 8px;
+  }
+
+  .memory-help-text {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .memory-disabled-hint {
+    padding: 12px 0;
+  }
+
+  .memory-disabled-hint :deep(.ant-empty-description) {
+    color: #9ca3af;
+    font-size: 13px;
   }
 </style>
