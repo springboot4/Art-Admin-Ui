@@ -282,8 +282,8 @@
                 <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
               </div>
               <div class="message-text">
-                <!-- 始终显示内容，实现打字机效果 -->
-                <span v-if="msg.content">{{ msg.content }}</span>
+                <!-- 使用 Markdown 渲染器渲染内容 -->
+                <MarkdownRenderer v-if="msg.content" :content="msg.content" />
                 <!-- 如果正在加载且没有内容，显示等待提示 -->
                 <span v-else-if="msg.loading" class="thinking-text">思考中...</span>
                 <!-- 加载时在内容后显示光标 -->
@@ -405,6 +405,7 @@
   import { useMessageHistory } from '../composables/useMessageHistory'
   import { useChatflowExecution } from '../composables/useChatflowExecution'
   import { updateName } from '/@/api/ai/conversation/AiConversationsIndex'
+  import MarkdownRenderer from './MarkdownRenderer.vue'
 
   interface UserInput {
     name: string
@@ -1720,6 +1721,20 @@
         background: white;
         border: 1px solid #f0f0f0;
         color: #262626;
+        width: 100%;
+        max-width: 100%;
+
+        // Markdown 渲染器样式重置
+        :deep(.markdown-renderer) {
+          // 确保 Markdown 内容正确继承样式
+          * {
+            max-width: 100%;
+          }
+        }
+      }
+
+      .message-content {
+        max-width: 85%;
       }
     }
 
