@@ -1,7 +1,7 @@
 import { defHttp } from '/@/utils/http/axios'
 import { PageResult } from '/#/axios'
 import { AiQaPairsDTO } from './AiQaPairsTypes'
-import { AiQaSimilarQuestionsDTO } from '/@/api/ai/ai/qa/AiQaSimilarQuestionsTypes'
+import { AiQaSimilarQuestionsDTO } from './AiQaSimilarQuestionsTypes'
 
 /**
  * 分页

@@ -778,7 +778,7 @@
   const emit = defineEmits(['update:visible', 'save', 'close'])
 
   const route = useRoute()
-  const editData = ref({})
+  const editData = ref<any>({})
   const httpActiveTab = ref('params')
   const showUnifiedVariableSelector = ref(false)
   const availableDatasets = ref([])
@@ -1289,7 +1289,7 @@
       : []
 
     const hasMissingSelected = selectedIds.some(
-      (id) => !availableDatasets.value.some((dataset) => String(dataset.id) === String(id)),
+      (id) => !availableDatasets.value.some((dataset: any) => String(dataset.id) === String(id)),
     )
 
     if (availableDatasets.value.length > 0 && !hasMissingSelected) {
@@ -1300,13 +1300,13 @@
       datasetsLoading.value = true
 
       const datasetMap = new Map()
-      availableDatasets.value.forEach((item) => {
+      availableDatasets.value.forEach((item: any) => {
         datasetMap.set(String(item.id), item)
       })
 
       const response = await getDatasetPage({
         current: 1,
-        size: 1000, // 加载所有数据集
+        size: 1000,
       })
 
       if (response && response.records) {

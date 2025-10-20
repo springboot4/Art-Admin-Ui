@@ -46,17 +46,6 @@ export interface ExecutionMetrics {
   averageNodeTime?: number
 }
 
-export interface WorkflowExecutionState {
-  isRunning: boolean
-  executionId: string | null
-  nodeStates: Map<string, NodeExecutionState>
-  executionResults: Map<string, NodeExecutionResult>
-  errors: Array<ExecutionError>
-  resultPanelVisible: boolean
-  selectedResultNodeId: string | null
-  executionMetrics: ExecutionMetrics
-}
-
 // SSE消息类型
 // 节点完整输出消息 - 表示节点执行完成并返回结果
 export interface SSENodeOutputMessage {

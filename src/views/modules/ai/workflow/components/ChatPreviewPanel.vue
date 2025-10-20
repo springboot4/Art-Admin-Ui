@@ -389,12 +389,10 @@
   import { Textarea as ATextarea } from 'ant-design-vue/es/input'
   import {
     CheckOutlined,
-    ClearOutlined,
     CloseOutlined,
     CopyOutlined,
     EditOutlined,
     ExclamationCircleOutlined,
-    ExportOutlined,
     FormOutlined,
     LoadingOutlined,
     MoreOutlined,

@@ -9,7 +9,6 @@ import type {
   SSEChunkMessage,
   SSENodeCompleteMessage,
   SSENodeOutputMessage,
-  WorkflowExecutionState,
 } from '../types'
 
 export function useWorkflowExecution() {
@@ -44,18 +43,6 @@ export function useWorkflowExecution() {
   let sseService: EnhancedSSEService | null = null
 
   const hasErrors = computed(() => errors.length > 0)
-
-  // 工作流执行状态的完整对象
-  const workflowExecutionState = computed<WorkflowExecutionState>(() => ({
-    isRunning: isRunning.value,
-    executionId: executionId.value,
-    nodeStates,
-    executionResults,
-    errors,
-    resultPanelVisible: resultPanelVisible.value,
-    selectedResultNodeId: selectedResultNodeId.value,
-    executionMetrics,
-  }))
 
   /**
    * 开始执行工作流
@@ -443,8 +430,6 @@ export function useWorkflowExecution() {
   })
 
   return {
-    // 状态
-    workflowExecutionState,
     isRunning,
     executionId,
     nodeStates,
