@@ -31,54 +31,67 @@
       </div>
 
       <div class="toolbar-right">
-        <a-space :size="12">
-          <a-button @click="addNode">
-            <template #icon>
-              <PlusOutlined />
-            </template>
-            添加节点
-          </a-button>
-          <a-button @click="clearWorkflow">
-            <template #icon>
-              <ClearOutlined />
-            </template>
-            清空
-          </a-button>
+        <a-space :size="12" align="center" class="toolbar-actions">
+          <a-tooltip placement="bottom" title="添加节点">
+            <a-button class="toolbar-icon-btn" type="text" @click="addNode">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+            </a-button>
+          </a-tooltip>
+          <a-tooltip placement="bottom" title="清空">
+            <a-button class="toolbar-icon-btn" type="text" @click="clearWorkflow">
+              <template #icon>
+                <ClearOutlined />
+              </template>
+            </a-button>
+          </a-tooltip>
 
           <a-divider type="vertical" />
 
-          <a-button @click="importWorkflow">
-            <template #icon>
-              <ImportOutlined />
-            </template>
-            导入
-          </a-button>
-          <a-button @click="exportWorkflow">
-            <template #icon>
-              <ExportOutlined />
-            </template>
-            导出
-          </a-button>
+          <a-tooltip placement="bottom" title="导入">
+            <a-button class="toolbar-icon-btn" type="text" @click="importWorkflow">
+              <template #icon>
+                <ImportOutlined />
+              </template>
+            </a-button>
+          </a-tooltip>
+          <a-tooltip placement="bottom" title="导出">
+            <a-button class="toolbar-icon-btn" type="text" @click="exportWorkflow">
+              <template #icon>
+                <ExportOutlined />
+              </template>
+            </a-button>
+          </a-tooltip>
 
           <a-divider type="vertical" />
 
-          <a-button :loading="executing" class="btn-run" type="primary" @click="executeWorkflow">
-            <template #icon>
-              <PlayCircleOutlined />
-            </template>
-            运行
-          </a-button>
-          <a-button
-            :loading="publishing"
-            class="btn-publish"
-            type="primary"
-            @click="publishWorkflow"
-          >
-            <template #icon>
-              <CloudUploadOutlined />
-            </template>
-            发布
-          </a-button>
+          <div class="run-publish-group">
+            <a-tooltip placement="bottom" title="运行">
+              <a-button
+                :loading="executing"
+                class="toolbar-icon-btn btn-run"
+                type="text"
+                @click="executeWorkflow"
+              >
+                <template #icon>
+                  <PlayCircleOutlined />
+                </template>
+              </a-button>
+            </a-tooltip>
+            <a-tooltip placement="bottom" title="发布">
+              <a-button
+                :loading="publishing"
+                class="toolbar-icon-btn btn-publish"
+                type="text"
+                @click="publishWorkflow"
+              >
+                <template #icon>
+                  <CloudUploadOutlined />
+                </template>
+              </a-button>
+            </a-tooltip>
+          </div>
         </a-space>
       </div>
     </div>
@@ -1537,38 +1550,46 @@
   }
 
   .toolbar-left,
+  .toolbar-actions {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
   .toolbar-right {
     pointer-events: auto;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
   }
 
   .workflow-name-input {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
     border: none;
-    background-color: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(12px);
-    color: #111827;
-    padding: 8px 12px;
-    min-width: 200px;
-    max-width: 400px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-    border: 1px solid rgba(0, 0, 0, 0.04);
-    transition: all 0.2s ease;
+    background-color: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(18px);
+    color: #0f172a;
+    padding: 10px 14px;
+    min-width: 220px;
+    max-width: 420px;
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12), 0 3px 8px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    transition: all 0.25s ease;
   }
 
   .workflow-name-input:hover {
-    color: #000000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.08);
+    color: #0f172a;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 4px 10px rgba(15, 23, 42, 0.1);
   }
 
   .workflow-name-input:focus {
     outline: none;
-    color: #000000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.1);
+    color: #0f172a;
+    box-shadow: 0 16px 36px rgba(59, 130, 246, 0.28), 0 6px 14px rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.45);
   }
 
   .workflow-name-input::placeholder {
@@ -1576,122 +1597,68 @@
   }
 
   /* 按钮样式 - 顶级专业设计 */
-  .toolbar-right :deep(.ant-btn) {
-    border-radius: 7px;
-    height: 34px;
-    padding: 0 14px;
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    background-color: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(12px);
-    color: #374151;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-    display: inline-flex;
+  .toolbar-right :deep(.toolbar-icon-btn) {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    padding: 0;
+    display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    background: rgba(248, 249, 250, 0.92);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    color: #1f2937;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(14px);
+    transition: all 0.25s ease;
   }
 
-  .toolbar-right :deep(.ant-btn .anticon) {
-    font-size: 15px;
-    line-height: 1;
+  .toolbar-right :deep(.toolbar-icon-btn .anticon) {
+    font-size: 17px;
   }
 
-  .toolbar-right :deep(.ant-btn:hover) {
-    border-color: rgba(0, 0, 0, 0.2);
-    background-color: rgba(249, 250, 251, 0.98);
-    color: #111827;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
-    transform: translateY(-1px);
+  .toolbar-right :deep(.toolbar-icon-btn:hover) {
+    color: #0f172a;
+    border-color: rgba(59, 130, 246, 0.45);
+    background: rgba(59, 130, 246, 0.14);
+    box-shadow: 0 14px 28px rgba(59, 130, 246, 0.22), 0 6px 12px rgba(15, 23, 42, 0.14);
+    transform: translateY(-2px) scale(1.02);
   }
 
-  .toolbar-right :deep(.ant-btn:active) {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  .toolbar-right :deep(.toolbar-icon-btn:active) {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 8px 18px rgba(59, 130, 246, 0.18), 0 3px 8px rgba(15, 23, 42, 0.12);
   }
 
-  .toolbar-right :deep(.ant-btn:focus) {
+  .toolbar-right :deep(.toolbar-icon-btn:focus) {
     outline: none;
   }
 
-  /* Primary buttons */
-  .toolbar-right :deep(.ant-btn-primary) {
-    background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
-    color: white;
-    border-color: transparent;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
+  .toolbar-right :deep(.toolbar-icon-btn.btn-run .anticon) {
+    color: #0f766e;
   }
 
-  .toolbar-right :deep(.ant-btn-primary:hover) {
-    background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
-    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.25), 0 2px 4px rgba(0, 0, 0, 0.1);
-    transform: translateY(-1px);
+  .toolbar-right :deep(.toolbar-icon-btn.btn-publish .anticon) {
+    color: #1d4ed8;
   }
 
-  .toolbar-right :deep(.ant-btn-primary:active) {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  .run-publish-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0;
   }
 
-  /* Run button */
-  .toolbar-right :deep(.btn-run) {
-    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
-    border-color: transparent;
-    color: white;
-    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
-  }
-
-  .toolbar-right :deep(.btn-run:hover) {
-    background: linear-gradient(180deg, #059669 0%, #047857 100%);
-    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.25), 0 2px 4px rgba(0, 0, 0, 0.1);
-    transform: translateY(-1px);
-  }
-
-  .toolbar-right :deep(.btn-run:active) {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-  }
-
-  /* Publish button */
-  .toolbar-right :deep(.btn-publish) {
-    background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
-    border-color: transparent;
-    color: white;
-    box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
-  }
-
-  .toolbar-right :deep(.btn-publish:hover) {
-    background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
-    box-shadow: 0 4px 8px rgba(139, 92, 246, 0.25), 0 2px 4px rgba(0, 0, 0, 0.1);
-    transform: translateY(-1px);
-  }
-
-  .toolbar-right :deep(.btn-publish:active) {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
-  }
-
-  /* Loading state */
-  .toolbar-right :deep(.ant-btn-loading) {
-    opacity: 0.7;
+  .toolbar-right :deep(.toolbar-icon-btn[disabled]) {
+    opacity: 0.45;
     cursor: not-allowed;
-    transform: none !important;
-  }
-
-  /* Disabled state */
-  .toolbar-right :deep(.ant-btn[disabled]) {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none !important;
   }
 
   /* Divider - 更精致 */
   .toolbar-right :deep(.ant-divider-vertical) {
-    height: 20px;
-    margin: 0 4px;
-    border-left: 1px solid rgba(0, 0, 0, 0.08);
+    height: 28px;
+    margin: 0 6px;
+    border-left: 1px solid rgba(148, 163, 184, 0.35);
   }
 
   .workflow-status {
