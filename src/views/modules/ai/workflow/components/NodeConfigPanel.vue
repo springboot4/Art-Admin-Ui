@@ -192,6 +192,43 @@
               :referenceParameters="editData.data.config.referenceParameters"
             />
           </a-card>
+
+          <!-- 结构化输出配置卡片 -->
+          <a-card
+            v-if="supportsStructuredOutput"
+            class="config-card"
+            size="small"
+            title="结构化输出"
+          >
+            <template #extra>
+              <a-switch
+                v-model:checked="editData.data.config.structuredOutput.enabled"
+                checked-children="开"
+                size="small"
+                un-checked-children="关"
+              />
+            </template>
+            <div v-if="editData.data.config.structuredOutput.enabled">
+              <div class="structured-output-help">
+                <a-alert
+                  :closable="false"
+                  message="让 AI 返回结构化的 JSON 数据，而不是自由文本"
+                  type="info"
+                />
+              </div>
+              <StructuredOutputEditor
+                v-model:value="editData.data.config.structuredOutput"
+                class="mt-3"
+              />
+            </div>
+            <div v-else class="structured-output-disabled-hint">
+              <a-empty
+                :image="false"
+                description="启用后可以让 AI 返回格式化的 JSON 数据，方便后续节点使用"
+                size="small"
+              />
+            </div>
+          </a-card>
         </template>
 
         <!-- HTTP 节点特殊配置 -->
@@ -744,6 +781,7 @@
   import SimpleJsonEditor from './SimpleJsonEditor.vue'
   import EnhancedTextEditor from './EnhancedTextEditor.vue'
   import ConversationMessages from './ConversationMessages.vue'
+  import StructuredOutputEditor from './StructuredOutputEditor.vue'
   import Icon from '/@/components/Icon'
   import { getDataTypeColor, getDataTypeLabel, getNodeOutputDefinitions } from '../types/variables'
   import { get as getDatasetById, page as getDatasetPage } from '/@/api/ai/dataset/AiDataSetIndex'
@@ -788,7 +826,11 @@
   const modelOptionsLoading = ref(false)
 
   const LLM_NODE_TYPES = new Set(['llm', 'llm_answer'])
+  const STRUCTURED_OUTPUT_NODE_TYPES = new Set(['llm'])
   const isLLMNode = computed(() => LLM_NODE_TYPES.has(editData.value?.data?.nodeType || ''))
+  const supportsStructuredOutput = computed(() =>
+    STRUCTURED_OUTPUT_NODE_TYPES.has(editData.value?.data?.nodeType || ''),
+  )
   const isConversationMode = computed(() => route.query.appMode === 'chatflow')
 
   const selectedRetrievalType = computed({
@@ -934,6 +976,27 @@
             } else if (typeof editData.value.data.config.memory.window.size !== 'number') {
               editData.value.data.config.memory.window.size = 10
             }
+          }
+
+          // 确保structuredOutput配置初始化（仅支持的节点）
+          if (STRUCTURED_OUTPUT_NODE_TYPES.has(editData.value.data.nodeType)) {
+            if (!editData.value.data.config.structuredOutput) {
+              editData.value.data.config.structuredOutput = {
+                enabled: false,
+                schema: { root: null },
+              }
+            } else {
+              // 确保structuredOutput对象有必要的属性
+              if (typeof editData.value.data.config.structuredOutput.enabled !== 'boolean') {
+                editData.value.data.config.structuredOutput.enabled = false
+              }
+              if (!editData.value.data.config.structuredOutput.schema) {
+                editData.value.data.config.structuredOutput.schema = { root: null }
+              }
+            }
+          } else if (editData.value.data.config.structuredOutput) {
+            editData.value.data.config.structuredOutput.enabled = false
+            editData.value.data.config.structuredOutput.schema = { root: null }
           }
 
           if (editData.value.data.config.model) {
@@ -1098,6 +1161,10 @@
       window: {
         size: 10,
       },
+    },
+    structuredOutput: {
+      enabled: false,
+      schema: { root: null },
     },
     timeout: 30,
     retryCount: 1,
@@ -1979,6 +2046,20 @@
   }
 
   .memory-disabled-hint :deep(.ant-empty-description) {
+    color: #9ca3af;
+    font-size: 13px;
+  }
+
+  /* 结构化输出样式 */
+  .structured-output-help {
+    margin-bottom: 12px;
+  }
+
+  .structured-output-disabled-hint {
+    padding: 12px 0;
+  }
+
+  .structured-output-disabled-hint :deep(.ant-empty-description) {
     color: #9ca3af;
     font-size: 13px;
   }

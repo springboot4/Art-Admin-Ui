@@ -34,7 +34,6 @@
       <!-- JSON 帮助提示 -->
       <div class="json-help">
         <div class="help-content">
-          <div class="help-item"> <strong>支持变量:</strong> 引用变量 </div>
           <div class="help-item"> <strong>格式化:</strong> 点击"格式化"按钮美化JSON结构 </div>
         </div>
       </div>

@@ -10,11 +10,6 @@
 
       <!-- 节点操作按钮 -->
       <div class="node-actions">
-        <a-button size="small" title="复制节点" type="text" @click="$emit('copy', id)">
-          <template #icon>
-            <CopyOutlined />
-          </template>
-        </a-button>
         <a-button size="small" title="编辑节点" type="text" @click="$emit('edit', id)">
           <template #icon>
             <EditOutlined />
@@ -143,7 +138,7 @@
     },
   })
 
-  defineEmits(['delete', 'edit', 'copy'])
+  defineEmits(['delete', 'edit'])
 
   const LLM_NODE_TYPES = new Set(['llm', 'llm_answer'])
   const isLLMNode = computed(() => LLM_NODE_TYPES.has(props.data?.nodeType || ''))

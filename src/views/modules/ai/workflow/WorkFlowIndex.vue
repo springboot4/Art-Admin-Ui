@@ -117,7 +117,6 @@
           <template #node-customNode="props">
             <CustomNode
               v-bind="props"
-              @copy="handleCopyNode"
               @dblclick="() => onNodeDoubleClick(null, props)"
               @delete="handleDeleteNode"
               @edit="handleEditNode"
@@ -836,57 +835,6 @@
       selectedNode.value = node
       configPanelVisible.value = true
     }
-  }
-
-  const handleCopyNode = (nodeId) => {
-    const originalNode = nodes.value.find((n) => n.id === nodeId)
-    if (!originalNode) return
-
-    // 智能计算复制节点的位置
-    // 如果原节点在视口内，则偏移一小段距离
-    // 如果原节点不在视口内，则放到视口中央
-    let newPosition = {
-      x: originalNode.position.x + 50,
-      y: originalNode.position.y + 50,
-    }
-
-    try {
-      const viewport = getViewport()
-      const canvas = document.querySelector('.vue-flow-container')
-      const canvasRect = canvas?.getBoundingClientRect()
-
-      if (canvasRect) {
-        // 检查原节点是否在当前视口内
-        const nodeInViewport = project({
-          x: canvasRect.width / 2,
-          y: canvasRect.height / 2,
-        })
-
-        // 如果原节点距离视口中心太远（超过1000px），则将新节点放到视口中央
-        const distanceToCenter = Math.sqrt(
-          Math.pow(originalNode.position.x - nodeInViewport.x, 2) +
-            Math.pow(originalNode.position.y - nodeInViewport.y, 2),
-        )
-
-        if (distanceToCenter > 1000) {
-          newPosition = {
-            x: nodeInViewport.x - 120,
-            y: nodeInViewport.y - 60,
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('计算复制位置失败，使用默认偏移:', error)
-    }
-
-    const newNode = {
-      ...originalNode,
-      id: generateNodeId(),
-      position: newPosition,
-      label: `${originalNode.label} 副本`,
-    }
-
-    nodes.value.push(newNode)
   }
 
   // 配置面板相关
