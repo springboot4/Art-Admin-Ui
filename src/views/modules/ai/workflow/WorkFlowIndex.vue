@@ -32,22 +32,22 @@
 
       <div class="toolbar-right">
         <a-space :size="12" align="center" class="toolbar-actions">
-          <a-tooltip placement="bottom" title="添加节点">
-            <a-button class="toolbar-icon-btn" type="text" @click="addNode">
-              <template #icon>
-                <PlusOutlined />
-              </template>
-            </a-button>
-          </a-tooltip>
-          <a-tooltip placement="bottom" title="清空">
-            <a-button class="toolbar-icon-btn" type="text" @click="clearWorkflow">
-              <template #icon>
-                <ClearOutlined />
-              </template>
-            </a-button>
-          </a-tooltip>
+          <!--          <a-tooltip placement="bottom" title="添加节点">-->
+          <!--            <a-button class="toolbar-icon-btn" type="text" @click="addNode">-->
+          <!--              <template #icon>-->
+          <!--                <PlusOutlined />-->
+          <!--              </template>-->
+          <!--            </a-button>-->
+          <!--          </a-tooltip>-->
+          <!--          <a-tooltip placement="bottom" title="清空">-->
+          <!--            <a-button class="toolbar-icon-btn" type="text" @click="clearWorkflow">-->
+          <!--              <template #icon>-->
+          <!--                <ClearOutlined />-->
+          <!--              </template>-->
+          <!--            </a-button>-->
+          <!--          </a-tooltip>-->
 
-          <a-divider type="vertical" />
+          <!--          <a-divider type="vertical" />-->
 
           <a-tooltip placement="bottom" title="导入">
             <a-button class="toolbar-icon-btn" type="text" @click="importWorkflow">
@@ -133,6 +133,7 @@
               @dblclick="() => onNodeDoubleClick(null, props)"
               @delete="handleDeleteNode"
               @edit="handleEditNode"
+              @add-next-node="handleAddNextNode"
             />
           </template>
 
@@ -262,7 +263,7 @@
   const route = useRoute()
 
   // VueFlow实例 - 用于获取视口信息
-  const { project, getViewport } = useVueFlow()
+  const { project } = useVueFlow()
 
   // 路由参数
   const appId = ref(route.query.appId)
@@ -424,6 +425,8 @@
   const showAddNodeMenu = ref(false)
   const addNodeMenuPosition = ref({ x: 0, y: 0 })
   const addNodeFromNodeId = ref(null)
+  const addNodeFromHandleId = ref(null)
+  const addNodeMenuPointer = ref(null)
 
   // 开始节点输入模态框相关
   const startNodeInputModalVisible = ref(false)
@@ -790,49 +793,106 @@
 
   const onEdgeClick = (_event, _edge) => {}
 
-  // 从菜单添加节点 - 添加到当前视口中央
-  const addNodeFromMenu = (nodeType) => {
-    try {
-      // 获取画布容器尺寸
-      const canvas = document.querySelector('.vue-flow-container')
-      const canvasRect = canvas?.getBoundingClientRect()
-
-      if (!canvasRect) {
-        console.warn('无法获取画布尺寸，使用默认位置')
-        const newNode = createNode(nodeType, { x: 400, y: 300 })
-        nodes.value.push(newNode)
-        showAddNodeMenu.value = false
-        return
-      }
-
-      // 获取当前视口信息（考虑缩放和平移）
-      const viewport = getViewport()
-
-      // 计算视口中心在屏幕上的像素坐标
-      const centerX = canvasRect.width / 2
-      const centerY = canvasRect.height / 2
-
-      // 将屏幕坐标转换为画布坐标（考虑缩放和平移）
-      const canvasPosition = project({
-        x: centerX,
-        y: centerY,
-      })
-
-      // 创建新节点（节点宽度约240px，高度约120px，所以偏移一半）
-      const newNode = createNode(nodeType, {
-        x: canvasPosition.x - 120,
-        y: canvasPosition.y - 60,
-      })
-
-      nodes.value.push(newNode)
-    } catch (error) {
-      console.error('添加节点失败:', error)
-      // 降级到默认位置
-      const newNode = createNode(nodeType, { x: 400, y: 300 })
-      nodes.value.push(newNode)
+  const handleAddNextNode = ({ nodeId, handleId, event }) => {
+    if (!nodeId) {
+      return
     }
 
-    // 关闭菜单
+    const isConnected = edges.value.some(
+      (edge) => edge.source === nodeId && edge.sourceHandle === handleId,
+    )
+
+    if (isConnected) {
+      message.warning('该输出端已连接其他节点')
+      return
+    }
+
+    addNodeFromNodeId.value = nodeId
+    addNodeFromHandleId.value = handleId
+
+    if (event && typeof event.clientX === 'number' && typeof event.clientY === 'number') {
+      addNodeMenuPointer.value = { clientX: event.clientX, clientY: event.clientY }
+      addNodeMenuPosition.value = {
+        x: event.clientX + 12,
+        y: event.clientY + 12,
+      }
+    } else {
+      addNodeMenuPointer.value = null
+      addNodeMenuPosition.value = { x: 300, y: 300 }
+    }
+
+    showAddNodeMenu.value = true
+  }
+
+  // 从菜单添加节点 - 添加到当前视口中央
+  const addNodeFromMenu = (nodeType) => {
+    let nodePosition
+
+    const canvas = document.querySelector('.vue-flow-container')
+    const canvasRect = canvas?.getBoundingClientRect()
+
+    if (canvasRect) {
+      if (addNodeMenuPointer.value) {
+        const { clientX, clientY } = addNodeMenuPointer.value
+        const projected = project({
+          x: clientX - canvasRect.left,
+          y: clientY - canvasRect.top,
+        })
+
+        nodePosition = {
+          x: projected.x + 80,
+          y: projected.y - 40,
+        }
+      } else {
+        const centerProjected = project({
+          x: canvasRect.width / 2,
+          y: canvasRect.height / 2,
+        })
+        nodePosition = { x: centerProjected.x - 120, y: centerProjected.y - 60 }
+      }
+    }
+
+    if (!nodePosition) {
+      nodePosition = { x: 400, y: 300 }
+    }
+
+    let nodeDefinition = nodeType
+    if (!nodeDefinition || !nodeDefinition.type) {
+      nodeDefinition = allNodeTypes.find((item) => item.type === nodeType)
+    }
+
+    if (!nodeDefinition || !nodeDefinition.type) {
+      message.error('无法识别的节点类型')
+      addNodeFromNodeId.value = null
+      addNodeFromHandleId.value = null
+      addNodeMenuPointer.value = null
+      showAddNodeMenu.value = false
+      return
+    }
+
+    const newNode = createNode(nodeDefinition, nodePosition)
+    nodes.value.push(newNode)
+
+    if (addNodeFromNodeId.value && addNodeFromHandleId.value) {
+      const targetHandleId = newNode.data.nodeType === 'start' ? null : 'target_handle'
+      if (targetHandleId) {
+        const newEdge = {
+          id: `edge_${Date.now()}`,
+          source: addNodeFromNodeId.value,
+          sourceHandle: addNodeFromHandleId.value,
+          target: newNode.id,
+          targetHandle: targetHandleId,
+          type: 'default',
+        }
+        edges.value = [...edges.value, newEdge]
+      } else {
+        message.warning('选中的节点类型无法直接连接，请手动连接')
+      }
+    }
+
+    addNodeFromNodeId.value = null
+    addNodeFromHandleId.value = null
+    addNodeMenuPointer.value = null
     showAddNodeMenu.value = false
   }
 
@@ -1362,6 +1422,9 @@
     if (showAddNodeMenu.value) {
       showAddNodeMenu.value = false
     }
+    addNodeFromNodeId.value = null
+    addNodeFromHandleId.value = null
+    addNodeMenuPointer.value = null
   }
 
   // 连接验证函数 - 严格限制只能输出端口连接到输入端口
@@ -1523,7 +1586,9 @@
   }
 
   const addNode = () => {
-    addNodeFromNodeId.value = 'start-node'
+    addNodeFromNodeId.value = null
+    addNodeFromHandleId.value = null
+    addNodeMenuPointer.value = null
     addNodeMenuPosition.value = { x: 300, y: 300 }
     showAddNodeMenu.value = true
   }

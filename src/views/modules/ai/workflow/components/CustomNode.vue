@@ -59,6 +59,9 @@
             :title="`${condition.label}: ${condition.expression || 'N/A'}`"
             position="right"
             type="source"
+            @click.stop="handleOutputClick(condition.id, $event)"
+            @mousedown.prevent
+            @dblclick.stop="focusOutputHandle(condition.id)"
           />
         </div>
       </div>
@@ -112,6 +115,9 @@
       class="node-handle output-handle"
       position="right"
       type="source"
+      @click.stop="handleOutputClick('source_handle', $event)"
+      @mousedown.prevent
+      @dblclick.stop="focusOutputHandle('source_handle')"
     />
   </div>
 </template>
@@ -120,7 +126,7 @@
   import { computed, ref, watch } from 'vue'
   import { Handle } from '@vue-flow/core'
   import { Button as AButton } from 'ant-design-vue'
-  import { CopyOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons-vue'
+  import { DeleteOutlined, EditOutlined } from '@ant-design/icons-vue'
   import { getModelLabelById } from '/@/hooks/ai/useAiModelOptions'
 
   const props = defineProps({
@@ -138,10 +144,18 @@
     },
   })
 
-  defineEmits(['delete', 'edit'])
+  const emit = defineEmits(['delete', 'edit', 'add-next-node'])
+
+  function focusOutputHandle(handleId) {
+    emit('add-next-node', { nodeId: props.id, handleId })
+  }
 
   const LLM_NODE_TYPES = new Set(['llm', 'llm_answer'])
   const isLLMNode = computed(() => LLM_NODE_TYPES.has(props.data?.nodeType || ''))
+
+  function handleOutputClick(handleId, event) {
+    emit('add-next-node', { nodeId: props.id, handleId, event })
+  }
 
   const modelDisplay = ref('')
   let lastLookupId = 0
