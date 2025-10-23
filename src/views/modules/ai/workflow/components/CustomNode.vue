@@ -87,6 +87,10 @@
           <span class="config-label">语言:</span>
           <span class="config-value">{{ data.config.language || 'Python' }}</span>
         </div>
+        <div v-if="data.nodeType === 'direct_reply'" class="config-item">
+          <span class="config-label">回复:</span>
+          <span class="config-value">{{ replyPreview || '未配置' }}</span>
+        </div>
       </div>
     </div>
 
@@ -110,7 +114,7 @@
     <!-- 输出端口 -->
     <!-- 普通节点单个输出端口 -->
     <Handle
-      v-if="data.nodeType !== 'output' && data.nodeType !== 'condition'"
+      v-if="hasOutputHandle"
       id="source_handle"
       class="node-handle output-handle"
       position="right"
@@ -151,7 +155,16 @@
   }
 
   const LLM_NODE_TYPES = new Set(['llm', 'llm_answer'])
+  const NO_OUTPUT_HANDLE_NODE_TYPES = new Set(['output', 'condition', 'direct_reply'])
   const isLLMNode = computed(() => LLM_NODE_TYPES.has(props.data?.nodeType || ''))
+  const hasOutputHandle = computed(() => !NO_OUTPUT_HANDLE_NODE_TYPES.has(props.data?.nodeType || ''))
+  const replyPreview = computed(() => {
+    const replyText = props.data?.config?.replyText
+    if (typeof replyText !== 'string' || replyText.length === 0) {
+      return ''
+    }
+    return replyText.length > 32 ? `${replyText.slice(0, 32)}…` : replyText
+  })
 
   function handleOutputClick(handleId, event) {
     emit('add-next-node', { nodeId: props.id, handleId, event })

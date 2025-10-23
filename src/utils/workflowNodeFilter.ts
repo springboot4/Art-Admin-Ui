@@ -14,6 +14,7 @@ const NODE_MODE_MAP: Record<string, AppMode[]> = {
   start: ['workflow', 'chatflow'], // 开始节点 - 两种模式都支持
   llm: ['workflow', 'chatflow'], // 大语言模型 - 两种模式都支持
   llm_answer: ['chatflow'], // 大模型应答 - 仅对话流支持
+  direct_reply: ['chatflow'], // 直接回复 - 仅对话流支持
   knowledge: ['workflow', 'chatflow'], // 知识检索 - 两种模式都支持
   condition: ['workflow', 'chatflow'], // 条件判断 - 两种模式都支持
   code: ['workflow', 'chatflow'], // 代码执行 - 两种模式都支持

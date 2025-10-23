@@ -112,6 +112,7 @@ export const NODE_OUTPUT_DEFINITIONS: Record<string, NodeOutputDefinition[]> = {
       description: '设置的变量键值对',
     },
   ],
+  direct_reply: [],
   output: [], // 输出节点没有输出参数
 }
 

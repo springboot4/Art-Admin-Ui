@@ -106,13 +106,6 @@ export function useChatflowExecution() {
 
     // ===== 第五步：开始发送流程 =====
     try {
-      console.log('[ChatflowExecution] 开始发送消息:', {
-        conversationId,
-        workflowId,
-        userInput: userInput.substring(0, 50) + '...',
-        isSending: isSending.value,
-      })
-
       // 触发用户消息回调
       callbacks?.onUserMessage?.({
         role: 'user',

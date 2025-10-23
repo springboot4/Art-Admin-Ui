@@ -307,6 +307,14 @@
       category: 'llm',
     },
     {
+      type: 'direct_reply',
+      label: '直接回复',
+      icon: '🗨️',
+      color: '#3d5a80',
+      description: '直接向用户返回预设文本，可引用变量',
+      category: 'output',
+    },
+    {
       type: 'knowledge',
       label: '知识检索',
       icon: '📚',
@@ -751,6 +759,12 @@
         query: '',
         topK: 5,
         threshold: 0.7,
+      },
+      direct_reply: {
+        replyText: '',
+        referenceParameters: [],
+        timeout: 5,
+        retryCount: 0,
       },
       output: {
         outputContent: '工作流执行完成',

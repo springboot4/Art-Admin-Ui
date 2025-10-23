@@ -594,6 +594,27 @@
           </a-form-item>
         </template>
 
+        <!-- 直接回复节点配置 -->
+        <template v-if="editData.data.nodeType === 'direct_reply'">
+          <a-card class="config-card" size="small" title="回复配置">
+            <template #extra>
+              <a-tag v-if="directReplyTextLength > 0" color="blue" size="small">
+                {{ directReplyTextLength }} 字符
+              </a-tag>
+            </template>
+            <a-form-item label="回复内容">
+              <VariableSelector
+                v-model:referenceParameters="editData.data.config.referenceParameters"
+                v-model:value="editData.data.config.replyText"
+                :edges="edges"
+                :node-id="editData.id"
+                :nodes="nodes"
+                placeholder="请输入回复内容，可使用 ${变量} 引用节点或输入"
+              />
+            </a-form-item>
+          </a-card>
+        </template>
+
         <!-- 输出节点配置 -->
         <template v-if="editData.data.nodeType === 'output'">
           <a-form-item label="输出变量">
@@ -886,6 +907,11 @@
     return options
   })
 
+  const directReplyTextLength = computed(() => {
+    const replyText = editData.value?.data?.config?.replyText
+    return typeof replyText === 'string' ? replyText.length : 0
+  })
+
   // 监听节点变化，初始化编辑数据
   watch(
     () => props.node,
@@ -895,6 +921,18 @@
         // 确保存在 referenceParameters 字段
         if (!editData.value.data.config.referenceParameters) {
           editData.value.data.config.referenceParameters = []
+        }
+
+        if (editData.value.data.nodeType === 'direct_reply') {
+          if (typeof editData.value.data.config.replyText !== 'string') {
+            editData.value.data.config.replyText = ''
+          }
+          if (typeof editData.value.data.config.timeout !== 'number') {
+            editData.value.data.config.timeout = 5
+          }
+          if (typeof editData.value.data.config.retryCount !== 'number') {
+            editData.value.data.config.retryCount = 0
+          }
         }
 
         // 确保HTTP节点配置初始化
@@ -1220,6 +1258,12 @@
       },
       variable: {
         variables: '{"processed_question": "${}"}',
+        timeout: 5,
+        retryCount: 0,
+      },
+      direct_reply: {
+        replyText: '',
+        referenceParameters: [],
         timeout: 5,
         retryCount: 0,
       },
