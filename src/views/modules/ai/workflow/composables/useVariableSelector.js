@@ -11,11 +11,14 @@ export function useVariableSelector(props, emit) {
   const activeGroups = ref(['system', 'environment', 'userInput', 'conversation', 'nodeOutput'])
 
   // 计算可用变量
+  const conversationVariables = inject('conversationVariables', ref([]))
+
   const dependencyAnalyzer = computed(() => {
     const nodeList = props.nodes || []
     const edgeList = props.edges || []
     const mode = appMode.value || 'workflow'
-    return new NodeDependencyAnalyzer(nodeList, edgeList, mode)
+    const convVars = conversationVariables?.value || []
+    return new NodeDependencyAnalyzer(nodeList, edgeList, mode, convVars)
   })
 
   const availableVariables = computed(() => {

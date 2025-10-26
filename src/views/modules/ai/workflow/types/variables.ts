@@ -104,14 +104,7 @@ export const NODE_OUTPUT_DEFINITIONS: Record<string, NodeOutputDefinition[]> = {
       description: '模板中使用的变量值',
     },
   ],
-  variable: [
-    {
-      key: 'variables',
-      name: '设置变量',
-      dataType: VariableDataType.OBJECT,
-      description: '设置的变量键值对',
-    },
-  ],
+  variable: [],
   direct_reply: [],
   output: [], // 输出节点没有输出参数
 }
@@ -129,7 +122,7 @@ export const CHATFLOW_SYSTEM_VARIABLES: VariableDefinition[] = [
     access: VariableAccess.READONLY,
     description: '用户对话输入',
     required: true,
-  }
+  },
 ]
 
 /**

@@ -19,6 +19,7 @@ const NODE_MODE_MAP: Record<string, AppMode[]> = {
   condition: ['workflow', 'chatflow'], // 条件判断 - 两种模式都支持
   code: ['workflow', 'chatflow'], // 代码执行 - 两种模式都支持
   http: ['workflow', 'chatflow'], // HTTP请求 - 两种模式都支持
+  variable: ['chatflow'], // 会话变量赋值 - 仅对话流支持
   output: ['workflow'], // 输出节点 - 仅工作流支持
 }
 

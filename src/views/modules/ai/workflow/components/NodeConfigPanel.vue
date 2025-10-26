@@ -582,16 +582,93 @@
 
         <!-- 变量节点配置 -->
         <template v-if="editData.data.nodeType === 'variable'">
-          <a-form-item label="变量配置(JSON格式)">
-            <VariableSelector
-              v-model:referenceParameters="editData.data.config.referenceParameters"
-              v-model:value="editData.data.config.variables"
-              :edges="edges"
-              :node-id="editData.id"
-              :nodes="nodes"
-              placeholder='{"var1": "${value1}", "var2": "${result}"}'
+          <a-card class="config-card" size="small" title="会话变量赋值">
+            <template #extra>
+              <a-tag v-if="variableAssignments.length" color="blue" size="small">
+                {{ variableAssignments.length }} 项
+              </a-tag>
+            </template>
+
+            <a-alert
+              v-if="!hasConversationVariableOptions"
+              message="当前未声明会话变量，请先在工具栏中配置后再进行赋值。"
+              show-icon
+              type="warning"
             />
-          </a-form-item>
+
+            <div v-else class="variable-assignment-list">
+              <transition-group name="fade-move" tag="div">
+                <div
+                  v-for="(assignment, index) in variableAssignments"
+                  :key="assignment.uid"
+                  class="variable-assignment-item"
+                >
+                  <div class="assignment-header">
+                    <span class="assignment-index">{{ index + 1 }}</span>
+                    <a-space>
+                      <a-tag v-if="assignmentValidationErrors[index]" color="red" size="small">
+                        {{ assignmentValidationErrors[index] }}
+                      </a-tag>
+                      <a-button danger size="small" type="text" @click="removeAssignment(index)">
+                        删除
+                      </a-button>
+                    </a-space>
+                  </div>
+
+                  <a-form-item label="目标变量">
+                    <a-select
+                      v-model:value="assignment.targetKey"
+                      :options="conversationVariableOptions"
+                      placeholder="选择已声明的会话变量"
+                      show-search
+                      :filter-option="filterConversationOption"
+                    />
+                  </a-form-item>
+
+                  <a-form-item label="值来源">
+                    <a-radio-group
+                      v-model:value="assignment.source.type"
+                      button-style="solid"
+                      @change="() => handleSourceTypeSwitch(index)"
+                    >
+                      <a-radio-button value="REFERENCE">引用变量</a-radio-button>
+                      <a-radio-button value="CONSTANT">固定值</a-radio-button>
+                    </a-radio-group>
+                  </a-form-item>
+
+                  <a-form-item v-if="assignment.source.type === 'CONSTANT'" label="固定值">
+                    <a-input
+                      v-model:value="assignment.source.constant"
+                      allow-clear
+                      placeholder="输入字符串，留空视为 ''"
+                    />
+                  </a-form-item>
+
+                  <template v-else>
+                    <a-form-item label="引用变量">
+                      <VariableSelector
+                        v-model:value="assignment.referenceDisplay"
+                        v-model:referenceParameters="editData.data.config.referenceParameters"
+                        :edges="edges"
+                        :multiple="false"
+                        :node-id="editData.id"
+                        :nodes="nodes"
+                        placeholder="选择可用变量"
+                        @change="(value) => handleAssignmentReferenceChange(index, value)"
+                      />
+                    </a-form-item>
+                  </template>
+                </div>
+              </transition-group>
+
+              <a-button block class="add-assignment-btn" type="dashed" @click="addAssignment">
+                <template #icon>
+                  <PlusOutlined />
+                </template>
+                新增赋值
+              </a-button>
+            </div>
+          </a-card>
         </template>
 
         <!-- 直接回复节点配置 -->
@@ -763,6 +840,7 @@
   import { computed, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import {
+    Alert as AAlert,
     Button as AButton,
     Card as ACard,
     Checkbox as ACheckbox,
@@ -832,6 +910,10 @@
       type: Array,
       default: () => [],
     },
+    conversationVariables: {
+      type: Array,
+      default: () => [],
+    },
   })
 
   const emit = defineEmits(['update:visible', 'save', 'close'])
@@ -845,6 +927,233 @@
   const availableModels = ref<AiModelDTO[]>([])
   const modelPlatformMap = ref<Record<string, AiModelPlatformDTO>>({})
   const modelOptionsLoading = ref(false)
+
+  interface VariableAssignmentDraft {
+    uid: string
+    targetKey: string
+    source: {
+      type: 'CONSTANT' | 'REFERENCE'
+      constant?: string
+      referenceKey?: string
+    }
+    referenceDisplay: string
+  }
+
+  const variableAssignments = ref<VariableAssignmentDraft[]>([])
+
+  const conversationVariableOptions = computed(() => {
+    return (props.conversationVariables || []).map((item: any) => ({
+      label: item?.key || '',
+      value: item?.key || '',
+      defaultValue: item?.defaultValue ?? null,
+    }))
+  })
+
+  const hasConversationVariableOptions = computed(
+    () => conversationVariableOptions.value.length > 0,
+  )
+
+  const conversationVariableKeySet = computed(
+    () => new Set(conversationVariableOptions.value.map((option) => option.value)),
+  )
+
+  const assignmentValidationErrors = computed(() => {
+    const errors: string[] = []
+    const usedTargets = new Set<string>()
+
+    variableAssignments.value.forEach((assignment, index) => {
+      let error = ''
+
+      if (!assignment.targetKey) {
+        error = '请选择目标变量'
+      } else if (!conversationVariableKeySet.value.has(assignment.targetKey)) {
+        error = '变量未在声明中'
+      } else if (usedTargets.has(assignment.targetKey)) {
+        error = '同一变量不可重复写入'
+      }
+
+      usedTargets.add(assignment.targetKey)
+
+      if (!error) {
+        if (assignment.source.type === 'CONSTANT') {
+          if (assignment.source.constant === undefined || assignment.source.constant === null) {
+            error = '请输入固定值'
+          }
+        } else if (!assignment.source.referenceKey) {
+          error = '请选择引用变量'
+        }
+      }
+
+      errors[index] = error
+    })
+
+    return errors
+  })
+
+  const filterConversationOption = (input: string, option: any) => {
+    if (!option?.label) return false
+    return option.label.toLowerCase().includes((input || '').toLowerCase())
+  }
+
+  const addAssignment = () => {
+    variableAssignments.value.push(createAssignmentDraft())
+  }
+
+  const removeAssignment = (index: number) => {
+    if (index >= 0 && index < variableAssignments.value.length) {
+      variableAssignments.value.splice(index, 1)
+    }
+  }
+
+  const handleSourceTypeSwitch = (index: number) => {
+    const assignment = variableAssignments.value[index]
+    if (!assignment) return
+
+    if (assignment.source.type === 'CONSTANT') {
+      assignment.source.referenceKey = ''
+      assignment.referenceDisplay = ''
+    } else {
+      assignment.source.constant = ''
+    }
+  }
+
+  const normalizeReferenceParameterName = (name: string) => {
+    return name?.replace(/[^A-Za-z0-9_]/g, '_') || ''
+  }
+
+  const parseReferenceDisplay = (value: string) => {
+    if (!value) return null
+    const match = value.match(/^\$\{([^}]+)\}$/)
+    if (!match) return null
+    const segments = match[1].split('.')
+    if (segments.length < 3) return null
+
+    const [variableType, nodeId, ...rest] = segments
+    if (!variableType || !nodeId || rest.length === 0) return null
+    const parameterPath = rest.join('.')
+    const normalizedParameter = normalizeReferenceParameterName(parameterPath)
+
+    if (!normalizedParameter) {
+      return null
+    }
+
+    if (variableType === 'output') {
+      return {
+        referenceKey: `output_${nodeId}_${normalizedParameter}`,
+      }
+    }
+
+    return {
+      referenceKey: `${variableType}_${variableType}_${normalizedParameter}`,
+    }
+  }
+
+  const buildReferenceDisplayFromKey = (key: string | undefined) => {
+    if (!key) return ''
+
+    const outputMatch = key.match(/^output_(.+?)_(.+)$/)
+    if (outputMatch) {
+      return `\${${['output', outputMatch[1], outputMatch[2]].join('.')}}`
+    }
+
+    const generalMatch = key.match(/^([A-Za-z0-9]+)_\1_(.+)$/)
+    if (generalMatch) {
+      return `\${${[generalMatch[1], generalMatch[1], generalMatch[2]].join('.')}}`
+    }
+
+    return ''
+  }
+
+  const createAssignmentDraft = (raw: any = {}): VariableAssignmentDraft => {
+    const uid = raw.uid || `assignment_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    const sourceType = raw?.source?.type === 'CONSTANT' ? 'CONSTANT' : 'REFERENCE'
+    const referenceKey = sourceType === 'REFERENCE' ? raw?.source?.referenceKey || '' : ''
+    const constantValue = sourceType === 'CONSTANT' ? raw?.source?.constant ?? '' : ''
+    return {
+      uid,
+      targetKey: raw?.targetKey || '',
+      source: {
+        type: sourceType,
+        constant: constantValue,
+        referenceKey,
+      },
+      referenceDisplay: buildReferenceDisplayFromKey(referenceKey),
+    }
+  }
+
+  const handleAssignmentReferenceChange = (index: number, value: string) => {
+    const assignment = variableAssignments.value[index]
+    if (!assignment) return
+
+    assignment.referenceDisplay = value
+    const parsed = parseReferenceDisplay(value)
+    if (parsed) {
+      assignment.source.type = 'REFERENCE'
+      assignment.source.referenceKey = parsed.referenceKey
+    } else {
+      assignment.source.referenceKey = ''
+    }
+  }
+
+  const sanitizeAssignmentsForSave = () => {
+    return variableAssignments.value.map((assignment) => {
+      const base = {
+        targetKey: assignment.targetKey,
+        source: {
+          type: assignment.source.type,
+        } as { type: 'CONSTANT' | 'REFERENCE'; constant?: string; referenceKey?: string },
+      }
+
+      if (assignment.source.type === 'CONSTANT') {
+        base.source.constant = assignment.source.constant ?? ''
+      } else {
+        base.source.referenceKey = assignment.source.referenceKey
+      }
+
+      return base
+    })
+  }
+
+  const validateVariableAssignments = () => {
+    if (editData.value?.data?.nodeType !== 'variable') {
+      return true
+    }
+
+    if (!hasConversationVariableOptions.value) {
+      message.warning('请先声明会话变量后再配置赋值')
+      return false
+    }
+
+    if (variableAssignments.value.length === 0) {
+      message.error('请至少添加一条会话变量赋值')
+      return false
+    }
+
+    const hasError = assignmentValidationErrors.value.some((item) => item)
+    if (hasError) {
+      message.error('请完善会话变量赋值配置')
+      return false
+    }
+
+    return true
+  }
+
+  const ensureVariableAssignmentsInitialized = () => {
+    const config = editData.value?.data?.config || {}
+    const rawAssignments = Array.isArray(config.assignments) ? config.assignments : []
+
+    if (rawAssignments.length > 0) {
+      variableAssignments.value = rawAssignments.map((item: any) => createAssignmentDraft(item))
+    } else {
+      variableAssignments.value = hasConversationVariableOptions.value
+        ? [createAssignmentDraft()]
+        : []
+    }
+
+    if (editData.value?.data?.nodeType === 'variable') {
+      editData.value.data.config.assignments = sanitizeAssignmentsForSave()
+    }
+  }
 
   const LLM_NODE_TYPES = new Set(['llm', 'llm_answer'])
   const STRUCTURED_OUTPUT_NODE_TYPES = new Set(['llm'])
@@ -933,6 +1242,21 @@
           if (typeof editData.value.data.config.retryCount !== 'number') {
             editData.value.data.config.retryCount = 0
           }
+        }
+
+        if (editData.value.data.nodeType === 'variable') {
+          // 兼容旧配置
+          if (typeof editData.value.data.config.variables === 'string') {
+            delete editData.value.data.config.variables
+          }
+
+          if (!Array.isArray(editData.value.data.config.assignments)) {
+            editData.value.data.config.assignments = []
+          }
+
+          ensureVariableAssignmentsInitialized()
+        } else {
+          variableAssignments.value = []
         }
 
         // 确保HTTP节点配置初始化
@@ -1108,6 +1432,45 @@
     { immediate: true },
   )
 
+  watch(
+    variableAssignments,
+    () => {
+      if (editData.value?.data?.nodeType === 'variable') {
+        editData.value.data.config.assignments = sanitizeAssignmentsForSave()
+      }
+    },
+    { deep: true },
+  )
+
+  watch(
+    conversationVariableOptions,
+    () => {
+      if (editData.value?.data?.nodeType !== 'variable') {
+        return
+      }
+
+      const validKeys = conversationVariableKeySet.value
+      let changed = false
+
+      variableAssignments.value.forEach((assignment) => {
+        if (assignment.targetKey && !validKeys.has(assignment.targetKey)) {
+          assignment.targetKey = ''
+          changed = true
+        }
+      })
+
+      if (variableAssignments.value.length === 0 && hasConversationVariableOptions.value) {
+        variableAssignments.value.push(createAssignmentDraft())
+        changed = true
+      }
+
+      if (changed) {
+        editData.value.data.config.assignments = sanitizeAssignmentsForSave()
+      }
+    },
+    { deep: true },
+  )
+
   // 处理关闭事件
   const handleClose = () => {
     emit('update:visible', false)
@@ -1173,6 +1536,12 @@
 
   // 保存配置
   const handleSave = () => {
+    if (editData.value?.data?.nodeType === 'variable') {
+      if (!validateVariableAssignments()) {
+        return
+      }
+      editData.value.data.config.assignments = sanitizeAssignmentsForSave()
+    }
     emit('save', editData.value)
   }
 
@@ -1180,6 +1549,9 @@
   const resetConfig = () => {
     const defaultConfig = getDefaultConfig(editData.value.data.nodeType)
     editData.value.data.config = defaultConfig
+    if (editData.value.data.nodeType === 'variable') {
+      ensureVariableAssignmentsInitialized()
+    }
   }
 
   const createLLMDefaultConfig = () => ({
@@ -1257,7 +1629,8 @@
         retryCount: 0,
       },
       variable: {
-        variables: '{"processed_question": "${}"}',
+        assignments: [],
+        referenceParameters: [],
         timeout: 5,
         retryCount: 0,
       },
@@ -1554,6 +1927,67 @@
     border-radius: 6px;
     margin-bottom: 12px;
     background: #fafafa;
+  }
+
+  .variable-assignment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .variable-assignment-item {
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 12px 16px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  }
+
+  .assignment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .assignment-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 600;
+  }
+
+  .reference-key-preview {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: -4px;
+    margin-bottom: 12px;
+  }
+
+  .reference-key-preview .preview-label {
+    color: #64748b;
+    font-size: 12px;
+  }
+
+  .add-assignment-btn {
+    margin-top: 4px;
+  }
+
+  .fade-move-enter-active,
+  .fade-move-leave-active {
+    transition: all 0.2s ease;
+  }
+
+  .fade-move-enter-from,
+  .fade-move-leave-to {
+    opacity: 0;
+    transform: translateY(4px);
   }
 
   .output-variable-item:last-of-type {

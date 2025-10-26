@@ -87,6 +87,10 @@
           <span class="config-label">语言:</span>
           <span class="config-value">{{ data.config.language || 'Python' }}</span>
         </div>
+        <div v-if="data.nodeType === 'variable'" class="config-item">
+          <span class="config-label">赋值:</span>
+          <span class="config-value">{{ variableAssignmentSummary }}</span>
+        </div>
         <div v-if="data.nodeType === 'direct_reply'" class="config-item">
           <span class="config-label">回复:</span>
           <span class="config-value">{{ replyPreview || '未配置' }}</span>
@@ -155,15 +159,36 @@
   }
 
   const LLM_NODE_TYPES = new Set(['llm', 'llm_answer'])
-  const NO_OUTPUT_HANDLE_NODE_TYPES = new Set(['output', 'condition', 'direct_reply'])
+  const NO_OUTPUT_HANDLE_NODE_TYPES = new Set(['output', 'condition'])
   const isLLMNode = computed(() => LLM_NODE_TYPES.has(props.data?.nodeType || ''))
-  const hasOutputHandle = computed(() => !NO_OUTPUT_HANDLE_NODE_TYPES.has(props.data?.nodeType || ''))
+  const hasOutputHandle = computed(
+    () => !NO_OUTPUT_HANDLE_NODE_TYPES.has(props.data?.nodeType || ''),
+  )
   const replyPreview = computed(() => {
     const replyText = props.data?.config?.replyText
     if (typeof replyText !== 'string' || replyText.length === 0) {
       return ''
     }
     return replyText.length > 32 ? `${replyText.slice(0, 32)}…` : replyText
+  })
+  const variableAssignmentSummary = computed(() => {
+    if (props.data?.nodeType !== 'variable') {
+      return ''
+    }
+    const assignments = props.data?.config?.assignments
+    if (!Array.isArray(assignments) || assignments.length === 0) {
+      return '未配置'
+    }
+    const targets = assignments
+      .map((item) => item?.targetKey)
+      .filter((target) => typeof target === 'string' && target)
+    if (targets.length === 0) {
+      return `${assignments.length} 项`
+    }
+    if (targets.length <= 2) {
+      return targets.join('、')
+    }
+    return `${targets.slice(0, 2).join('、')} 等${assignments.length} 项`
   })
 
   function handleOutputClick(handleId, event) {

@@ -35,10 +35,20 @@ export class NodeDependencyAnalyzer {
   private edges: WorkflowEdge[]
   private appMode: 'workflow' | 'chatflow'
 
-  constructor(nodes: WorkflowNode[], edges: WorkflowEdge[], appMode: 'workflow' | 'chatflow' = 'workflow') {
+  private conversationVariables: { key: string; defaultValue: string | null }[]
+
+  constructor(
+    nodes: WorkflowNode[],
+    edges: WorkflowEdge[],
+    appMode: 'workflow' | 'chatflow' = 'workflow',
+    conversationVariables: { key: string; defaultValue: string | null }[] = [],
+  ) {
     this.nodes = nodes
     this.edges = edges
     this.appMode = appMode
+    this.conversationVariables = Array.isArray(conversationVariables)
+      ? conversationVariables.filter((item) => item && item.key)
+      : []
   }
 
   /**
@@ -188,26 +198,20 @@ export class NodeDependencyAnalyzer {
    * 获取会话变量
    */
   private getConversationVariables(): VariableDefinition[] {
-    return [
-      // {
-      //   id: 'conversation_chat_history',
-      //   name: 'chatHistory',
-      //   type: VariableType.CONVERSATION,
-      //   dataType: VariableDataType.ARRAY,
-      //   access: VariableAccess.READWRITE,
-      //   description: '对话历史记录',
-      //   required: false,
-      // },
-      // {
-      //   id: 'conversation_user_context',
-      //   name: 'userContext',
-      //   type: VariableType.CONVERSATION,
-      //   dataType: VariableDataType.OBJECT,
-      //   access: VariableAccess.READWRITE,
-      //   description: '用户上下文信息',
-      //   required: false,
-      // },
-    ]
+    if (!Array.isArray(this.conversationVariables) || this.conversationVariables.length === 0) {
+      return []
+    }
+
+    return this.conversationVariables.map((item) => ({
+      id: `conversation_${item.key}`,
+      name: item.key,
+      type: VariableType.CONVERSATION,
+      dataType: VariableDataType.STRING,
+      access: VariableAccess.READWRITE,
+      description: '会话变量',
+      required: false,
+      defaultValue: item.defaultValue ?? null,
+    }))
   }
 
   /**

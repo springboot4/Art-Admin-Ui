@@ -64,6 +64,14 @@
             </a-button>
           </a-tooltip>
 
+          <a-tooltip v-if="appMode === 'chatflow'" placement="bottom" title="会话变量">
+            <a-button class="toolbar-icon-btn" type="text" @click="openConversationVariableDrawer">
+              <template #icon>
+                <DatabaseOutlined />
+              </template>
+            </a-button>
+          </a-tooltip>
+
           <a-divider type="vertical" />
 
           <div class="run-publish-group">
@@ -171,6 +179,7 @@
       :node="selectedNode"
       :nodes="nodes"
       :visible="configPanelVisible"
+      :conversation-variables="conversationVariables"
       @close="handleConfigPanelClose"
       @save="handleConfigSave"
     />
@@ -224,6 +233,12 @@
       @cancel="handleStartNodeInputCancel"
       @run="handleStartNodeInputRun"
     />
+
+    <ConversationVariableDrawer
+      v-model:visible="conversationVariableDrawerVisible"
+      :variables="conversationVariables"
+      @update:variables="setConversationVariables"
+    />
   </div>
 </template>
 
@@ -240,11 +255,13 @@
     ImportOutlined,
     PlayCircleOutlined,
     PlusOutlined,
+    DatabaseOutlined,
   } from '@ant-design/icons-vue'
   import CustomNode from './components/CustomNode.vue'
   import NodeConfigPanel from './components/NodeConfigPanel.vue'
   import WorkflowResultPanel from './components/WorkflowResultPanel.vue'
   import ChatPreviewPanel from './components/ChatPreviewPanel.vue'
+  import ConversationVariableDrawer from './components/ConversationVariableDrawer.vue'
   import StartNodeInputModal from '/@/components/Workflow/StartNodeInputModal.vue'
   import { draft, findByAppId, publish } from '/@/api/ai/workflow/AiWorkflowsIndex'
   import { useWorkflowExecution } from './utils'
@@ -272,6 +289,118 @@
 
   // 提供 appMode 给所有子组件使用，避免层层传递 props
   provide('appMode', appMode)
+
+  const conversationVariables = ref<{ key: string; defaultValue: string | null }[]>([])
+  const conversationVariableDrawerVisible = ref(false)
+
+  provide('conversationVariables', conversationVariables)
+
+  // 会话变量相关
+  const normalizeConversationVariableList = (
+    list: { key: string; defaultValue: string | null }[] = [],
+  ) => {
+    return list
+      .filter((item) => item && item.key)
+      .map((item) => ({
+        key: item.key,
+        defaultValue:
+          item.defaultValue === undefined || item.defaultValue === null || item.defaultValue === ''
+            ? null
+            : String(item.defaultValue),
+      }))
+      .sort((a, b) => a.key.localeCompare(b.key))
+  }
+
+  const conversationVariableMap = computed<Record<string, string | null>>(() => {
+    const map: Record<string, string | null> = {}
+    normalizeConversationVariableList(conversationVariables.value).forEach((item) => {
+      map[item.key] = item.defaultValue === null ? null : item.defaultValue
+    })
+    return map
+  })
+
+  const normalizeNodeConfiguration = (node) => {
+    if (!node || typeof node !== 'object') {
+      return node
+    }
+
+    const clonedNode = {
+      ...node,
+      data: {
+        ...node.data,
+        config: node.data?.config ? { ...node.data.config } : {},
+      },
+    }
+
+    const config = clonedNode.data.config
+
+    if (clonedNode.data.nodeType === 'variable') {
+      if (!Array.isArray(config.assignments)) {
+        const assignments: any[] = []
+
+        if (typeof config.variables === 'string') {
+          try {
+            const parsed = JSON.parse(config.variables)
+            if (parsed && typeof parsed === 'object') {
+              Object.entries(parsed).forEach(([key, value]) => {
+                assignments.push({
+                  targetKey: key,
+                  source: {
+                    type: 'CONSTANT',
+                    constant: value === null || value === undefined ? '' : String(value),
+                  },
+                })
+              })
+            }
+          } catch (error) {
+            console.warn('旧版变量配置解析失败:', error)
+          }
+        }
+
+        config.assignments = assignments
+      }
+
+      if (!Array.isArray(config.referenceParameters)) {
+        config.referenceParameters = []
+      }
+
+      delete config.variables
+    }
+
+    return clonedNode
+  }
+
+  const applyConversationVariableMap = (map: Record<string, string | null>) => {
+    if (!map || typeof map !== 'object') {
+      conversationVariables.value = []
+      return
+    }
+    const entries = Object.entries(map)
+    conversationVariables.value = normalizeConversationVariableList(
+      entries.map(([key, value]) => ({ key, defaultValue: value ?? null })),
+    )
+  }
+
+  const parseConversationVariableString = (raw?: string | null) => {
+    if (!raw) return {}
+    try {
+      const parsed = JSON.parse(raw)
+      if (parsed && typeof parsed === 'object') {
+        return parsed as Record<string, string | null>
+      }
+    } catch (error) {
+      console.warn('解析会话变量失败:', error)
+    }
+    return {}
+  }
+
+  const openConversationVariableDrawer = () => {
+    conversationVariableDrawerVisible.value = true
+  }
+
+  const setConversationVariables = (list: { key: string; defaultValue: string | null }[]) => {
+    conversationVariables.value = normalizeConversationVariableList(list)
+  }
 
   // 后端返回的应用模式，用于校验
   const backendAppMode = ref<string | undefined>(undefined)
@@ -310,7 +439,7 @@
       type: 'direct_reply',
       label: '直接回复',
       icon: '🗨️',
-      color: '#3d5a80',
+      color: '#3a5ad4',
       description: '直接向用户返回预设文本，可引用变量',
       category: 'output',
     },
@@ -346,6 +475,14 @@
       color: '#fa8c16',
       description: '调用外部API接口',
       category: 'integration',
+    },
+    {
+      type: 'variable',
+      label: '会话变量赋值',
+      icon: '📝',
+      color: '#249b88',
+      description: '写入会话变量或更新默认值',
+      category: 'logic',
     },
     {
       type: 'output',
@@ -540,6 +677,10 @@
           appMode.value = backendAppMode.value as AppMode
         }
 
+        applyConversationVariableMap(
+          parseConversationVariableString(response.conversationVariables),
+        )
+
         // 更新可用节点类型
         availableNodeTypes.value = filterNodeTypesByAppMode(allNodeTypes, appMode.value)
 
@@ -573,7 +714,7 @@
 
   // 加载工作流数据的通用方法
   const loadWorkflowData = async (workflowData, isImporting = true) => {
-    const importedNodes = workflowData.nodes || []
+    const importedNodes = (workflowData.nodes || []).map((node) => normalizeNodeConfiguration(node))
     const importedEdges = workflowData.edges || []
 
     // 创建一个节点ID到节点数据的映射，方便快速查找
@@ -616,6 +757,20 @@
     edges.value = validEdges
     workflowName.value = workflowData.name || '导入的工作流'
 
+    if (
+      workflowData &&
+      Object.prototype.hasOwnProperty.call(workflowData, 'conversationVariables')
+    ) {
+      const rawConversationVariables = workflowData.conversationVariables
+      if (rawConversationVariables && typeof rawConversationVariables === 'object') {
+        applyConversationVariableMap(rawConversationVariables)
+      } else if (isImporting) {
+        conversationVariables.value = []
+      }
+    } else if (isImporting) {
+      conversationVariables.value = []
+    }
+
     // 根据是否为导入操作来决定是否清空ID和版本信息
     if (isImporting) {
       // 对于导入的工作流，设置为草稿状态，清空工作流ID和版本信息
@@ -633,12 +788,13 @@
     // 只有在有 appId 的情况下才启用自动保存
     if (appId.value) {
       setupAutoSave(
-        [nodes, edges, workflowName], // 监听节点、边和工作流名称的变化
+        [nodes, edges, workflowName, conversationVariables], // 监听节点、边、名称和会话变量的变化
         // 获取要保存的数据
         () => ({
           nodes: nodes.value,
           edges: edges.value,
           name: workflowName.value,
+          conversationVariables: conversationVariables.value,
         }),
         // 执行保存的函数
         async () => {
@@ -666,6 +822,7 @@
               nodes: cleanNodes,
               edges: cleanEdges,
               exportTime: new Date().toISOString(),
+              conversationVariables: conversationVariableMap.value,
             }
 
             // 构建保存数据
@@ -675,6 +832,7 @@
               version: 'draft',
               graph: JSON.stringify(workflowData),
               type: appMode.value,
+              conversationVariables: JSON.stringify(conversationVariableMap.value),
             }
 
             const response = await draft(saveData)
@@ -759,6 +917,12 @@
         query: '',
         topK: 5,
         threshold: 0.7,
+      },
+      variable: {
+        assignments: [],
+        referenceParameters: [],
+        timeout: 5,
+        retryCount: 0,
       },
       direct_reply: {
         replyText: '',
@@ -970,6 +1134,7 @@
         nodes: cleanNodes,
         edges: cleanEdges,
         exportTime: new Date().toISOString(),
+        conversationVariables: conversationVariableMap.value,
       }
 
       // 构建保存数据
@@ -979,6 +1144,7 @@
         version: 'draft',
         graph: JSON.stringify(workflowData),
         type: appMode.value,
+        conversationVariables: JSON.stringify(conversationVariableMap.value),
       }
 
       const response = await draft(saveData)
@@ -1037,6 +1203,7 @@
     workflowStatus.value = 'draft'
     workflowVersion.value = null
     currentWorkflowId.value = null
+    conversationVariables.value = []
     message.success('画布已清空')
   }
 
@@ -1067,6 +1234,7 @@
       status: workflowStatus.value,
       exportTime: new Date().toISOString(),
       version: '1.0',
+      conversationVariables: conversationVariableMap.value,
     }
 
     const blob = new Blob([JSON.stringify(workflowData, null, 2)], {
