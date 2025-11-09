@@ -563,6 +563,14 @@
           appMode: item.mode,
         },
       })
+    } else if (item?.mode === 'agent') {
+      router.push({
+        path: '/ai/agent',
+        query: {
+          appId: item.id,
+          appMode: item.mode,
+        },
+      })
     } else {
       message.info(`正在打开应用: ${item?.name}`)
     }

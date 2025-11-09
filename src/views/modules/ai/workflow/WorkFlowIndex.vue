@@ -249,12 +249,10 @@
   import { Controls } from '@vue-flow/controls'
   import { Button as AButton, Input as AInput, message, Space as ASpace } from 'ant-design-vue'
   import {
-    ClearOutlined,
     CloudUploadOutlined,
     ExportOutlined,
     ImportOutlined,
     PlayCircleOutlined,
-    PlusOutlined,
     DatabaseOutlined,
   } from '@ant-design/icons-vue'
   import CustomNode from './components/CustomNode.vue'

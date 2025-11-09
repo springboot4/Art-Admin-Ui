@@ -65,7 +65,6 @@
         </div>
       </div>
       <div class="status-right">
-        <!-- 初始参数按钮 -->
         <Button
           v-if="hasInitialInputs"
           size="small"
@@ -86,15 +85,6 @@
           </Button>
           <template #overlay>
             <Menu>
-              <!--              <Menu.Item @click="handleClearConversation">-->
-              <!--                <ClearOutlined />-->
-              <!--                清空对话-->
-              <!--              </Menu.Item>-->
-              <!--              <Menu.Item @click="handleExportConversation">-->
-              <!--                <ExportOutlined />-->
-              <!--                导出对话-->
-              <!--              </Menu.Item>-->
-              <!--              <Menu.Divider />-->
               <Menu.Item @click="handleCreateNewConversation">
                 <PlusOutlined />
                 新建会话
