@@ -340,10 +340,10 @@
   .agent-studio-page {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
     padding: 24px;
     min-height: calc(100vh - 48px);
-    background: linear-gradient(180deg, #f3f6ff 0%, #f9fbff 45%, #ffffff 100%);
+    background: #f5f7fa;
   }
 
   .agent-studio-spin {
@@ -353,25 +353,25 @@
   .agent-studio-shell {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 16px;
   }
 
   .agent-main {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 16px;
   }
   .spec-editor-wrapper {
-    background: rgba(255, 255, 255, 0.92);
-    border-radius: 20px;
-    padding: 22px;
-    border: 1px solid rgba(194, 206, 238, 0.45);
-    box-shadow: 0 18px 48px -42px rgba(28, 66, 170, 0.85);
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 24px;
+    border: 1px solid #e8eaed;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   }
 
   @media (max-width: 1280px) {
     .spec-editor-wrapper {
-      padding: 18px;
+      padding: 20px;
     }
   }
 
