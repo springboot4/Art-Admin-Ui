@@ -7,24 +7,36 @@
         </template>
       </a-button>
       <div class="app-meta">
-        <div class="app-name-row">
-          <span class="app-name">{{ app?.name || 'Agent 应用' }}</span>
-          <a-tag color="blue" v-if="agentStatus">{{ statusLabel }}</a-tag>
-        </div>
-        <div class="app-subtitle">
-          <span>应用 ID：{{ app?.id }}</span>
-          <a-divider type="vertical" />
-          <span v-if="agent?.updateTime">更新于 {{ formatTime(agent?.updateTime) }}</span>
-          <span v-else>配置尚未发布</span>
-        </div>
+        <span class="app-name">{{ app?.name || 'Agent 应用' }}</span>
+        <a-tag :color="statusColor" class="status-tag">{{ statusLabel }}</a-tag>
       </div>
+    </div>
+    <div class="header-right">
+      <a-button
+        :disabled="!hasChanges || !!blockingIssues.length"
+        :loading="saving"
+        @click="$emit('save-draft')"
+      >
+        保存草稿
+      </a-button>
+      <a-tooltip :title="publishTooltip">
+        <a-button
+          type="primary"
+          :disabled="!canPublish || !!blockingIssues.length"
+          :loading="publishing"
+          @click="$emit('publish')"
+        >
+          <template #icon><SendOutlined /></template>
+          发布上线
+        </a-button>
+      </a-tooltip>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed } from 'vue'
-  import { ArrowLeftOutlined } from '@ant-design/icons-vue'
+  import { ArrowLeftOutlined, SendOutlined } from '@ant-design/icons-vue'
 
   interface Props {
     app: {
@@ -37,11 +49,20 @@
       updateTime?: string
     } | null
     loading?: boolean
+    saving?: boolean
+    publishing?: boolean
+    hasChanges?: boolean
+    canPublish?: boolean
+    blockingIssues?: string[]
   }
 
   const props = defineProps<Props>()
 
-  defineEmits<{ (e: 'back'): void }>()
+  defineEmits<{
+    (e: 'back'): void
+    (e: 'save-draft'): void
+    (e: 'publish'): void
+  }>()
 
   const statusLabel = computed(() => {
     const status = props.agent?.status
@@ -51,13 +72,18 @@
     return status
   })
 
-  const agentStatus = computed(() => props.agent?.status)
+  const statusColor = computed(() => {
+    const status = props.agent?.status
+    if (status === 'published') return 'success'
+    if (status === 'draft') return 'warning'
+    return 'default'
+  })
 
-  function formatTime(time?: string) {
-    if (!time) return ''
-    const date = new Date(time)
-    return date.toLocaleString()
-  }
+  const publishTooltip = computed(() => {
+    if (!props.canPublish) return '请先选择模型'
+    if (props.blockingIssues?.length) return props.blockingIssues.join('；')
+    return '发布当前配置'
+  })
 </script>
 
 <style scoped>
@@ -65,52 +91,45 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
-    border-radius: 20px;
-    background: linear-gradient(135deg, #f0f5ff 0%, #ffffff 40%, #fff 100%);
-    box-shadow: 0 10px 30px -20px rgba(24, 144, 255, 0.4);
+    padding: 12px 16px;
+    border-radius: 6px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
   }
 
   .header-left {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
   }
 
   .back-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    color: #6b7280;
+  }
+
+  .back-btn:hover {
+    color: #111827;
   }
 
   .app-meta {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .app-name-row {
-    display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
   }
 
   .app-name {
-    font-size: 22px;
+    font-size: 15px;
     font-weight: 600;
-    color: #1f2329;
+    color: #111827;
   }
 
-  .app-subtitle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #6b7785;
-    font-size: 13px;
+  .status-tag {
+    font-size: 12px;
   }
 
   .header-right {
     display: flex;
     align-items: center;
+    gap: 8px;
   }
 </style>

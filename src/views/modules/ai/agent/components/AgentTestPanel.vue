@@ -7,45 +7,45 @@
           <h3>实时调试</h3>
           <a-tag v-if="status === 'published'" color="blue" class="status-tag">在线版本</a-tag>
           <a-tag v-else color="gold" class="status-tag">草稿版本</a-tag>
-        </div>
-        <div v-if="conversationId" class="session-info">
-          <span class="label">会话:</span>
-          <div v-if="isEditingName" class="session-name-editor">
-            <a-input
-              ref="nameInputRef"
-              v-model:value="editingName"
-              size="small"
-              class="session-name-input"
-              :maxlength="50"
-              @blur="handleNameBlur"
-              @keydown="handleNameKeydown"
-            />
-            <div class="edit-actions">
-              <a-button
+          <div v-if="conversationId" class="session-info">
+            <span class="label">会话:</span>
+            <div v-if="isEditingName" class="session-name-editor">
+              <a-input
+                ref="nameInputRef"
+                v-model:value="editingName"
                 size="small"
-                type="text"
-                class="action-btn save-btn"
-                @click="saveConversationName"
-              >
-                <CheckOutlined />
-              </a-button>
-              <a-button
-                size="small"
-                type="text"
-                class="action-btn cancel-btn"
-                @click="cancelEditName"
-              >
-                <CloseOutlined />
+                class="session-name-input"
+                :maxlength="50"
+                @blur="handleNameBlur"
+                @keydown="handleNameKeydown"
+              />
+              <div class="edit-actions">
+                <a-button
+                  size="small"
+                  type="text"
+                  class="action-btn save-btn"
+                  @click="saveConversationName"
+                >
+                  <CheckOutlined />
+                </a-button>
+                <a-button
+                  size="small"
+                  type="text"
+                  class="action-btn cancel-btn"
+                  @click="cancelEditName"
+                >
+                  <CloseOutlined />
+                </a-button>
+              </div>
+            </div>
+            <div v-else class="session-name-display" @dblclick="startEditName">
+              <code class="session-code">{{ conversationNameDisplay }}</code>
+              <a-button size="small" type="text" class="edit-btn" @click="startEditName">
+                <template #icon>
+                  <EditOutlined />
+                </template>
               </a-button>
             </div>
-          </div>
-          <div v-else class="session-name-display" @dblclick="startEditName">
-            <code class="session-code">{{ conversationNameDisplay }}</code>
-            <a-button size="small" type="text" class="edit-btn" @click="startEditName">
-              <template #icon>
-                <EditOutlined />
-              </template>
-            </a-button>
           </div>
         </div>
       </div>
@@ -233,16 +233,6 @@
             {{ isRunning ? 'AI 思考中...' : '发送' }}
           </a-button>
         </div>
-      </div>
-      <div class="input-tips">
-        <span v-if="!isRunning" class="tip-item">
-          <span class="tip-icon">💡</span>
-          提示: 按 <kbd>Enter</kbd> 发送，<kbd>Shift + Enter</kbd> 换行
-        </span>
-        <span v-else class="tip-item processing">
-          <LoadingOutlined spin />
-          <span class="processing-text">AI 正在思考并生成回复...</span>
-        </span>
       </div>
     </div>
   </div>
@@ -910,7 +900,8 @@ ${friendlyError}`
   .chat-preview-panel {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: 95%;
+    min-height: 0;
     background: #ffffff;
     color: #262626;
     overflow: hidden;
@@ -920,9 +911,10 @@ ${friendlyError}`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 16px;
     border-bottom: 1px solid #f0f0f0;
     background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+    flex-shrink: 0;
 
     .header-left {
       flex: 1;
@@ -1069,6 +1061,7 @@ ${friendlyError}`
     background: #fafafa;
     border-bottom: 1px solid #f0f0f0;
     min-height: 48px;
+    flex-shrink: 0;
 
     .status-left {
       flex: 1;
@@ -1128,6 +1121,7 @@ ${friendlyError}`
     background: #ffffff;
     border-bottom: 1px solid #f0f0f0;
     padding: 12px 20px 16px;
+    flex-shrink: 0;
 
     .panel-title-row {
       display: flex;
@@ -1178,6 +1172,7 @@ ${friendlyError}`
 
   .chat-messages-container {
     flex: 1;
+    min-height: 0;
     overflow: hidden;
     background: #fafafa;
 
@@ -1443,12 +1438,14 @@ ${friendlyError}`
   .error-banner {
     margin: 12px 20px 0;
     border-radius: 8px;
+    flex-shrink: 0;
   }
 
   .chat-input-container {
     padding: 16px 20px;
     background: #ffffff;
     border-top: 1px solid #f0f0f0;
+    flex-shrink: 0;
 
     .input-wrapper {
       display: flex;

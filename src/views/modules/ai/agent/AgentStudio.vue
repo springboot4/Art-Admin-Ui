@@ -1,34 +1,34 @@
 <template>
   <div class="agent-studio-page">
-    <PageHeader :app="appInfo" :agent="activeAgent" :loading="loading" @back="handleBack" />
-
-    <Result v-if="loadError" :sub-title="loadError" status="error" title="无法加载Agent配置">
-      <template #extra>
-        <a-button type="primary" @click="initialize">重试</a-button>
-      </template>
-    </Result>
-
     <a-spin :spinning="loading" wrapper-class-name="agent-studio-spin">
-      <div v-if="!loadError" class="agent-studio-shell">
-        <section class="agent-main">
-          <div class="spec-editor-wrapper">
-            <AgentSpecEditor
-              v-if="editorReady"
-              :app="appInfo"
-              :agent="editableAgent"
-              :spec="agentSpec"
-              :status="editorStatus"
-              :saving="saving"
-              :publishing="publishing"
-              :has-changes="hasChanges"
-              @save-draft="handleSaveDraft"
-              @publish="handlePublish"
-              @update-spec="handleSpecUpdate"
-              @refresh="initialize"
-              @open-test="openTestPanel"
-            />
-          </div>
-        </section>
+      <div v-if="loadError" style="padding: 40px; text-align: center">
+        <Result :sub-title="loadError" status="error" title="无法加载Agent配置">
+          <template #extra>
+            <a-button type="primary" @click="initialize">重试</a-button>
+          </template>
+        </Result>
+      </div>
+      <div v-else-if="!editorReady" style="padding: 40px; text-align: center; color: #999">
+        正在加载应用信息...
+      </div>
+      <div v-else class="agent-studio-container">
+        <AgentSpecEditorV2
+          :app="appInfo"
+          :agent="editableAgent"
+          :spec="agentSpec"
+          :status="editorStatus"
+          :saving="saving"
+          :publishing="publishing"
+          :has-changes="hasChanges"
+          :can-publish="canPublish"
+          :blocking-issues="blockingIssues"
+          @back="handleBack"
+          @save-draft="handleSaveDraft"
+          @publish="handlePublish"
+          @update-spec="handleSpecUpdate"
+          @refresh="initialize"
+          @open-test="openTestPanel"
+        />
       </div>
     </a-spin>
 
@@ -60,9 +60,8 @@
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import { message } from 'ant-design-vue'
   import { useRoute, useRouter } from 'vue-router'
-  import AgentSpecEditor from './components/AgentSpecEditor.vue'
+  import AgentSpecEditorV2 from './components/AgentSpecEditorV2.vue'
   import AgentTestPanel from './components/AgentTestPanel.vue'
-  import PageHeader from './components/AgentStudioHeader.vue'
   import { Result } from 'ant-design-vue'
   import { get as fetchApp } from '/@/api/ai/app/AiAppIndex'
   import { getLastAgent, publishAgent, saveAgentDraft } from '/@/api/ai/agent/AiAgentIndex'
@@ -119,8 +118,6 @@
 
   const editorReady = computed(() => !!appInfo.value)
 
-  const activeAgent = computed(() => editableAgent.value)
-
   const hasChanges = computed(() => {
     if (!editableAgent.value) return false
     try {
@@ -133,6 +130,19 @@
   })
 
   const editorStatus = computed(() => editableAgent.value?.status || 'draft')
+
+  const canPublish = computed(() => {
+    const modelId = agentSpec.modelId
+    return !!(modelId && String(modelId).trim())
+  })
+
+  const blockingIssues = computed(() => {
+    const issues: string[] = []
+    if (!canPublish.value) {
+      issues.push('尚未选择模型')
+    }
+    return issues
+  })
 
   const testPanelVisible = ref(false)
 
@@ -338,47 +348,23 @@
 
 <style scoped>
   .agent-studio-page {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 24px;
-    min-height: calc(100vh - 48px);
+    height: 100vh;
     background: #f5f7fa;
+    overflow: hidden;
   }
 
   .agent-studio-spin {
     width: 100%;
+    height: 100%;
   }
 
-  .agent-studio-shell {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  .agent-studio-spin :deep(.ant-spin-container) {
+    height: 100%;
   }
 
-  .agent-main {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .spec-editor-wrapper {
-    background: #ffffff;
-    border-radius: 8px;
-    padding: 24px;
-    border: 1px solid #e8eaed;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  }
-
-  @media (max-width: 1280px) {
-    .spec-editor-wrapper {
-      padding: 20px;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .agent-studio-page {
-      padding: 16px;
-    }
+  .agent-studio-container {
+    height: 100%;
+    overflow: hidden;
   }
 
   .agent-test-drawer :deep(.ant-drawer-body) {
