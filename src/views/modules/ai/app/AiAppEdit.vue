@@ -312,7 +312,6 @@
       { min: 1, max: 50, message: '应用名称长度在1-50个字符', trigger: 'blur' },
     ],
     mode: [{ required: true, message: '请选择应用类型', trigger: 'change' }],
-    status: [{ required: true, message: '请选择应用状态', trigger: 'change' }],
   })
 
   const formData = ref<AiAppDTO>({
