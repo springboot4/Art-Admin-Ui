@@ -96,24 +96,119 @@
         <div class="panel-title-row">
           <div class="title-content">
             <FormOutlined class="title-icon" />
-            <span class="title-text">运行变量 (JSON)</span>
+            <span class="title-text">运行变量</span>
           </div>
-          <a-button size="small" type="text" @click="toggleVariables">收起</a-button>
+          <div class="title-actions">
+            <a-button
+              v-if="!isEditingVariables"
+              size="small"
+              type="text"
+              class="edit-btn"
+              @click="startEditVariables"
+            >
+              <EditOutlined />
+              编辑
+            </a-button>
+            <template v-else>
+              <a-button size="small" type="text" class="save-btn" @click="saveEditVariables">
+                <CheckOutlined />
+                保存
+              </a-button>
+              <a-button size="small" type="text" class="cancel-btn" @click="cancelEditVariables">
+                <CloseOutlined />
+                取消
+              </a-button>
+            </template>
+          </div>
         </div>
-        <a-alert
-          v-if="variablesError"
-          :message="variablesError"
-          show-icon
-          type="error"
-          class="variables-alert"
-        />
-        <a-textarea
-          v-model:value="variablesInput"
-          :auto-size="{ minRows: 4, maxRows: 8 }"
-          placeholder='{"city": "上海"}'
-          class="variables-textarea"
-        />
-        <div class="variables-tip">为空时将以默认上下文运行</div>
+
+        <div class="inputs-content">
+          <!-- 无变量提示 -->
+          <div v-if="!hasUserInputs" class="no-inputs-hint">
+            <ExclamationCircleOutlined class="hint-icon" />
+            <span>当前 Agent 未配置用户输入变量</span>
+          </div>
+
+          <!-- 查看模式 -->
+          <div v-else-if="!isEditingVariables" class="inputs-view">
+            <div
+              v-for="input in userInputsSchema"
+              :key="`view-${input.name}`"
+              class="input-item-view"
+            >
+              <div class="input-label">
+                {{ input.displayName || input.name }}
+                <span v-if="input.required" class="required-badge">必填</span>
+                <span :class="['type-badge-small', `type-${input.dataType}`]">
+                  {{ getTypeDisplayName(input.dataType) }}
+                </span>
+              </div>
+              <!-- 布尔值特殊展示 -->
+              <div v-if="input.dataType === 'boolean'" class="input-value boolean-value">
+                <span
+                  :class="['boolean-badge', currentVariables[input.name] ? 'is-true' : 'is-false']"
+                >
+                  {{ currentVariables[input.name] ? '✓ 是' : '✗ 否' }}
+                </span>
+              </div>
+              <!-- 普通值 -->
+              <div v-else class="input-value">
+                {{ currentVariables[input.name] || '（未设置）' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 编辑模式 -->
+          <div v-else class="inputs-edit">
+            <div
+              v-for="input in userInputsSchema"
+              :key="`edit-${input.name}`"
+              class="input-item-edit"
+            >
+              <div class="input-label-edit">
+                {{ input.displayName || input.name }}
+                <span v-if="input.required" class="required-badge">必填</span>
+                <span :class="['type-badge', `type-${input.dataType}`]">
+                  {{ getTypeDisplayName(input.dataType) }}
+                </span>
+              </div>
+              <div v-if="input.description" class="input-description">{{ input.description }}</div>
+
+              <!-- 字符串类型 -->
+              <a-input
+                v-if="input.dataType === 'string'"
+                v-model:value="editingVariables[input.name]"
+                :placeholder="`请输入${input.displayName || input.name}`"
+                class="input-field"
+              />
+
+              <!-- 数字类型 -->
+              <a-input-number
+                v-else-if="input.dataType === 'number'"
+                v-model:value="editingVariables[input.name]"
+                :placeholder="`请输入${input.displayName || input.name}`"
+                class="input-field number-field"
+                style="width: 100%"
+              />
+
+              <!-- 布尔类型 -->
+              <div v-else-if="input.dataType === 'boolean'" class="switch-field">
+                <a-switch v-model:checked="editingVariables[input.name]" class="modern-switch" />
+                <span class="switch-label">
+                  {{ editingVariables[input.name] ? '是' : '否' }}
+                </span>
+              </div>
+
+              <!-- 默认字符串 -->
+              <a-input
+                v-else
+                v-model:value="editingVariables[input.name]"
+                :placeholder="`请输入${input.displayName || input.name}`"
+                class="input-field"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </transition>
 
@@ -239,8 +334,15 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
-  import { message, Dropdown, Menu, Button } from 'ant-design-vue'
+  import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+  import {
+    message,
+    Dropdown,
+    Menu,
+    Button,
+    Switch as ASwitch,
+    InputNumber as AInputNumber,
+  } from 'ant-design-vue'
   import {
     SendOutlined,
     FormOutlined,
@@ -253,6 +355,7 @@
     PlusOutlined,
     EditOutlined,
     CheckOutlined,
+    ExclamationCircleOutlined,
   } from '@ant-design/icons-vue'
   import {
     add as createConversation,
@@ -320,9 +423,10 @@
 
   const timeline = ref<TimelineItem[]>([])
   const inputValue = ref('')
-  const variablesInput = ref('')
-  const variablesError = ref('')
   const showVariables = ref(false)
+  const isEditingVariables = ref(false)
+  const currentVariables = ref<Record<string, any>>({})
+  const editingVariables = ref<Record<string, any>>({})
   const messagesScrollRef = ref<HTMLDivElement | null>(null)
   const messagesEndRef = ref<HTMLDivElement | null>(null)
 
@@ -356,6 +460,12 @@
   const canSend = computed(
     () => inputValue.value.trim().length > 0 && !isInputDisabled.value && !!conversationId.value,
   )
+
+  // 用户输入变量 schema
+  const userInputsSchema = computed(() => props.spec?.userInputs || [])
+
+  // 是否有用户输入变量
+  const hasUserInputs = computed(() => userInputsSchema.value.length > 0)
 
   function createTimelineItem(
     type: 'user' | 'assistant',
@@ -597,10 +707,6 @@
     await createNewConversation()
   }
 
-  function toggleVariables() {
-    showVariables.value = !showVariables.value
-  }
-
   async function startEditName() {
     if (!conversationId.value) return
     editingName.value = conversationName.value || conversationNameDisplay.value
@@ -668,23 +774,80 @@
     }
   }
 
-  function parseVariables(): Record<string, any> | undefined {
-    const raw = variablesInput.value.trim()
-    if (!raw) {
-      variablesError.value = ''
+  function toggleVariables() {
+    showVariables.value = !showVariables.value
+  }
+
+  /**
+   * 开始编辑变量
+   */
+  function startEditVariables() {
+    // 复制当前数据到编辑状态
+    editingVariables.value = { ...currentVariables.value }
+    isEditingVariables.value = true
+  }
+
+  /**
+   * 取消编辑变量
+   */
+  function cancelEditVariables() {
+    isEditingVariables.value = false
+    editingVariables.value = {}
+  }
+
+  /**
+   * 保存编辑的变量
+   */
+  function saveEditVariables() {
+    // 验证必填字段
+    for (const input of userInputsSchema.value) {
+      if (input.required) {
+        const value = editingVariables.value[input.name]
+        if (value === undefined || value === null || value === '') {
+          message.error(`${input.displayName || input.name} 为必填项`)
+          return
+        }
+      }
+    }
+
+    // 保存数据
+    currentVariables.value = { ...editingVariables.value }
+    isEditingVariables.value = false
+    message.success('运行变量已更新')
+  }
+
+  /**
+   * 获取数据类型显示名称
+   */
+  function getTypeDisplayName(dataType: string): string {
+    const typeMap: Record<string, string> = {
+      string: '文本',
+      number: '数字',
+      boolean: '布尔',
+    }
+    return typeMap[dataType] || '文本'
+  }
+
+  /**
+   * 获取运行变量（用于发送消息）
+   * 空值转换为 null
+   */
+  function getRunVariables(): Record<string, any> | undefined {
+    if (!hasUserInputs.value || Object.keys(currentVariables.value).length === 0) {
       return undefined
     }
-    try {
-      const parsed = JSON.parse(raw)
-      if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error('变量必须是对象')
+
+    const variables: Record<string, any> = {}
+    Object.entries(currentVariables.value).forEach(([key, value]) => {
+      // 空字符串、undefined 转为 null
+      if (value === '' || value === undefined) {
+        variables[key] = null
+      } else {
+        variables[key] = value
       }
-      variablesError.value = ''
-      return parsed
-    } catch (error: any) {
-      variablesError.value = error?.message || 'JSON 解析失败'
-      throw error
-    }
+    })
+
+    return variables
   }
 
   /**
@@ -772,13 +935,8 @@
       return
     }
 
-    let variables: Record<string, any> | undefined
-    try {
-      variables = parseVariables()
-    } catch (error) {
-      message.error('运行变量解析失败')
-      return
-    }
+    // 获取运行变量
+    const variables = getRunVariables()
 
     const convId = await ensureConversation()
     if (!convId) {
@@ -894,6 +1052,42 @@ ${friendlyError}`
   onUnmounted(() => {
     stop()
   })
+
+  // 监听 spec.userInputs 变化，同步更新 currentVariables
+  watch(
+    () => props.spec?.userInputs,
+    (newUserInputs) => {
+      if (!newUserInputs || !Array.isArray(newUserInputs)) {
+        // 如果没有用户输入变量，清空当前变量
+        currentVariables.value = {}
+        return
+      }
+
+      // 创建新的变量对象，只保留仍然存在的变量
+      const newVariables: Record<string, any> = {}
+      const oldVariables = currentVariables.value
+
+      newUserInputs.forEach((input) => {
+        const varName = input.name
+        // 如果旧变量中有这个变量，保留其值
+        if (varName in oldVariables) {
+          newVariables[varName] = oldVariables[varName]
+        } else {
+          // 否则设置默认值
+          if (input.dataType === 'boolean') {
+            newVariables[varName] = false
+          } else if (input.dataType === 'number') {
+            newVariables[varName] = 0
+          } else {
+            newVariables[varName] = ''
+          }
+        }
+      })
+
+      currentVariables.value = newVariables
+    },
+    { deep: true, immediate: true },
+  )
 </script>
 
 <style lang="less" scoped>
@@ -1143,6 +1337,251 @@ ${friendlyError}`
           font-size: 13px;
           font-weight: 600;
           color: #262626;
+        }
+      }
+
+      .title-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .edit-btn {
+          color: #1890ff;
+          font-size: 12px;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: rgba(24, 144, 255, 0.1);
+          }
+        }
+
+        .save-btn {
+          color: #52c41a;
+          font-size: 12px;
+
+          &:hover {
+            background: rgba(82, 196, 26, 0.1);
+            color: #389e0d;
+          }
+        }
+
+        .cancel-btn {
+          color: #ff4d4f;
+          font-size: 12px;
+
+          &:hover {
+            background: rgba(255, 77, 79, 0.12);
+            color: #cf1322;
+          }
+        }
+      }
+    }
+
+    .inputs-content {
+      min-height: 60px;
+    }
+
+    .no-inputs-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 20px;
+      background: #f7fafc;
+      border-radius: 8px;
+      color: #8c8c8c;
+      font-size: 13px;
+
+      .hint-icon {
+        font-size: 16px;
+        color: #faad14;
+      }
+    }
+
+    .inputs-view {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .input-item-view {
+        padding: 12px;
+        background: #f7fafc;
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          border-color: #1890ff;
+          background: #f0f7ff;
+        }
+
+        .input-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #262626;
+
+          .required-badge {
+            padding: 0 4px;
+            background: #ff4d4f;
+            color: white;
+            font-size: 10px;
+            border-radius: 3px;
+            font-weight: 500;
+          }
+
+          .type-badge-small {
+            padding: 0 6px;
+            font-size: 10px;
+            border-radius: 4px;
+            font-weight: 500;
+
+            &.type-string {
+              background: #e6f4ff;
+              color: #0958d9;
+            }
+
+            &.type-number {
+              background: #fff1f0;
+              color: #cf1322;
+            }
+
+            &.type-boolean {
+              background: #f6ffed;
+              color: #389e0d;
+            }
+          }
+        }
+
+        .input-value {
+          font-size: 13px;
+          color: #595959;
+          word-break: break-word;
+
+          &.boolean-value {
+            .boolean-badge {
+              padding: 2px 10px;
+              border-radius: 12px;
+              font-size: 12px;
+              font-weight: 500;
+
+              &.is-true {
+                background: #f6ffed;
+                color: #52c41a;
+                border: 1px solid #b7eb8f;
+              }
+
+              &.is-false {
+                background: #fff1f0;
+                color: #ff4d4f;
+                border: 1px solid #ffccc7;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .inputs-edit {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+
+      .input-item-edit {
+        .input-label-edit {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 4px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #262626;
+
+          .required-badge {
+            padding: 0 4px;
+            background: #ff4d4f;
+            color: white;
+            font-size: 10px;
+            border-radius: 3px;
+            font-weight: 500;
+          }
+
+          .type-badge {
+            padding: 2px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            font-weight: 500;
+
+            &.type-string {
+              background: #e6f4ff;
+              color: #0958d9;
+            }
+
+            &.type-number {
+              background: #fff1f0;
+              color: #cf1322;
+            }
+
+            &.type-boolean {
+              background: #f6ffed;
+              color: #389e0d;
+            }
+          }
+        }
+
+        .input-description {
+          font-size: 12px;
+          color: #8c8c8c;
+          margin-bottom: 8px;
+          line-height: 1.5;
+        }
+
+        .input-field {
+          border-radius: 8px;
+          border: 2px solid #e8e8e8;
+          transition: all 0.2s ease;
+
+          &:hover {
+            border-color: #d9d9d9;
+          }
+
+          &:focus-within {
+            border-color: #1890ff;
+            box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
+          }
+
+          :deep(.ant-input) {
+            border: none;
+            box-shadow: none;
+          }
+
+          :deep(.ant-input-number) {
+            border: none;
+            box-shadow: none;
+            width: 100%;
+          }
+        }
+
+        .switch-field {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 0;
+
+          .modern-switch {
+            &:deep(.ant-switch-checked) {
+              background-color: #52c41a;
+            }
+          }
+
+          .switch-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #595959;
+          }
         }
       }
     }

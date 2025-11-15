@@ -75,7 +75,143 @@
             </a-form>
           </ConfigSection>
 
-          <!-- 2. 知识库 -->
+          <!-- 2. 用户输入变量 -->
+          <ConfigSection title="用户输入变量" icon="form">
+            <div class="user-inputs-config">
+              <div class="config-desc">
+                <div class="desc-content">
+                  <div class="desc-text">定义需要用户在运行时提供的变量，可在提示词中使用</div>
+                  <code class="desc-code">'${input.input.变量名}'</code>
+                  <span class="desc-text">引用</span>
+                </div>
+              </div>
+
+              <div
+                v-if="localSpec.userInputs && localSpec.userInputs.length"
+                class="user-inputs-list"
+              >
+                <div
+                  v-for="(input, index) in localSpec.userInputs"
+                  :key="`input_${index}`"
+                  class="user-input-item"
+                >
+                  <div class="input-header">
+                    <div class="header-left">
+                      <div class="input-number">{{ index + 1 }}</div>
+                      <span class="input-title">变量配置</span>
+                      <span v-if="input.required" class="required-badge">必填</span>
+                    </div>
+                    <a-button
+                      danger
+                      size="small"
+                      type="text"
+                      class="delete-btn"
+                      @click="removeUserInput(index)"
+                    >
+                      <template #icon>
+                        <DeleteOutlined />
+                      </template>
+                      删除
+                    </a-button>
+                  </div>
+
+                  <a-form layout="vertical" class="input-form">
+                    <a-row :gutter="16">
+                      <a-col :span="12">
+                        <a-form-item label="变量名" class="form-item-enhanced">
+                          <a-input
+                            v-model:value="input.name"
+                            placeholder="如：age, city"
+                            :maxlength="50"
+                            class="enhanced-input"
+                            @blur="validateVariableName(input, index)"
+                          >
+                            <template #prefix>
+                              <span class="input-prefix">$</span>
+                            </template>
+                          </a-input>
+                          <div class="field-hint">
+                            <span class="hint-icon">ℹ️</span>
+                            仅支持字母、数字、下划线，字母开头
+                          </div>
+                        </a-form-item>
+                      </a-col>
+                      <a-col :span="12">
+                        <a-form-item label="显示名称" class="form-item-enhanced">
+                          <a-input
+                            v-model:value="input.displayName"
+                            placeholder="用户看到的名称"
+                            :maxlength="50"
+                            class="enhanced-input"
+                          >
+                            <template #prefix>
+                              <span class="input-prefix">👤</span>
+                            </template>
+                          </a-input>
+                        </a-form-item>
+                      </a-col>
+                    </a-row>
+
+                    <a-row :gutter="16">
+                      <a-col :span="12">
+                        <a-form-item label="数据类型" class="form-item-enhanced">
+                          <a-select v-model:value="input.dataType" class="enhanced-select">
+                            <a-select-option value="string">
+                              <span class="option-content">
+                                <span class="option-icon">📝</span>
+                                <span>文本</span>
+                              </span>
+                            </a-select-option>
+                            <a-select-option value="number">
+                              <span class="option-content">
+                                <span class="option-icon">🔢</span>
+                                <span>数字</span>
+                              </span>
+                            </a-select-option>
+                            <a-select-option value="boolean">
+                              <span class="option-content">
+                                <span class="option-icon">✓</span>
+                                <span>布尔值</span>
+                              </span>
+                            </a-select-option>
+                          </a-select>
+                        </a-form-item>
+                      </a-col>
+                      <a-col :span="12">
+                        <a-form-item label="选项" class="form-item-enhanced checkbox-item">
+                          <div class="checkbox-wrapper">
+                            <a-checkbox v-model:checked="input.required" class="enhanced-checkbox">
+                              <span class="checkbox-label">设为必填项</span>
+                            </a-checkbox>
+                          </div>
+                        </a-form-item>
+                      </a-col>
+                    </a-row>
+
+                    <a-form-item label="描述" class="form-item-enhanced">
+                      <a-textarea
+                        v-model:value="input.description"
+                        :auto-size="{ minRows: 2, maxRows: 4 }"
+                        placeholder="请输入变量的用途说明，帮助用户理解此变量的作用"
+                        :maxlength="200"
+                        show-count
+                        class="enhanced-textarea"
+                      />
+                    </a-form-item>
+                  </a-form>
+                </div>
+              </div>
+
+              <a-button block type="dashed" class="add-input-btn" @click="addUserInput">
+                <template #icon>
+                  <PlusOutlined />
+                </template>
+                添加用户输入变量
+              </a-button>
+            </div>
+          </ConfigSection>
+
+          <!-- 3. 知识库 -->
           <ConfigSection title="知识库" icon="book">
             <div class="knowledge-config">
               <div class="config-toggle">
@@ -125,7 +261,7 @@
             </div>
           </ConfigSection>
 
-          <!-- 3. 工具配置 -->
+          <!-- 4. 工具配置 -->
           <ConfigSection title="工具" icon="tool">
             <div class="tools-config">
               <div class="tools-list">
@@ -208,7 +344,7 @@
             </div>
           </ConfigSection>
 
-          <!-- 4. 高级配置 -->
+          <!-- 5. 高级配置 -->
           <ConfigSection title="高级配置" icon="setting" :defaultCollapsed="true">
             <a-form layout="vertical" class="section-form">
               <a-row :gutter="16">
@@ -366,8 +502,15 @@
 
 <script setup lang="ts">
   import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
-  import { message } from 'ant-design-vue'
-  import { SendOutlined, EditOutlined, RobotOutlined, SettingOutlined } from '@ant-design/icons-vue'
+  import { message, Checkbox as ACheckbox } from 'ant-design-vue'
+  import {
+    SendOutlined,
+    EditOutlined,
+    RobotOutlined,
+    SettingOutlined,
+    PlusOutlined,
+    DeleteOutlined,
+  } from '@ant-design/icons-vue'
   import cloneDeep from 'lodash-es/cloneDeep'
   import ConfigSection from './ConfigSection.vue'
   import AgentTestPanel from './AgentTestPanel.vue'
@@ -387,6 +530,7 @@
     AgentToolBindings,
     ToolArgumentBinding,
     ToolArgumentSelector,
+    UserInputVariable,
   } from '/@/api/ai/agent/AiAgentTypes'
   import { page as fetchDatasetPage, get as getDatasetById } from '/@/api/ai/dataset/AiDataSetIndex'
   import type { AiDatasetsDTO } from '/@/api/ai/dataset/AiDataSetTypes'
@@ -479,6 +623,7 @@
   const variableSelectorForm = reactive({ nodeId: 'sys', key: '' })
 
   let syncingFromParent = false
+  let isEmitting = false // 标记正在发射更新，防止循环同步
 
   // 计算属性
   const statusLabel = computed(() => {
@@ -633,6 +778,15 @@
       },
       tools: Array.isArray(normalized.tools) ? [...new Set(normalized.tools)] : [],
       toolBindings: cloneToolBindings(normalized.toolBindings),
+      userInputs: Array.isArray(normalized.userInputs)
+        ? normalized.userInputs.map((input) => ({
+            name: input.name || '',
+            displayName: input.displayName || '',
+            dataType: input.dataType || 'string',
+            required: !!input.required,
+            description: input.description || '',
+          }))
+        : [],
       knowledge: normalized.knowledge
         ? {
             ...DEFAULT_KNOWLEDGE,
@@ -855,6 +1009,51 @@
     closeVariableSelector()
   }
 
+  function addUserInput() {
+    if (!Array.isArray(localSpec.userInputs)) {
+      localSpec.userInputs = []
+    }
+    const newInput: UserInputVariable = {
+      name: '',
+      displayName: '',
+      dataType: 'string',
+      required: false,
+      description: '',
+    }
+    localSpec.userInputs.push(newInput)
+  }
+
+  function removeUserInput(index: number) {
+    if (!localSpec.userInputs) return
+    localSpec.userInputs.splice(index, 1)
+  }
+
+  function validateVariableName(input: UserInputVariable, index: number) {
+    const name = (input.name || '').trim()
+
+    if (!name) {
+      return
+    }
+
+    // 验证格式：字母开头，仅字母数字下划线
+    const namePattern = /^[a-zA-Z][a-zA-Z0-9_]*$/
+    if (!namePattern.test(name)) {
+      message.warning(
+        `变量 ${index + 1} 的名称格式不正确，必须以字母开头，仅包含字母、数字、下划线`,
+      )
+      return
+    }
+
+    // 验证唯一性
+    const duplicateIndex = localSpec.userInputs?.findIndex(
+      (item, idx) => idx !== index && item.name === name,
+    )
+    if (duplicateIndex !== undefined && duplicateIndex !== -1) {
+      message.warning(`变量名称 "${name}" 已存在，请使用不同的名称`)
+      input.name = ''
+    }
+  }
+
   function handleModelChange(value: string | undefined | null) {
     if (!value) {
       localSpec.modelId = null
@@ -962,7 +1161,6 @@
         value: normalizeId(dataset.id),
       }))
     } catch (error) {
-      console.error('加载数据集失败', error)
       message.error('加载数据集失败')
     } finally {
       datasetLoading.value = false
@@ -979,6 +1177,24 @@
     if (sanitized.temperature > 1) sanitized.temperature = 1
 
     sanitized.tools = Array.from(new Set(sanitized.tools || [])).filter(Boolean)
+
+    if (sanitized.userInputs) {
+      sanitized.userInputs = sanitized.userInputs
+        .filter((input) => {
+          // 必须有变量名且格式正确
+          const name = (input.name || '').trim()
+          if (!name) return false
+          const namePattern = /^[a-zA-Z][a-zA-Z0-9_]*$/
+          return namePattern.test(name)
+        })
+        .map((input) => ({
+          name: (input.name || '').trim(),
+          displayName: (input.displayName || '').trim(),
+          dataType: input.dataType || 'string',
+          required: !!input.required,
+          description: (input.description || '').trim(),
+        }))
+    }
 
     if (sanitized.toolBindings) {
       Object.keys(sanitized.toolBindings).forEach((tool) => {
@@ -1065,6 +1281,10 @@
     localSpec.tools = [...normalized.tools]
     localSpec.toolBindings = cloneToolBindings(normalized.toolBindings)
 
+    localSpec.userInputs = Array.isArray(normalized.userInputs)
+      ? normalized.userInputs.map((input) => ({ ...input }))
+      : []
+
     localSpec.knowledge = normalized.knowledge
       ? { ...DEFAULT_KNOWLEDGE, ...cloneDeep(normalized.knowledge) }
       : null
@@ -1106,6 +1326,12 @@
     () => props.spec,
     (value) => {
       if (!value) return
+
+      // 如果正在发射更新，跳过同步（这是我们自己的更新）
+      if (isEmitting) {
+        return
+      }
+
       syncingFromParent = true
       syncFromProps(value)
       if (localSpec.knowledge) {
@@ -1122,7 +1348,16 @@
     localSpec,
     () => {
       if (syncingFromParent) return
-      emit('update-spec', sanitizeSpec(cloneDeep(localSpec)))
+
+      // 设置发射标志，防止循环
+      isEmitting = true
+      const sanitized = sanitizeSpec(cloneDeep(localSpec))
+      emit('update-spec', sanitized)
+
+      // 在下一个 tick 后重置标志
+      nextTick(() => {
+        isEmitting = false
+      })
     },
     { deep: true },
   )
@@ -1463,6 +1698,318 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
+  }
+
+  /* 用户输入变量配置 */
+  .user-inputs-config {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .config-desc {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 18px;
+    background: linear-gradient(135deg, #f0f7ff 0%, #f9fafb 100%);
+    border-radius: 10px;
+    border: 1px solid #e6f4ff;
+    box-shadow: 0 1px 3px rgba(24, 144, 255, 0.08);
+
+    .desc-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .desc-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      line-height: 1.6;
+    }
+
+    .desc-text {
+      font-size: 13px;
+      color: #595959;
+    }
+
+    .desc-code {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      background: linear-gradient(135deg, #e6f4ff 0%, #d6e4ff 100%);
+      border: 1px solid #91caff;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: #0958d9;
+      letter-spacing: 0.3px;
+      box-shadow: 0 1px 2px rgba(24, 144, 255, 0.1);
+    }
+  }
+
+  .user-inputs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .user-input-item {
+    padding: 20px;
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+    &:hover {
+      border-color: #1890ff;
+      background: linear-gradient(135deg, #ffffff 0%, #f9fcff 100%);
+      box-shadow: 0 4px 12px rgba(24, 144, 255, 0.12);
+      transform: translateY(-1px);
+    }
+  }
+
+  .input-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #f0f0f0;
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .input-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+      color: white;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 2px 8px rgba(24, 144, 255, 0.25);
+    }
+
+    .input-title {
+      font-weight: 600;
+      font-size: 15px;
+      color: #262626;
+      letter-spacing: 0.3px;
+    }
+
+    .required-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 12px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 6px rgba(255, 77, 79, 0.25);
+    }
+
+    .delete-btn {
+      color: #ff4d4f;
+      font-weight: 500;
+      border-radius: 8px;
+      padding: 4px 12px;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #fff1f0;
+        color: #cf1322;
+      }
+
+      :deep(.anticon) {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .input-form {
+    margin: 0;
+
+    .ant-row {
+      margin-bottom: 4px;
+    }
+  }
+
+  .form-item-enhanced {
+    margin-bottom: 18px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    :deep(.ant-form-item-label) {
+      padding-bottom: 8px;
+
+      > label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #262626;
+        letter-spacing: 0.2px;
+
+        &::before {
+          display: none !important;
+        }
+      }
+    }
+  }
+
+  .enhanced-input,
+  .enhanced-select,
+  .enhanced-textarea {
+    border-radius: 8px;
+    border: 2px solid #e8e8e8;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 13px;
+
+    &:hover {
+      border-color: #d9d9d9;
+    }
+
+    &:focus,
+    &:focus-within {
+      border-color: #1890ff;
+      box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.08);
+    }
+
+    :deep(.ant-input),
+    :deep(.ant-select-selector),
+    :deep(textarea) {
+      border: none !important;
+      box-shadow: none !important;
+      font-size: 13px;
+    }
+
+    :deep(.ant-input-affix-wrapper) {
+      border: none;
+      box-shadow: none;
+    }
+  }
+
+  .input-prefix {
+    font-size: 14px;
+    color: #8c8c8c;
+    margin-right: 4px;
+  }
+
+  .option-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .option-icon {
+      font-size: 14px;
+    }
+  }
+
+  .checkbox-item {
+    :deep(.ant-form-item-control-input) {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  .checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #fafafa;
+    border-radius: 8px;
+    border: 2px solid #f0f0f0;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #f0f7ff;
+      border-color: #91caff;
+    }
+  }
+
+  .enhanced-checkbox {
+    :deep(.ant-checkbox) {
+      transform: scale(1.1);
+    }
+
+    :deep(.ant-checkbox-checked .ant-checkbox-inner) {
+      background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+      border-color: #1890ff;
+    }
+
+    .checkbox-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #262626;
+      margin-left: 4px;
+    }
+  }
+
+  .field-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #8c8c8c;
+    line-height: 1.5;
+
+    .hint-icon {
+      font-size: 14px;
+    }
+  }
+
+  .enhanced-textarea {
+    :deep(textarea) {
+      resize: none;
+      line-height: 1.6;
+    }
+
+    :deep(.ant-input-textarea-show-count::after) {
+      font-size: 11px;
+      color: #bfbfbf;
+    }
+  }
+
+  .add-input-btn {
+    border-radius: 10px;
+    height: 48px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #1890ff;
+    border: 2px dashed #91caff;
+    background: linear-gradient(135deg, #ffffff 0%, #f9fcff 100%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(24, 144, 255, 0.06);
+
+    &:hover {
+      color: #40a9ff;
+      border-color: #40a9ff;
+      border-style: solid;
+      background: linear-gradient(135deg, #e6f4ff 0%, #f0f7ff 100%);
+      box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    :deep(.anticon) {
+      font-size: 16px;
+    }
   }
 
   /* 右侧调试面板 */

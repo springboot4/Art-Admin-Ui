@@ -38,6 +38,18 @@ export interface AgentOutputConfig {
   mode?: 'text' | 'structured'
 }
 
+export interface UserInputVariable {
+  name: string
+  /** 数据类型 */
+  dataType: 'string' | 'number' | 'boolean'
+  /** 是否必填 */
+  required: boolean
+  /** 变量描述 */
+  description?: string
+  /** 显示名称 */
+  displayName: string
+}
+
 export interface AgentSpec {
   version?: string
   platformId: string | number | null
@@ -53,6 +65,7 @@ export interface AgentSpec {
   }
   tools: string[]
   toolBindings?: AgentToolBindings
+  userInputs?: UserInputVariable[]
   knowledge?: AgentKnowledgeConfig | null
   memory?: AgentMemoryConfig | null
   budgets?: AgentBudgetsConfig | null
