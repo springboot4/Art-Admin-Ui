@@ -216,10 +216,8 @@
             <div class="knowledge-config">
               <div class="config-toggle">
                 <div class="toggle-info">
-                  <span class="toggle-title">启用知识检索</span>
                   <span class="toggle-desc">从知识库中检索相关内容，增强Agent回答能力</span>
                 </div>
-                <a-switch v-model:checked="knowledgeEnabled" />
               </div>
 
               <template v-if="knowledgeEnabled">
@@ -567,10 +565,11 @@
   const RETRIEVAL_TYPE_OPTIONS = [
     { label: '向量检索', value: 'VECTOR' },
     { label: '问答检索', value: 'QA' },
+    { label: '图谱检索', value: 'GRAPH' },
     { label: '混合检索', value: 'HYBRID' },
   ]
 
-  // 工具库定义 - 不包含知识检索工具
+  // 工具库定义
   const TOOL_LIBRARY = [
     // {
     //   name: 'http_request',
