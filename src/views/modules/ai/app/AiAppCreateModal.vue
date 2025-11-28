@@ -287,20 +287,20 @@
       description: '具备工具调用能力的AI助手，能够自主完成复杂任务',
       features: ['工具调用', '任务规划', '自主决策'],
     },
-    {
-      type: 'chatbot',
-      title: '聊天助手',
-      icon: CommentOutlined,
-      description: '构建智能对话机器人，提供一对一的个性化交流体验',
-      features: ['对话记忆', '角色扮演', '客服助手'],
-    },
-    {
-      type: 'completion',
-      title: '文本生成',
-      icon: ThunderboltOutlined,
-      description: '处理各种文本任务，如翻译、摘要、创作等一次性操作',
-      features: ['文本转换', '内容生成', '格式处理'],
-    },
+    // {
+    //   type: 'chatbot',
+    //   title: '聊天助手',
+    //   icon: CommentOutlined,
+    //   description: '构建智能对话机器人，提供一对一的个性化交流体验',
+    //   features: ['对话记忆', '角色扮演', '客服助手'],
+    // },
+    // {
+    //   type: 'completion',
+    //   title: '文本生成',
+    //   icon: ThunderboltOutlined,
+    //   description: '处理各种文本任务，如翻译、摘要、创作等一次性操作',
+    //   features: ['文本转换', '内容生成', '格式处理'],
+    // },
   ]
 
   function init() {

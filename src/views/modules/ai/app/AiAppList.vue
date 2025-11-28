@@ -86,32 +86,32 @@
                 </span>
               </template>
             </a-tab-pane>
-            <a-tab-pane key="chatbot" tab="聊天助手">
-              <template #tab>
-                <span class="tab-content">
-                  <CommentOutlined class="tab-icon" />
-                  聊天助手
-                  <a-badge
-                    :count="getTabCount('chatbot')"
-                    :number-style="{ backgroundColor: '#f0f2f5', color: '#595959' }"
-                    class="tab-badge"
-                  />
-                </span>
-              </template>
-            </a-tab-pane>
-            <a-tab-pane key="completion" tab="文本生成">
-              <template #tab>
-                <span class="tab-content">
-                  <ThunderboltOutlined class="tab-icon" />
-                  文本生成
-                  <a-badge
-                    :count="getTabCount('completion')"
-                    :number-style="{ backgroundColor: '#f0f2f5', color: '#595959' }"
-                    class="tab-badge"
-                  />
-                </span>
-              </template>
-            </a-tab-pane>
+            <!--            <a-tab-pane key="chatbot" tab="聊天助手">-->
+            <!--              <template #tab>-->
+            <!--                <span class="tab-content">-->
+            <!--                  <CommentOutlined class="tab-icon" />-->
+            <!--                  聊天助手-->
+            <!--                  <a-badge-->
+            <!--                    :count="getTabCount('chatbot')"-->
+            <!--                    :number-style="{ backgroundColor: '#f0f2f5', color: '#595959' }"-->
+            <!--                    class="tab-badge"-->
+            <!--                  />-->
+            <!--                </span>-->
+            <!--              </template>-->
+            <!--            </a-tab-pane>-->
+            <!--            <a-tab-pane key="completion" tab="文本生成">-->
+            <!--              <template #tab>-->
+            <!--                <span class="tab-content">-->
+            <!--                  <ThunderboltOutlined class="tab-icon" />-->
+            <!--                  文本生成-->
+            <!--                  <a-badge-->
+            <!--                    :count="getTabCount('completion')"-->
+            <!--                    :number-style="{ backgroundColor: '#f0f2f5', color: '#595959' }"-->
+            <!--                    class="tab-badge"-->
+            <!--                  />-->
+            <!--                </span>-->
+            <!--              </template>-->
+            <!--            </a-tab-pane>-->
           </a-tabs>
         </div>
 
