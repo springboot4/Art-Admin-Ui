@@ -1,70 +1,124 @@
 <template>
-  <Card title="模型使用统计" :loading="loading">
-    <div class="h-64">
-      <div class="text-center text-gray-500 mt-8">
-        <Icon icon="ant-design:bar-chart-outlined" :size="48" class="mb-4" />
-        <div class="text-sm">模型使用频率对比</div>
-        <div class="space-y-3 mt-6 text-left max-w-xs mx-auto">
-          <div v-for="model in modelUsageData" :key="model.name" class="space-y-1">
-            <div class="flex items-center justify-between">
-              <span class="text-sm">{{ model.name }}</span>
-              <span class="text-sm font-medium">{{ model.usage }}次</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div
-                class="h-2 rounded-full"
-                :style="{
-                  backgroundColor: model.color,
-                  width: (model.usage / maxUsage) * 100 + '%',
-                }"
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+  <Card title="模块使用统计" :loading="loading">
+    <div ref="chartRef" class="h-64 w-full"></div>
   </Card>
 </template>
 
 <script lang="ts" setup>
-  import { computed } from 'vue'
+  import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
   import { Card } from 'ant-design-vue'
-  import { Icon } from '../../../../components/Icon'
+  import * as echarts from 'echarts'
 
-  defineProps({
+  interface ModuleStats {
+    name: string
+    count: number
+    color: string
+  }
+
+  const props = defineProps({
     loading: {
       type: Boolean,
       default: false,
     },
+    moduleData: {
+      type: Array as () => ModuleStats[],
+      default: () => [],
+    },
   })
 
-  const modelUsageData = [
-    {
-      name: 'GPT-4',
-      usage: 12500,
-      color: '#1890ff',
-    },
-    {
-      name: 'Claude-3',
-      usage: 8900,
-      color: '#52c41a',
-    },
-    {
-      name: 'Gemini Pro',
-      usage: 6200,
-      color: '#722ed1',
-    },
-    {
-      name: 'GPT-3.5',
-      usage: 4800,
-      color: '#fa8c16',
-    },
-    {
-      name: '文心一言',
-      usage: 3100,
-      color: '#13c2c2',
-    },
-  ]
+  const chartRef = ref<HTMLElement>()
+  let chartInstance: echarts.ECharts | null = null
 
-  const maxUsage = computed(() => Math.max(...modelUsageData.map((item) => item.usage)))
+  const initChart = () => {
+    if (!chartRef.value) return
+
+    if (chartInstance) {
+      chartInstance.dispose()
+    }
+    chartInstance = echarts.init(chartRef.value)
+    updateChart()
+  }
+
+  const updateChart = () => {
+    if (!chartInstance) return
+
+    const moduleData = Array.isArray(props.moduleData) ? props.moduleData : []
+    const names = moduleData.map((item) => item.name)
+    const counts = moduleData.map((item) => item.count)
+    const colors = moduleData.map((item) => item.color)
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow',
+        },
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        top: '10%',
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'category',
+        data: names,
+        axisLabel: {
+          interval: 0,
+          rotate: 0,
+        },
+      },
+      yAxis: {
+        type: 'value',
+      },
+      series: [
+        {
+          name: '数量',
+          type: 'bar',
+          barWidth: '60%',
+          data: counts.map((count, index) => ({
+            value: count,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: colors[index] || '#1890ff' },
+                { offset: 1, color: `${colors[index] || '#1890ff'}99` },
+              ]),
+            },
+          })),
+        },
+      ],
+    }
+
+    chartInstance.setOption(option)
+  }
+
+  const resizeChart = () => {
+    chartInstance?.resize()
+  }
+
+  watch(
+    () => props.moduleData,
+    async () => {
+      await nextTick()
+      if (chartInstance) {
+        updateChart()
+        resizeChart()
+      } else {
+        initChart()
+      }
+    },
+    { deep: true, immediate: true }
+  )
+
+  onMounted(() => {
+    initChart()
+    window.addEventListener('resize', resizeChart)
+  })
+
+  onUnmounted(() => {
+    chartInstance?.dispose()
+    chartInstance = null
+    window.removeEventListener('resize', resizeChart)
+  })
 </script>

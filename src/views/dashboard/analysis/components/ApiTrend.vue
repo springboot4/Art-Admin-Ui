@@ -1,38 +1,120 @@
 <template>
-  <Card title="API调用趋势" :loading="loading">
-    <div class="h-64">
-      <div class="text-center text-gray-500 mt-20">
-        <Icon icon="ant-design:line-chart-outlined" :size="48" class="mb-4" />
-        <div>API调用趋势图</div>
-        <div class="text-sm mt-2"> 最近7天：{{ mockData.total.toLocaleString() }} 次调用 </div>
-        <div class="text-xs text-green-600 mt-1"> 相比上周增长 {{ mockData.growth }}% </div>
-      </div>
-    </div>
+  <Card title="会话趋势" :loading="loading">
+    <div ref="chartRef" class="h-64 w-full"></div>
   </Card>
 </template>
 
 <script lang="ts" setup>
+  import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
   import { Card } from 'ant-design-vue'
-  import { Icon } from '../../../../components/Icon'
+  import * as echarts from 'echarts'
+  import type { DailyTrend } from '/@/api/dashboard'
 
-  defineProps({
+  const props = defineProps({
     loading: {
       type: Boolean,
       default: false,
     },
+    trendData: {
+      type: Array as () => DailyTrend[],
+      default: () => [],
+    },
   })
 
-  const mockData = {
-    total: 145000,
-    growth: 12.5,
-    dailyData: [
-      { date: '2024-10-01', calls: 18500 },
-      { date: '2024-10-02', calls: 22000 },
-      { date: '2024-10-03', calls: 19800 },
-      { date: '2024-10-04', calls: 24500 },
-      { date: '2024-10-05', calls: 21200 },
-      { date: '2024-10-06', calls: 26000 },
-      { date: '2024-10-07', calls: 23000 },
-    ],
+  const chartRef = ref<HTMLElement>()
+  let chartInstance: echarts.ECharts | null = null
+
+  const initChart = () => {
+    if (!chartRef.value) return
+
+    if (chartInstance) {
+      chartInstance.dispose()
+    }
+    chartInstance = echarts.init(chartRef.value)
+    updateChart()
   }
+
+  const updateChart = () => {
+    if (!chartInstance) return
+
+    const trendData = Array.isArray(props.trendData) ? props.trendData : []
+    const dates = trendData.map((item) => {
+      const date = new Date(item.date)
+      return `${date.getMonth() + 1}/${date.getDate()}`
+    })
+    const counts = trendData.map((item) => item.count)
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        top: '10%',
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: dates,
+      },
+      yAxis: {
+        type: 'value',
+      },
+      series: [
+        {
+          name: '会话数',
+          type: 'line',
+          smooth: true,
+          data: counts,
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
+              { offset: 1, color: 'rgba(24, 144, 255, 0.05)' },
+            ]),
+          },
+          lineStyle: {
+            color: '#1890ff',
+            width: 2,
+          },
+          itemStyle: {
+            color: '#1890ff',
+          },
+        },
+      ],
+    }
+
+    chartInstance.setOption(option)
+  }
+
+  const resizeChart = () => {
+    chartInstance?.resize()
+  }
+
+  watch(
+    () => props.trendData,
+    async () => {
+      await nextTick()
+      if (chartInstance) {
+        updateChart()
+        resizeChart()
+      } else {
+        initChart()
+      }
+    },
+    { deep: true, immediate: true }
+  )
+
+  onMounted(() => {
+    initChart()
+    window.addEventListener('resize', resizeChart)
+  })
+
+  onUnmounted(() => {
+    chartInstance?.dispose()
+    chartInstance = null
+    window.removeEventListener('resize', resizeChart)
+  })
 </script>

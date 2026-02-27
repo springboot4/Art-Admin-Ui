@@ -4,40 +4,58 @@ export interface GrowCardItem {
   value: number
   total: number
   color: string
+  iconColor: string
   action: string
 }
 
-export const growCardList: GrowCardItem[] = [
-  {
-    title: 'API调用',
-    icon: 'ant-design:api-outlined',
-    value: 15000,
-    total: 280000,
-    color: 'blue',
-    action: '本月',
-  },
-  {
-    title: '活跃应用',
-    icon: 'ant-design:app-store-outlined',
-    value: 42,
-    total: 128,
-    color: 'green',
-    action: '运行中',
-  },
-  {
-    title: '知识库文档',
-    icon: 'ant-design:file-text-outlined',
-    value: 320,
-    total: 4500,
-    color: 'orange',
-    action: '本周新增',
-  },
-  {
-    title: '模型使用时长',
-    icon: 'ant-design:dashboard-outlined',
-    value: 1200,
-    total: 18600,
-    color: 'purple',
-    action: '小时/月',
-  },
-]
+export function getGrowCardList(stats: {
+  appTotal: number | string
+  datasetTotal: number | string
+  documentTotal: number | string
+  conversationTotal: number | string
+}): GrowCardItem[] {
+  // Convert to numbers in case API returns strings
+  const appTotal = Number(stats.appTotal) || 0
+  const datasetTotal = Number(stats.datasetTotal) || 0
+  const documentTotal = Number(stats.documentTotal) || 0
+  const conversationTotal = Number(stats.conversationTotal) || 0
+
+  return [
+    {
+      title: '应用总数',
+      icon: 'ant-design:appstore-outlined',
+      value: appTotal,
+      total: appTotal,
+      color: 'blue',
+      iconColor: '#1890ff',
+      action: '全部',
+    },
+    {
+      title: '数据集',
+      icon: 'ant-design:database-outlined',
+      value: datasetTotal,
+      total: datasetTotal,
+      color: 'green',
+      iconColor: '#52c41a',
+      action: '全部',
+    },
+    {
+      title: '文档数',
+      icon: 'ant-design:file-text-outlined',
+      value: documentTotal,
+      total: documentTotal,
+      color: 'orange',
+      iconColor: '#fa8c16',
+      action: '全部',
+    },
+    {
+      title: '会话数',
+      icon: 'ant-design:message-outlined',
+      value: conversationTotal,
+      total: conversationTotal,
+      color: 'purple',
+      iconColor: '#722ed1',
+      action: '全部',
+    },
+  ]
+}

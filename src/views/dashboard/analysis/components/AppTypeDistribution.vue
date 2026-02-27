@@ -1,63 +1,124 @@
 <template>
   <Card title="应用类型分布" :loading="loading">
-    <div class="h-64">
-      <div class="text-center text-gray-500 mt-12">
-        <Icon icon="ant-design:pie-chart-outlined" :size="48" class="mb-4" />
-        <div class="text-sm">应用类型分布图</div>
-        <div class="space-y-3 mt-6 text-left max-w-xs mx-auto">
-          <div
-            v-for="item in appTypeData"
-            :key="item.type"
-            class="flex items-center justify-between"
-          >
-            <div class="flex items-center space-x-2">
-              <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></div>
-              <span class="text-sm">{{ item.type }}</span>
-            </div>
-            <span class="text-sm font-medium">{{ item.count }}个</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div ref="chartRef" class="h-64 w-full"></div>
   </Card>
 </template>
 
 <script lang="ts" setup>
+  import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
   import { Card } from 'ant-design-vue'
-  import { Icon } from '../../../../components/Icon'
+  import * as echarts from 'echarts'
+  import type { AppTypeStats } from '/@/api/dashboard'
 
-  defineProps({
+  const props = defineProps({
     loading: {
       type: Boolean,
       default: false,
     },
+    appTypeData: {
+      type: Array as () => AppTypeStats[],
+      default: () => [],
+    },
   })
 
-  const appTypeData = [
-    {
-      type: '聊天机器人',
-      count: 45,
-      color: '#1890ff',
+  const chartRef = ref<HTMLElement>()
+  let chartInstance: echarts.ECharts | null = null
+
+  const initChart = () => {
+    if (!chartRef.value) return
+
+    if (chartInstance) {
+      chartInstance.dispose()
+    }
+    chartInstance = echarts.init(chartRef.value)
+    updateChart()
+  }
+
+  const updateChart = () => {
+    if (!chartInstance) return
+
+    const appTypeData = Array.isArray(props.appTypeData) ? props.appTypeData : []
+    const data = appTypeData.map((item) => ({
+      value: item.count,
+      name: item.type,
+      itemStyle: {
+        color: item.color,
+      },
+    }))
+
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c} ({d}%)',
+      },
+      legend: {
+        orient: 'vertical',
+        right: '5%',
+        top: 'center',
+      },
+      series: [
+        {
+          name: '应用类型',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['40%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: '#fff',
+            borderWidth: 2,
+          },
+          label: {
+            show: false,
+            position: 'center',
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 16,
+              fontWeight: 'bold',
+            },
+          },
+          labelLine: {
+            show: false,
+          },
+          data:
+            data.length > 0
+              ? data
+              : [{ value: 1, name: '暂无数据', itemStyle: { color: '#ccc' } }],
+        },
+      ],
+    }
+
+    chartInstance.setOption(option)
+  }
+
+  const resizeChart = () => {
+    chartInstance?.resize()
+  }
+
+  watch(
+    () => props.appTypeData,
+    async () => {
+      await nextTick()
+      if (chartInstance) {
+        updateChart()
+        resizeChart()
+      } else {
+        initChart()
+      }
     },
-    {
-      type: 'RAG应用',
-      count: 32,
-      color: '#52c41a',
-    },
-    {
-      type: '工作流',
-      count: 28,
-      color: '#722ed1',
-    },
-    {
-      type: '代理应用',
-      count: 18,
-      color: '#fa8c16',
-    },
-    {
-      type: '其他',
-      count: 5,
-      color: '#8c8c8c',
-    },
-  ]
+    { deep: true, immediate: true }
+  )
+
+  onMounted(() => {
+    initChart()
+    window.addEventListener('resize', resizeChart)
+  })
+
+  onUnmounted(() => {
+    chartInstance?.dispose()
+    chartInstance = null
+    window.removeEventListener('resize', resizeChart)
+  })
 </script>
