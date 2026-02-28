@@ -202,12 +202,14 @@ watch(isRecording, (val) => {
   width: 36px;
   height: 36px;
   padding: 0;
+  font-size: 16px;
   color: rgba(0, 0, 0, 0.45);
   border-radius: 8px;
+  cursor: pointer;
   transition: all 0.3s;
 }
 
-.record-btn:hover:not(:disabled) {
+.record-btn:hover:not(.disabled) {
   color: #1890ff;
   background: rgba(24, 144, 255, 0.08);
 }
@@ -217,9 +219,14 @@ watch(isRecording, (val) => {
   background: rgba(255, 77, 79, 0.08);
 }
 
-.record-btn.recording:hover:not(:disabled) {
+.record-btn.recording:hover:not(.disabled) {
   color: #ff7875;
   background: rgba(255, 77, 79, 0.12);
+}
+
+.record-btn.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .recording-icon {
