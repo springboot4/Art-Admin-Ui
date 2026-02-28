@@ -76,7 +76,7 @@
           </ConfigSection>
 
           <!-- 2. 用户输入变量 -->
-          <ConfigSection title="用户输入变量" icon="form">
+          <ConfigSection title="用户输入变量" icon="form" :defaultCollapsed="true">
             <div class="user-inputs-config">
               <div class="config-desc">
                 <div class="desc-content">
@@ -131,7 +131,7 @@
                             </template>
                           </a-input>
                           <div class="field-hint">
-                            <span class="hint-icon">ℹ️</span>
+                            <InfoCircleOutlined class="hint-icon" />
                             仅支持字母、数字、下划线，字母开头
                           </div>
                         </a-form-item>
@@ -145,7 +145,7 @@
                             class="enhanced-input"
                           >
                             <template #prefix>
-                              <span class="input-prefix">👤</span>
+                              <UserOutlined class="input-prefix-icon" />
                             </template>
                           </a-input>
                         </a-form-item>
@@ -158,19 +158,19 @@
                           <a-select v-model:value="input.dataType" class="enhanced-select">
                             <a-select-option value="string">
                               <span class="option-content">
-                                <span class="option-icon">📝</span>
+                                <FileTextOutlined class="option-icon" />
                                 <span>文本</span>
                               </span>
                             </a-select-option>
                             <a-select-option value="number">
                               <span class="option-content">
-                                <span class="option-icon">🔢</span>
+                                <NumberOutlined class="option-icon" />
                                 <span>数字</span>
                               </span>
                             </a-select-option>
                             <a-select-option value="boolean">
                               <span class="option-content">
-                                <span class="option-icon">✓</span>
+                                <CheckOutlined class="option-icon" />
                                 <span>布尔值</span>
                               </span>
                             </a-select-option>
@@ -212,7 +212,7 @@
           </ConfigSection>
 
           <!-- 3. 知识库 -->
-          <ConfigSection title="知识库" icon="book">
+          <ConfigSection title="知识库" icon="book" :defaultCollapsed="true">
             <div class="knowledge-config">
               <div class="config-toggle">
                 <div class="toggle-info">
@@ -260,7 +260,7 @@
           </ConfigSection>
 
           <!-- 4. 工具配置 -->
-          <ConfigSection title="工具" icon="tool">
+          <ConfigSection title="工具" icon="tool" :defaultCollapsed="true">
             <div class="tools-config">
               <div class="tools-list">
                 <div
@@ -508,6 +508,11 @@
     SettingOutlined,
     PlusOutlined,
     DeleteOutlined,
+    InfoCircleOutlined,
+    UserOutlined,
+    FileTextOutlined,
+    NumberOutlined,
+    CheckOutlined,
   } from '@ant-design/icons-vue'
   import cloneDeep from 'lodash-es/cloneDeep'
   import ConfigSection from './ConfigSection.vue'
@@ -1379,16 +1384,17 @@
     overflow: hidden;
   }
 
-  /* 顶部工具栏 */
+  /* 顶部工具栏 - Dify 风格 */
   .editor-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 20px;
-    height: 56px;
+    padding: 0 24px;
+    height: 60px;
     background: #ffffff;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid #eaecf0;
     flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
   }
 
   .toolbar-left {
@@ -1436,17 +1442,22 @@
   }
 
   .app-name {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
-    color: #111827;
+    color: #101828;
     line-height: 1.5;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: -0.01em;
   }
 
   .status-tag {
     margin: 0;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 6px;
   }
 
   .toolbar-center {
@@ -1472,10 +1483,28 @@
   }
 
   .toolbar-right .ant-btn {
-    height: 32px;
+    height: 34px;
     padding: 0 16px;
     font-size: 13px;
-    border-radius: 4px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .toolbar-right .ant-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .toolbar-right .ant-btn-primary {
+    background: #155eef;
+    border-color: #155eef;
+    box-shadow: 0 1px 2px rgba(21, 94, 239, 0.2);
+  }
+
+  .toolbar-right .ant-btn-primary:hover {
+    background: #1849e0;
+    border-color: #1849e0;
+    box-shadow: 0 2px 4px rgba(21, 94, 239, 0.3);
   }
 
   /* 主内容区 */
@@ -1487,7 +1516,7 @@
     overflow: hidden;
   }
 
-  /* 左侧配置区 */
+  /* 左侧配置区 - Dify 风格 */
   .config-panel {
     position: absolute;
     top: 0;
@@ -1497,9 +1526,9 @@
     overflow-y: auto;
     overflow-x: hidden;
     background: #f9fafb;
-    border-right: 1px solid #e5e7eb;
+    border-right: 1px solid #eaecf0;
     z-index: 1;
-    padding: 0 16px 16px 16px;
+    padding: 0 20px 20px 20px;
   }
 
   .config-alert {
@@ -1521,7 +1550,15 @@
   .field-hint {
     margin-top: 4px;
     font-size: 12px;
-    color: #6b7280;
+    color: #475467;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .hint-icon {
+    font-size: 13px;
+    color: #98a2b3;
   }
 
   .temperature-display {
@@ -1563,14 +1600,14 @@
   }
 
   .toggle-title {
-    font-weight: 600;
-    color: #111827;
+    font-weight: 500;
+    color: #101828;
     font-size: 14px;
   }
 
   .toggle-desc {
     font-size: 12px;
-    color: #6b7280;
+    color: #475467;
   }
 
   /* 工具配置 */
@@ -1590,22 +1627,25 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
+    padding: 14px 16px;
+    border: 1px solid #eaecf0;
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     background: #ffffff;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
   }
 
   .tool-item:hover {
-    border-color: #1890ff;
-    background: #f0f7ff;
+    border-color: #155eef;
+    background: #f5f9ff;
+    box-shadow: 0 2px 4px rgba(16, 24, 40, 0.06);
   }
 
   .tool-item.active {
-    border-color: #1890ff;
-    background: #e6f4ff;
+    border-color: #155eef;
+    background: #eff8ff;
+    box-shadow: 0 0 0 3px rgba(21, 94, 239, 0.1);
   }
 
   .tool-main {
@@ -1617,13 +1657,13 @@
 
   .tool-icon {
     font-size: 20px;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f9fafb;
-    border-radius: 6px;
+    background: #f2f4f7;
+    border-radius: 8px;
   }
 
   .tool-info {
@@ -1631,14 +1671,14 @@
   }
 
   .tool-name {
-    font-weight: 600;
-    color: #111827;
+    font-weight: 500;
+    color: #101828;
     font-size: 14px;
   }
 
   .tool-desc {
     font-size: 12px;
-    color: #6b7280;
+    color: #475467;
     margin-top: 2px;
   }
 
@@ -1649,10 +1689,11 @@
   }
 
   .tool-param-card {
-    padding: 16px;
+    padding: 16px 18px;
     background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
+    border: 1px solid #eaecf0;
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
   }
 
   .param-header {
@@ -1673,19 +1714,19 @@
   }
 
   .field-label {
-    font-weight: 600;
+    font-weight: 500;
     font-size: 13px;
-    color: #111827;
+    color: #344054;
   }
 
   .field-label .required {
-    color: #dc2626;
+    color: #f04438;
     margin-left: 2px;
   }
 
   .field-desc {
     font-size: 12px;
-    color: #6b7280;
+    color: #475467;
   }
 
   .field-input {
@@ -1710,16 +1751,16 @@
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    padding: 16px 18px;
-    background: linear-gradient(135deg, #f0f7ff 0%, #f9fafb 100%);
+    padding: 14px 16px;
+    background: #eff8ff;
     border-radius: 10px;
-    border: 1px solid #e6f4ff;
-    box-shadow: 0 1px 3px rgba(24, 144, 255, 0.08);
+    border: 1px solid #b2ddff;
 
     .desc-icon {
-      font-size: 20px;
+      font-size: 18px;
       flex-shrink: 0;
       margin-top: 2px;
+      color: #155eef;
     }
 
     .desc-content {
@@ -1733,22 +1774,20 @@
 
     .desc-text {
       font-size: 13px;
-      color: #595959;
+      color: #475467;
     }
 
     .desc-code {
       display: inline-flex;
       align-items: center;
-      padding: 3px 10px;
-      background: linear-gradient(135deg, #e6f4ff 0%, #d6e4ff 100%);
-      border: 1px solid #91caff;
+      padding: 2px 8px;
+      background: #ffffff;
+      border: 1px solid #d0d5dd;
       border-radius: 6px;
       font-family: 'JetBrains Mono', 'Monaco', 'Menlo', monospace;
       font-size: 12px;
-      font-weight: 600;
-      color: #0958d9;
-      letter-spacing: 0.3px;
-      box-shadow: 0 1px 2px rgba(24, 144, 255, 0.1);
+      font-weight: 500;
+      color: #155eef;
     }
   }
 
@@ -1761,16 +1800,15 @@
   .user-input-item {
     padding: 20px;
     background: #ffffff;
-    border: 2px solid #e5e7eb;
+    border: 1px solid #eaecf0;
     border-radius: 12px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
 
     &:hover {
-      border-color: #1890ff;
-      background: linear-gradient(135deg, #ffffff 0%, #f9fcff 100%);
-      box-shadow: 0 4px 12px rgba(24, 144, 255, 0.12);
-      transform: translateY(-1px);
+      border-color: #155eef;
+      background: #f5f9ff;
+      box-shadow: 0 4px 12px rgba(21, 94, 239, 0.08);
     }
   }
 
@@ -1778,9 +1816,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 2px solid #f0f0f0;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #eaecf0;
 
     .header-left {
       display: flex;
@@ -1792,46 +1830,42 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+      width: 28px;
+      height: 28px;
+      background: #155eef;
       color: white;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 14px;
-      box-shadow: 0 2px 8px rgba(24, 144, 255, 0.25);
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
     }
 
     .input-title {
       font-weight: 600;
-      font-size: 15px;
-      color: #262626;
-      letter-spacing: 0.3px;
+      font-size: 14px;
+      color: #101828;
     }
 
     .required-badge {
       display: inline-flex;
       align-items: center;
-      padding: 3px 10px;
-      background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
+      padding: 2px 8px;
+      background: #f04438;
       color: white;
       font-size: 11px;
-      font-weight: 600;
-      border-radius: 12px;
-      letter-spacing: 0.5px;
-      box-shadow: 0 2px 6px rgba(255, 77, 79, 0.25);
+      font-weight: 500;
+      border-radius: 4px;
     }
 
     .delete-btn {
-      color: #ff4d4f;
+      color: #f04438;
       font-weight: 500;
-      border-radius: 8px;
-      padding: 4px 12px;
-      transition: all 0.2s;
+      border-radius: 6px;
+      padding: 4px 10px;
+      transition: all 0.2s ease;
 
       &:hover {
-        background: #fff1f0;
-        color: #cf1322;
+        background: #fef3f2;
+        color: #d92d20;
       }
 
       :deep(.anticon) {
@@ -1849,20 +1883,20 @@
   }
 
   .form-item-enhanced {
-    margin-bottom: 18px;
+    margin-bottom: 16px;
 
     &:last-child {
       margin-bottom: 0;
     }
 
     :deep(.ant-form-item-label) {
-      padding-bottom: 8px;
+      padding-bottom: 6px;
 
       > label {
         font-size: 13px;
-        font-weight: 600;
-        color: #262626;
-        letter-spacing: 0.2px;
+        font-weight: 500;
+        color: #344054;
+        letter-spacing: 0.1px;
 
         &::before {
           display: none !important;
@@ -1875,18 +1909,18 @@
   .enhanced-select,
   .enhanced-textarea {
     border-radius: 8px;
-    border: 2px solid #e8e8e8;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid #d0d5dd;
+    transition: all 0.2s ease;
     font-size: 13px;
 
     &:hover {
-      border-color: #d9d9d9;
+      border-color: #98a2b3;
     }
 
     &:focus,
     &:focus-within {
-      border-color: #1890ff;
-      box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.08);
+      border-color: #155eef;
+      box-shadow: 0 0 0 3px rgba(21, 94, 239, 0.1);
     }
 
     :deep(.ant-input),
@@ -1905,8 +1939,13 @@
 
   .input-prefix {
     font-size: 14px;
-    color: #8c8c8c;
+    color: #98a2b3;
     margin-right: 4px;
+  }
+
+  .input-prefix-icon {
+    font-size: 14px;
+    color: #98a2b3;
   }
 
   .option-content {
@@ -1916,6 +1955,7 @@
 
     .option-icon {
       font-size: 14px;
+      color: #475467;
     }
   }
 
@@ -1930,15 +1970,15 @@
   .checkbox-wrapper {
     display: flex;
     align-items: center;
-    padding: 8px 12px;
-    background: #fafafa;
+    padding: 10px 14px;
+    background: #f9fafb;
     border-radius: 8px;
-    border: 2px solid #f0f0f0;
-    transition: all 0.2s;
+    border: 1px solid #eaecf0;
+    transition: all 0.2s ease;
 
     &:hover {
-      background: #f0f7ff;
-      border-color: #91caff;
+      background: #f5f9ff;
+      border-color: #155eef;
     }
   }
 
@@ -1948,14 +1988,14 @@
     }
 
     :deep(.ant-checkbox-checked .ant-checkbox-inner) {
-      background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
-      border-color: #1890ff;
+      background: #155eef;
+      border-color: #155eef;
     }
 
     .checkbox-label {
       font-size: 13px;
       font-weight: 500;
-      color: #262626;
+      color: #344054;
       margin-left: 4px;
     }
   }
