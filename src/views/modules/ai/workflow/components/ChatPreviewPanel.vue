@@ -282,10 +282,15 @@
               <!-- 消息操作 -->
               <div v-if="!msg.loading" class="message-actions">
                 <Button size="small" type="text" @click="copyMessage(msg.content)">
-                  <template #icon>
-                    <CopyOutlined />
-                  </template>
+                  <CopyOutlined />
                 </Button>
+                <!-- 语音播放按钮 -->
+                <AudioPlayBtn
+                  v-if="textToSpeechEnabled && msg.content"
+                  :app-id="Number(appId)"
+                  :message-id="msg.id || String(msg.timestamp)"
+                  :content="msg.content"
+                />
               </div>
             </div>
           </div>
@@ -326,6 +331,14 @@
     <!-- 输入区域 -->
     <div class="chat-input-container">
       <div class="input-wrapper">
+        <!-- 语音输入按钮 -->
+        <VoiceInputBtn
+          v-if="speechToTextEnabled"
+          :app-id="Number(appId)"
+          :disabled="isSending || !conversationManager.hasConversation.value"
+          @text-received="onVoiceTextReceived"
+          @error="onVoiceError"
+        />
         <a-textarea
           ref="inputRef"
           v-model:value="inputMessage"
@@ -396,6 +409,7 @@
   import { useChatflowExecution } from '../composables/useChatflowExecution'
   import { updateName } from '/@/api/ai/conversation/AiConversationsIndex'
   import MarkdownRenderer from './MarkdownRenderer.vue'
+  import { VoiceInputBtn, AudioPlayBtn } from '/@/components/Audio'
 
   interface UserInput {
     name: string
@@ -489,6 +503,34 @@
     // 只有在没有loading消息时才显示思考提示
     return !hasLoadingMessage
   })
+
+  // ==================== 语音功能配置 ====================
+
+  /**
+   * 是否启用语音转文字
+   * TODO: 从应用配置中读取
+   */
+  const speechToTextEnabled = ref(true)
+
+  /**
+   * 是否启用文字转语音
+   * TODO: 从应用配置中读取
+   */
+  const textToSpeechEnabled = ref(true)
+
+  /**
+   * 语音转文字回调
+   */
+  const onVoiceTextReceived = (text: string) => {
+    inputMessage.value = text
+  }
+
+  /**
+   * 语音错误回调
+   */
+  const onVoiceError = (error: string) => {
+    message.error(error)
+  }
 
   // ==================== 方法 ====================
 

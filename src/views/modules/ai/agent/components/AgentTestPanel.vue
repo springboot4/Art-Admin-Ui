@@ -274,10 +274,15 @@
                 </div>
                 <div v-if="item.status === 'done' && item.content" class="message-actions">
                   <a-button size="small" type="text" @click="copyMessage(item.content || '')">
-                    <template #icon>
-                      <CopyOutlined />
-                    </template>
+                    <CopyOutlined />
                   </a-button>
+                  <!-- 语音播放按钮 -->
+                  <AudioPlayBtn
+                    v-if="textToSpeechEnabled"
+                    :app-id="Number(appId)"
+                    :message-id="item.id"
+                    :content="item.content || ''"
+                  />
                 </div>
                 <div v-if="item.status === 'error'" class="message-error">生成失败</div>
               </div>
@@ -309,6 +314,14 @@
 
     <div class="chat-input-container">
       <div class="input-wrapper">
+        <!-- 语音输入按钮 -->
+        <VoiceInputBtn
+          v-if="speechToTextEnabled"
+          :app-id="Number(appId)"
+          :disabled="isInputDisabled"
+          @text-received="onVoiceTextReceived"
+          @error="onVoiceError"
+        />
         <a-textarea
           v-model:value="inputValue"
           :auto-size="{ minRows: 1, maxRows: 4 }"
@@ -376,6 +389,7 @@
   import MarkdownRenderer from '../../workflow/components/MarkdownRenderer.vue'
   import PlanSteps from './PlanSteps.vue'
   import ToolExecutionProgress from './ToolExecutionProgress.vue'
+  import { VoiceInputBtn, AudioPlayBtn } from '/@/components/Audio'
 
   interface Props {
     agentId: string
@@ -441,6 +455,10 @@
   const isEditingName = ref(false)
   const editingName = ref('')
   const nameInputRef = ref()
+
+  // Voice feature configuration
+  const speechToTextEnabled = ref(true)
+  const textToSpeechEnabled = ref(true)
 
   const { isRunning, lastError, runAgent, stop } = useAgentRunner()
   const streamingMessage = ref<TimelineItem | null>(null)
@@ -1048,6 +1066,15 @@ ${friendlyError}`
       event.preventDefault()
       handleSend()
     }
+  }
+
+  // Voice event handlers
+  function onVoiceTextReceived(text: string) {
+    inputValue.value = text
+  }
+
+  function onVoiceError(error: string) {
+    message.error(error)
   }
 
   onMounted(() => {
